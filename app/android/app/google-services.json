@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "557477536716",
+    "project_id": "symbians-820b0",
+    "storage_bucket": "symbians-820b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557477536716:android:4fff2483e942ac3d113369",
+        "android_client_info": {
+          "package_name": "ng.anto.symbians.sol"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCotmVFYdZqdZthXQZe9is9vmS7pz-TqsI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
