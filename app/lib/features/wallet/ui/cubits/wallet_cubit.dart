@@ -8,6 +8,7 @@ import 'package:solana/solana.dart';
 import 'package:solana_mobile_client/solana_mobile_client.dart';
 
 import 'package:symbians/core/constants/app_constants.dart';
+import 'package:symbians/features/shared/data/api_repository.dart';
 import 'package:symbians/features/wallet/domain/entities/wallet_balance.dart';
 import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
 
@@ -15,7 +16,8 @@ import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
 ///
 /// Uses [HydratedCubit] to persist the connected wallet address across restarts.
 /// Balances are always re-fetched from the Solana RPC on startup.
-class WalletCubit extends HydratedCubit<WalletState> {
+/// Also signs sign-in messages and swap transactions for [ApiRepository].
+class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
   WalletCubit() : super(const WalletState()) {
     _setupSolanaClient();
     // If we have a persisted address, refresh balances immediately.
@@ -47,7 +49,7 @@ class WalletCubit extends HydratedCubit<WalletState> {
       final result = await client.authorize(
         identityUri: Uri.parse('https://symbians.titalabs.xyz'),
         iconUri: Uri.parse('favicon.png'),
-        identityName: 'Symbians',
+        identityName: 'Formation',
         cluster: 'mainnet-beta',
       );
 
@@ -215,6 +217,57 @@ class WalletCubit extends HydratedCubit<WalletState> {
     }
 
     return balances;
+  }
+
+  // ── Signing ──────────────────────────────────────────────────────────────────
+
+  @override
+  String get walletAddress => state.walletAddress ?? '';
+
+  @override
+  Future<Uint8List> signMessage(Uint8List message) => _withWallet((client) async {
+        final result = await client.signMessages(
+          messages: [message],
+          addresses: [Uint8List.fromList(base58decode(walletAddress))],
+        );
+        final signatures = result.signedMessages.firstOrNull?.signatures ?? const [];
+        if (signatures.isEmpty) throw StateError('Sign-in was rejected in your wallet');
+        return signatures.first;
+      });
+
+  @override
+  Future<String> signAndSendTransaction(Uint8List transaction) => _withWallet((client) async {
+        final result = await client.signAndSendTransactions(transactions: [transaction]);
+        if (result.signatures.isEmpty) throw StateError('Transaction was rejected in your wallet');
+        return base58encode(result.signatures.first);
+      });
+
+  /// Opens an MWA session, (re)authorizes, runs [action], and closes.
+  Future<T> _withWallet<T>(Future<T> Function(MobileWalletAdapterClient client) action) async {
+    final session = await LocalAssociationScenario.create();
+    session.startActivityForResult(null).ignore();
+    try {
+      final client = await session.start();
+      final token = state.authToken;
+      final auth = token == null
+          ? await client.authorize(
+              identityUri: Uri.parse('https://symbians.titalabs.xyz'),
+              iconUri: Uri.parse('favicon.png'),
+              identityName: 'Formation',
+              cluster: 'mainnet-beta',
+            )
+          : await client.reauthorize(
+              identityUri: Uri.parse('https://symbians.titalabs.xyz'),
+              iconUri: Uri.parse('favicon.png'),
+              identityName: 'Formation',
+              authToken: token,
+            );
+      if (auth == null) throw StateError('Wallet authorization was cancelled');
+      emit(state.copyWith(authToken: auth.authToken));
+      return await action(client);
+    } finally {
+      await session.close();
+    }
   }
 
   // ── Formatting helper ─────────────────────────────────────────────────────

@@ -2,13 +2,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/route/app_route.dart';
 import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/agent/ui/pages/agent_tab_page.dart';
-import 'package:symbians/features/profile/ui/pages/profile_tab_page.dart';
-import 'package:symbians/features/strategy/ui/pages/strategy_marketplace_page.dart';
+import 'package:symbians/features/shared/domain/models.dart';
+import 'package:symbians/features/sport/ui/pages/sport_page.dart';
 
-/// Home page - main shell with bottom navigation.
+/// Home page - main shell with one bottom navigation tab per sport.
 @RoutePage()
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,13 +16,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    AgentTabPage(),
-    StrategyMarketplacePage(),
-    ProfileTabPage(),
+  static const _modes = [
+    SportMode.football,
+    SportMode.basketball,
+    SportMode.americanFootball,
   ];
+
+  int _currentIndex = 0;
 
   void _onTabSelected(int index) {
     setState(() => _currentIndex = index);
@@ -35,8 +33,8 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: IndexedStack(
-        index: _currentIndex,// == 1 ? 0 : _currentIndex,
-        children: _pages,
+        index: _currentIndex,
+        children: [for (final mode in _modes) SportPage(mode: mode)],
       ),
       extendBody: true,
       bottomNavigationBar: CrystalNavigationBar(
@@ -50,21 +48,12 @@ class _HomePageState extends State<HomePage> {
         indicatorColor: Colors.transparent,
         margin: EdgeInsets.zero,
         items: [
-          CrystalNavigationBarItem(
-            icon: Icons.smart_toy_outlined,
-            selectedColor: AppColors.primary,
-            unselectedColor: AppColors.textMuted,
-          ),
-          CrystalNavigationBarItem(
-            icon: Icons.store_outlined,
-            selectedColor: AppColors.primary,
-            unselectedColor: AppColors.textMuted,
-          ),
-          CrystalNavigationBarItem(
-            icon: Icons.person_outline,
-            selectedColor: AppColors.primary,
-            unselectedColor: AppColors.textMuted,
-          ),
+          for (final mode in _modes)
+            CrystalNavigationBarItem(
+              icon: mode.icon,
+              selectedColor: AppColors.primary,
+              unselectedColor: AppColors.textMuted,
+            ),
         ],
       ),
     );

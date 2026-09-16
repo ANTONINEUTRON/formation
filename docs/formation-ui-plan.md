@@ -186,7 +186,7 @@ class Trophy { String id; String title; DateTime awardedAt; String? txSignature;
 | Mode | Slots | Layout |
 |---|---|---|
 | Basketball | 5: PG, SG, SF, PF, C | Half-court |
-| Football | 11: GK, 4×DEF, 3×MID, 3×FWD (4-3-3) | Vertical pitch |
+| Football | FPL squad of 15: 2 GK, 5 DEF, 5 MID, 3 FWD. Starting XI in any FPL formation (3-4-3 … 5-4-1), captain ×2, vice, ordered bench with like-for-like auto-subs | Vertical pitch + bench strip |
 | American Football | 9: QB, 2×RB, 3×WR, TE, FLEX, K | Field, offensive formation (stretch; Team tab shows "coming soon" until ready) |
 
 Tier mapping: GK/C = `blueChip`; DEF = `stable`; MID/SF/PF = `balanced`; PG/SG = `growth`;

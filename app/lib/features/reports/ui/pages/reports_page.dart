@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:symbians/core/theme/theme.dart';
 import 'package:symbians/features/reports/ui/widgets/feature_preview_card.dart';
 
-/// Reports page - shows agent trading reports and insights.
+/// Reports page - portfolio analytics, coming soon (premium tier).
 @RoutePage()
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
@@ -44,7 +44,7 @@ class ReportsPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Track your agent\'s performance, view trade history, PnL charts, and get AI-powered insights.',
+                'Deeper analytics for your teams: sector exposure, risk breakdown, and how every pick has performed.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
@@ -53,21 +53,21 @@ class ReportsPage extends StatelessWidget {
               const SizedBox(height: 32),
               // Feature preview cards
               FeaturePreviewCard(
+                icon: Icons.pie_chart_outline,
+                title: 'Sector Exposure',
+                description: 'What your lineup is really betting on',
+              ),
+              const SizedBox(height: 12),
+              FeaturePreviewCard(
+                icon: Icons.shield_outlined,
+                title: 'Risk Breakdown',
+                description: 'Volatility by position and tier',
+              ),
+              const SizedBox(height: 12),
+              FeaturePreviewCard(
                 icon: Icons.show_chart,
-                title: 'PnL Tracking',
-                description: 'Daily, weekly, monthly performance',
-              ),
-              const SizedBox(height: 12),
-              FeaturePreviewCard(
-                icon: Icons.history,
-                title: 'Trade History',
-                description: 'Every trade with entry reasons',
-              ),
-              const SizedBox(height: 12),
-              FeaturePreviewCard(
-                icon: Icons.lightbulb_outline,
-                title: 'AI Insights',
-                description: 'Strategy improvement suggestions',
+                title: 'Pick Performance',
+                description: 'Points contributed by every stock over time',
               ),
             ],
           ),

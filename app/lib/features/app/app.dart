@@ -7,8 +7,10 @@ import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:symbians/core/constants/app_constants.dart';
 import 'package:symbians/core/route/app_route.dart';
 import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/credits/ui/cubits/credits_cubit.dart';
 import 'package:symbians/features/onboarding/ui/pages/onboarding_page.dart';
+import 'package:symbians/features/shared/data/api_repository.dart';
+import 'package:symbians/features/shared/data/fixture_repository.dart';
+import 'package:symbians/features/shared/data/formation_repository.dart';
 import 'package:symbians/features/wallet/ui/cubits/wallet_cubit.dart';
 import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
 
@@ -34,7 +36,6 @@ class _MyAppState extends State<MyApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider<WalletCubit>(create: (_) => WalletCubit()),
-        BlocProvider<CreditsCubit>(create: (_) => CreditsCubit()),
       ],
       child: _AppGate(appRouter: _appRouter),
     );
@@ -74,6 +75,21 @@ class _ConnectedApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return RepositoryProvider<FormationRepository>(
+      // No API_URL dart-define means fixture mode: in-memory data, no backend.
+      create: (context) => AppConstants.apiUrl.isEmpty
+          ? FixtureRepository(
+              walletAddress: context.read<WalletCubit>().state.walletAddress ?? '',
+            )
+          : ApiRepository(
+              baseUrl: AppConstants.apiUrl,
+              signer: context.read<WalletCubit>(),
+            ),
+      child: _toastWrapped(),
+    );
+  }
+
+  Widget _toastWrapped() {
     return StyledToast(
       textStyle: const TextStyle(
         fontSize: 14,

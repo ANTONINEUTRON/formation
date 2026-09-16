@@ -1,0 +1,50 @@
+import 'dart:async';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:symbians/core/utils/format.dart';
+import 'package:symbians/features/shared/data/formation_repository.dart';
+import 'package:symbians/features/shared/domain/load_status.dart';
+import 'package:symbians/features/shared/domain/models.dart';
+import 'package:symbians/features/team/ui/cubits/team_state.dart';
+
+/// The signed-in user's live roster for one sport mode.
+class TeamCubit extends Cubit<TeamState> {
+  TeamCubit({required FormationRepository repository, required this.mode})
+      : _repository = repository,
+        super(const TeamState()) {
+    _changes = _repository.changes.listen((_) => load(silent: true));
+  }
+
+  final FormationRepository _repository;
+  final SportMode mode;
+  late final StreamSubscription<void> _changes;
+
+  Future<void> load({bool silent = false}) async {
+    if (!silent) emit(state.copyWith(status: LoadStatus.loading));
+    try {
+      final roster = await _repository.getRoster(mode);
+      if (isClosed) return;
+      emit(state.copyWith(status: LoadStatus.success, roster: roster));
+    } catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(status: LoadStatus.failure, error: errorText(e)));
+    }
+  }
+
+  /// Debug-only: runs the hourly scoring tick immediately.
+  Future<void> runTick() async {
+    emit(state.copyWith(isTicking: true));
+    try {
+      await _repository.runTick();
+    } finally {
+      if (!isClosed) emit(state.copyWith(isTicking: false));
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _changes.cancel();
+    return super.close();
+  }
+}

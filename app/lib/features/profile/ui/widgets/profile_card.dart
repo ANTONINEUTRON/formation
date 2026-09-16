@@ -1,9 +1,15 @@
-
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+
 import 'package:symbians/core/theme/theme.dart';
+import 'package:symbians/core/utils/format.dart';
 import 'package:symbians/features/profile/ui/widgets/icon_action.dart';
 
 class ProfileCard extends StatelessWidget {
+  const ProfileCard({required this.walletAddress, super.key});
+
+  final String walletAddress;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -14,7 +20,6 @@ class ProfileCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Avatar
           Container(
@@ -38,7 +43,7 @@ class ProfileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'John Doe',
+                  shortAddress(walletAddress),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
@@ -46,14 +51,7 @@ class ProfileCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '@johndoe',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Joined April 2026',
+                  'Formation player',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -62,26 +60,12 @@ class ProfileCard extends StatelessWidget {
             ),
           ),
 
-          // Action icons
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconAction(
-                icon: Icons.edit_outlined,
-                tooltip: 'Edit profile',
-                onTap: () {
-                  // TODO: Edit profile
-                },
-              ),
-              const SizedBox(width: 4),
-              IconAction(
-                icon: Icons.share_rounded,
-                tooltip: 'Share profile',
-                onTap: () {
-                  // TODO: Share profile
-                },
-              ),
-            ],
+          IconAction(
+            icon: Icons.share_rounded,
+            tooltip: 'Share profile',
+            onTap: () => SharePlus.instance.share(ShareParams(
+              text: 'Challenge me on Formation, fantasy sports with real stocks. My wallet: $walletAddress',
+            )),
           ),
         ],
       ),

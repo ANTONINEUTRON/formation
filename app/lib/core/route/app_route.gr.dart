@@ -11,163 +11,172 @@
 part of 'app_route.dart';
 
 /// generated route for
-/// [AgentChatPage]
-class AgentChatRoute extends PageRouteInfo<AgentChatRouteArgs> {
-  AgentChatRoute({
+/// [CreateDuelPage]
+class CreateDuelRoute extends PageRouteInfo<CreateDuelRouteArgs> {
+  CreateDuelRoute({
+    required SportMode mode,
+    String? initialOpponent,
     Key? key,
-    required String agentId,
-    required String agentName,
     List<PageRouteInfo>? children,
   }) : super(
-         AgentChatRoute.name,
-         args: AgentChatRouteArgs(
+         CreateDuelRoute.name,
+         args: CreateDuelRouteArgs(
+           mode: mode,
+           initialOpponent: initialOpponent,
            key: key,
-           agentId: agentId,
-           agentName: agentName,
          ),
          initialChildren: children,
        );
 
-  static const String name = 'AgentChatRoute';
+  static const String name = 'CreateDuelRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      final args = data.argsAs<AgentChatRouteArgs>();
-      return AgentChatPage(
+      final args = data.argsAs<CreateDuelRouteArgs>();
+      return CreateDuelPage(
+        mode: args.mode,
+        initialOpponent: args.initialOpponent,
         key: args.key,
-        agentId: args.agentId,
-        agentName: args.agentName,
       );
     },
   );
 }
 
-class AgentChatRouteArgs {
-  const AgentChatRouteArgs({
+class CreateDuelRouteArgs {
+  const CreateDuelRouteArgs({
+    required this.mode,
+    this.initialOpponent,
     this.key,
-    required this.agentId,
-    required this.agentName,
   });
+
+  final SportMode mode;
+
+  final String? initialOpponent;
 
   final Key? key;
 
-  final String agentId;
-
-  final String agentName;
-
   @override
   String toString() {
-    return 'AgentChatRouteArgs{key: $key, agentId: $agentId, agentName: $agentName}';
+    return 'CreateDuelRouteArgs{mode: $mode, initialOpponent: $initialOpponent, key: $key}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! AgentChatRouteArgs) return false;
-    return key == other.key &&
-        agentId == other.agentId &&
-        agentName == other.agentName;
+    if (other is! CreateDuelRouteArgs) return false;
+    return mode == other.mode &&
+        initialOpponent == other.initialOpponent &&
+        key == other.key;
   }
 
   @override
-  int get hashCode => key.hashCode ^ agentId.hashCode ^ agentName.hashCode;
+  int get hashCode => mode.hashCode ^ initialOpponent.hashCode ^ key.hashCode;
 }
 
 /// generated route for
-/// [AgentConfigPage]
-class AgentConfigRoute extends PageRouteInfo<AgentConfigRouteArgs> {
-  AgentConfigRoute({
+/// [DraftBoardPage]
+class DraftBoardRoute extends PageRouteInfo<DraftBoardRouteArgs> {
+  DraftBoardRoute({
+    required SportMode mode,
     Key? key,
-    required String agentId,
-    required String agentName,
     List<PageRouteInfo>? children,
   }) : super(
-         AgentConfigRoute.name,
-         args: AgentConfigRouteArgs(
-           key: key,
-           agentId: agentId,
-           agentName: agentName,
-         ),
+         DraftBoardRoute.name,
+         args: DraftBoardRouteArgs(mode: mode, key: key),
          initialChildren: children,
        );
 
-  static const String name = 'AgentConfigRoute';
+  static const String name = 'DraftBoardRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      final args = data.argsAs<AgentConfigRouteArgs>();
-      return AgentConfigPage(
+      final args = data.argsAs<DraftBoardRouteArgs>();
+      return DraftBoardPage(mode: args.mode, key: args.key);
+    },
+  );
+}
+
+class DraftBoardRouteArgs {
+  const DraftBoardRouteArgs({required this.mode, this.key});
+
+  final SportMode mode;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'DraftBoardRouteArgs{mode: $mode, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DraftBoardRouteArgs) return false;
+    return mode == other.mode && key == other.key;
+  }
+
+  @override
+  int get hashCode => mode.hashCode ^ key.hashCode;
+}
+
+/// generated route for
+/// [DuelDetailPage]
+class DuelDetailRoute extends PageRouteInfo<DuelDetailRouteArgs> {
+  DuelDetailRoute({
+    required String duelId,
+    required SportMode mode,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         DuelDetailRoute.name,
+         args: DuelDetailRouteArgs(duelId: duelId, mode: mode, key: key),
+         initialChildren: children,
+       );
+
+  static const String name = 'DuelDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<DuelDetailRouteArgs>();
+      return DuelDetailPage(
+        duelId: args.duelId,
+        mode: args.mode,
         key: args.key,
-        agentId: args.agentId,
-        agentName: args.agentName,
       );
     },
   );
 }
 
-class AgentConfigRouteArgs {
-  const AgentConfigRouteArgs({
+class DuelDetailRouteArgs {
+  const DuelDetailRouteArgs({
+    required this.duelId,
+    required this.mode,
     this.key,
-    required this.agentId,
-    required this.agentName,
   });
+
+  final String duelId;
+
+  final SportMode mode;
 
   final Key? key;
 
-  final String agentId;
-
-  final String agentName;
-
   @override
   String toString() {
-    return 'AgentConfigRouteArgs{key: $key, agentId: $agentId, agentName: $agentName}';
+    return 'DuelDetailRouteArgs{duelId: $duelId, mode: $mode, key: $key}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! AgentConfigRouteArgs) return false;
-    return key == other.key &&
-        agentId == other.agentId &&
-        agentName == other.agentName;
+    if (other is! DuelDetailRouteArgs) return false;
+    return duelId == other.duelId && mode == other.mode && key == other.key;
   }
 
   @override
-  int get hashCode => key.hashCode ^ agentId.hashCode ^ agentName.hashCode;
-}
-
-/// generated route for
-/// [AgentTypeSelectorPage]
-class AgentTypeSelectorRoute extends PageRouteInfo<void> {
-  const AgentTypeSelectorRoute({List<PageRouteInfo>? children})
-    : super(AgentTypeSelectorRoute.name, initialChildren: children);
-
-  static const String name = 'AgentTypeSelectorRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const AgentTypeSelectorPage();
-    },
-  );
-}
-
-/// generated route for
-/// [CreateAgentPage]
-class CreateAgentRoute extends PageRouteInfo<void> {
-  const CreateAgentRoute({List<PageRouteInfo>? children})
-    : super(CreateAgentRoute.name, initialChildren: children);
-
-  static const String name = 'CreateAgentRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const CreateAgentPage();
-    },
-  );
+  int get hashCode => duelId.hashCode ^ mode.hashCode ^ key.hashCode;
 }
 
 /// generated route for
@@ -203,6 +212,22 @@ class NotificationsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [ProfilePage]
+class ProfileRoute extends PageRouteInfo<void> {
+  const ProfileRoute({List<PageRouteInfo>? children})
+    : super(ProfileRoute.name, initialChildren: children);
+
+  static const String name = 'ProfileRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ProfilePage();
+    },
+  );
+}
+
+/// generated route for
 /// [ReportsPage]
 class ReportsRoute extends PageRouteInfo<void> {
   const ReportsRoute({List<PageRouteInfo>? children})
@@ -214,22 +239,6 @@ class ReportsRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const ReportsPage();
-    },
-  );
-}
-
-/// generated route for
-/// [StrategyMarketplacePage]
-class StrategyMarketplaceRoute extends PageRouteInfo<void> {
-  const StrategyMarketplaceRoute({List<PageRouteInfo>? children})
-    : super(StrategyMarketplaceRoute.name, initialChildren: children);
-
-  static const String name = 'StrategyMarketplaceRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const StrategyMarketplacePage();
     },
   );
 }
