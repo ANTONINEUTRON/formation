@@ -9,6 +9,7 @@ import 'package:symbians/core/utils/format.dart';
 import 'package:symbians/core/widgets/loading_indicator.dart';
 import 'package:symbians/features/duel/ui/cubits/duel_cubit.dart';
 import 'package:symbians/features/duel/ui/cubits/duel_state.dart';
+import 'package:symbians/features/duel/ui/widgets/category_scoreboard.dart';
 import 'package:symbians/features/duel/ui/widgets/duel_countdown.dart';
 import 'package:symbians/features/duel/ui/widgets/head_to_head_bar.dart';
 import 'package:symbians/features/duel/ui/widgets/trophy_award_dialog.dart';
@@ -25,7 +26,8 @@ class DuelDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DuelCubit(repository: context.read<FormationRepository>(), mode: mode)..load(),
+      create: (context) =>
+          DuelCubit(repository: context.read<FormationRepository>(), mode: mode)..load(),
       child: Scaffold(
         appBar: AppBar(title: Text('${mode.label} duel')),
         body: BlocBuilder<DuelCubit, DuelState>(
@@ -66,6 +68,7 @@ class _DuelDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showScores = duel.status == DuelStatus.active || duel.status == DuelStatus.settled;
+    final categories = duel.categories;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -75,7 +78,14 @@ class _DuelDetailBody extends StatelessWidget {
             Expanded(child: _Player(entry: duel.me, highlight: duel.iWon)),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('VS', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.textMuted)),
+              child: Text(
+                'VS',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textMuted,
+                ),
+              ),
             ),
             Expanded(
               child: _Player(
@@ -88,35 +98,74 @@ class _DuelDetailBody extends StatelessWidget {
         const SizedBox(height: 28),
         if (showScores)
           HeadToHeadBar(
-            myReturnPct: duel.myReturnPct ?? 0,
-            rivalReturnPct: duel.rivalReturnPct ?? 0,
+            myPoints: duel.myPoints,
+            rivalPoints: duel.rivalPoints,
             myLabel: 'You',
             rivalLabel: duel.rival.username,
             height: 16,
           ),
-        const SizedBox(height: 28),
+        if (categories != null && categories.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          CategoryScoreboard(
+            categories: categories,
+            viewerIsChallenger: duel.challenger.isCurrentUser,
+          ),
+        ],
+        const SizedBox(height: 24),
         _InfoRow(label: 'Duration', value: formatDuelDuration(duel.duration)),
         _InfoRow(label: 'Status', value: _statusText),
+        _InfoRow(
+          label: 'Decided on',
+          value: duel.mode == SportMode.basketball ? 'Categories' : 'Points',
+        ),
         if (duel.status == DuelStatus.active && duel.endTime != null)
           _InfoRow(label: 'Ends in', child: DuelCountdown(endTime: duel.endTime!)),
-        if (duel.startTime != null)
-          _InfoRow(label: 'Started', value: _time(duel.startTime!)),
+        if (duel.startTime != null) _InfoRow(label: 'Started', value: _time(duel.startTime!)),
         if (duel.status == DuelStatus.settled && duel.endTime != null)
           _InfoRow(label: 'Settled', value: _time(duel.endTime!)),
-        const SizedBox(height: 28),
+        if (duel.mySlots.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('Your picks', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          for (final slot in duel.mySlots)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    child: Text(
+                      slot.role,
+                      style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(slot.symbol, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  Text(
+                    formatSignedPoints(slot.total),
+                    style: AppTextStyles.mono(fontSize: 13, color: pnlColor(slot.total)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        const SizedBox(height: 24),
         if (duel.awaitingMyResponse)
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: isBusy ? null : () => _run(context, (c) => c.respond(duel.id, accept: false)),
+                  onPressed:
+                      isBusy ? null : () => _run(context, (c) => c.respond(duel.id, accept: false)),
                   child: const Text('Decline'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: isBusy ? null : () => _run(context, (c) => c.respond(duel.id, accept: true)),
+                  onPressed:
+                      isBusy ? null : () => _run(context, (c) => c.respond(duel.id, accept: true)),
                   child: const Text('Accept'),
                 ),
               ),
@@ -133,10 +182,15 @@ class _DuelDetailBody extends StatelessWidget {
   }
 
   String get _statusText => switch (duel.status) {
-        DuelStatus.pending => duel.awaitingMyResponse ? 'Waiting for you' : 'Waiting for opponent',
+        DuelStatus.pending =>
+          duel.awaitingMyResponse ? 'Waiting for you' : 'Waiting for opponent',
         DuelStatus.active => 'Live',
         DuelStatus.declined => 'Declined',
-        DuelStatus.settled => duel.iWon ? 'You won' : 'You lost',
+        DuelStatus.settled => duel.winnerId == null
+            ? 'Draw'
+            : duel.iWon
+                ? 'You won'
+                : 'You lost',
       };
 
   String _time(DateTime t) =>
@@ -171,7 +225,10 @@ class _Player extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        Text(shortAddress(entry.walletAddress), style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted)),
+        Text(
+          shortAddress(entry.walletAddress),
+          style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted),
+        ),
       ],
     );
   }
@@ -192,7 +249,11 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(label, style: const TextStyle(color: AppColors.textSecondary)),
           const Spacer(),
-          child ?? Text(value ?? '', style: AppTextStyles.mono(fontSize: 13, fontWeight: FontWeight.w600)),
+          child ??
+              Text(
+                value ?? '',
+                style: AppTextStyles.mono(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
         ],
       ),
     );

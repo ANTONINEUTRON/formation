@@ -1,0 +1,70 @@
+{
+  "id": "d2909a2f-6368-4702-8cca-2a049211ebe4",
+  "challenger": {
+    "rank": 0,
+    "userId": "1b049ba9-afab-4f66-9cb8-0b66db9ef276",
+    "username": "13U1…avVi",
+    "walletAddress": "13U1qVv7mBWneZfveSymPSpjvtF31akkk6oB87BoavVi",
+    "points": 0,
+    "gameweekPoints": 0,
+    "streak": 0,
+    "isCurrentUser": false
+  },
+  "opponent": {
+    "rank": 0,
+    "userId": "fcde68ac-17e2-4b13-8541-aa6c17b4fd6b",
+    "username": "ZbTG…yzyA",
+    "walletAddress": "ZbTGtnC2YrMhJcmE9a7oPprDX3PFAbJe1xgUvZ7yzyA",
+    "points": 0,
+    "gameweekPoints": 0,
+    "streak": 0,
+    "isCurrentUser": false
+  },
+  "mode": "basketball",
+  "durationHours": 1,
+  "status": "settled",
+  "startTime": "2026-01-05T12:00:00.000Z",
+  "endTime": "2026-01-05T13:01:00.000Z",
+  "challengerPoints": 60,
+  "opponentPoints": 0,
+  "categories": [
+    {
+      "code": "alpha",
+      "name": "Alpha",
+      "winner": "challenger",
+      "opponent": 0,
+      "challenger": 0.01
+    },
+    {
+      "code": "hitRate",
+      "name": "Hit rate",
+      "winner": "challenger",
+      "opponent": 0,
+      "challenger": 0.2
+    },
+    {
+      "code": "bestPick",
+      "name": "Best pick",
+      "winner": "challenger",
+      "opponent": 0,
+      "challenger": 0.05
+    },
+    {
+      "code": "defense",
+      "name": "Defense",
+      "winner": "tie",
+      "opponent": 0,
+      "challenger": 0
+    },
+    {
+      "code": "hotHand",
+      "name": "Hot hand",
+      "winner": "tie",
+      "opponent": 1,
+      "challenger": 1
+    }
+  ],
+  "challengerBreakdown": null,
+  "opponentBreakdown": null,
+  "winnerId": "1b049ba9-afab-4f66-9cb8-0b66db9ef276"
+}

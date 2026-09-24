@@ -56,26 +56,30 @@ class DuelCard extends StatelessWidget {
                   _statusTag(),
                 ],
               ),
-              if (duel.status == DuelStatus.active) ...[
+              if (duel.status == DuelStatus.active || duel.status == DuelStatus.settled) ...[
                 const SizedBox(height: 12),
                 HeadToHeadBar(
-                  myReturnPct: duel.myReturnPct ?? 0,
-                  rivalReturnPct: duel.rivalReturnPct ?? 0,
+                  myPoints: duel.myPoints,
+                  rivalPoints: duel.rivalPoints,
                   myLabel: 'You',
                   rivalLabel: duel.rival.username,
                 ),
+              ],
+              if (duel.status == DuelStatus.active && duel.endTime != null) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('Ends in ', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                    if (duel.endTime != null) DuelCountdown(endTime: duel.endTime!, fontSize: 12),
+                    const Text('Ends in ',
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    DuelCountdown(endTime: duel.endTime!, fontSize: 12),
                   ],
                 ),
               ],
               if (invite) ...[
                 const SizedBox(height: 10),
                 Text(
-                  '${duel.challenger.username} challenged you to a ${formatDuelDuration(duel.duration)} duel.',
+                  '${duel.challenger.username} challenged you to a '
+                  '${formatDuelDuration(duel.duration)} duel.',
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 10),
@@ -96,7 +100,10 @@ class DuelCard extends StatelessWidget {
                       child: FilledButton(
                         onPressed: isBusy ? null : onAccept,
                         child: isBusy
-                            ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
                             : const Text('Accept'),
                       ),
                     ),

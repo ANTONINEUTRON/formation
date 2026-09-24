@@ -12,11 +12,11 @@ import 'package:symbians/features/league/ui/cubits/league_cubit.dart';
 import 'package:symbians/features/shared/domain/load_status.dart';
 import 'package:symbians/features/team/ui/cubits/team_cubit.dart';
 import 'package:symbians/features/team/ui/cubits/team_state.dart';
-import 'package:symbians/features/team/ui/widgets/live_tick_indicator.dart';
+import 'package:symbians/features/team/ui/widgets/gameweek_bar.dart';
 import 'package:symbians/features/team/ui/widgets/lineup_section.dart';
 import 'package:symbians/features/team/ui/widgets/score_header.dart';
 
-/// Team tab: the user's roster for the page's sport, its score, and duels.
+/// Team tab: the user's team for this sport, its gameweek score, and duels.
 class TeamTab extends StatelessWidget {
   const TeamTab({super.key});
 
@@ -42,10 +42,9 @@ class TeamTab extends StatelessWidget {
         if (roster.isEmpty) {
           return EmptyState(
             icon: cubit.mode.icon,
-            message:
-                'You have no ${cubit.mode.label} team yet.\n'
-                'Draft ${roster.slots.length} xStocks into positions to join '
-                'the global league and start duelling.',
+            message: 'You have no ${cubit.mode.label} team yet.\n'
+                'Draft ${roster.slots.length} xStocks into positions to join the global league '
+                'and start duelling.',
             actionLabel: 'Draft your team',
             onAction: openDraft,
           );
@@ -60,16 +59,30 @@ class TeamTab extends StatelessWidget {
             children: [
               ScoreHeader(roster: roster, totalPlayers: totalPlayers),
               const SizedBox(height: 8),
-              LiveTickIndicator(
+              GameweekBar(
+                gameweek: roster.gameweek,
                 onRunTick: kDebugMode ? cubit.runTick : null,
-                isTicking: state.isTicking,
+                onAdvance: kDebugMode ? cubit.advanceGameweek : null,
+                isBusy: state.isTicking,
               ),
+              if (roster.pendingChanges) ...[
+                const SizedBox(height: 8),
+                const _Banner(
+                  icon: Icons.schedule,
+                  color: AppColors.warning,
+                  message: 'Your changes apply from the next gameweek. '
+                      'This one is scored on the team locked when it opened.',
+                ),
+              ],
               if (!roster.isComplete) ...[
                 const SizedBox(height: 8),
-                _IncompleteBanner(
-                  filled: roster.slots.where((s) => s.isFilled).length,
-                  total: roster.slots.length,
-                  onContinue: openDraft,
+                _Banner(
+                  icon: Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  message:
+                      '${roster.slots.where((s) => s.isFilled).length} of ${roster.slots.length} '
+                      'slots filled. Complete your team to score and duel.',
+                  action: TextButton(onPressed: openDraft, child: const Text('Continue')),
                 ),
               ],
               const SizedBox(height: 16),
@@ -84,31 +97,39 @@ class TeamTab extends StatelessWidget {
   }
 }
 
-class _IncompleteBanner extends StatelessWidget {
-  const _IncompleteBanner({required this.filled, required this.total, required this.onContinue});
+class _Banner extends StatelessWidget {
+  const _Banner({
+    required this.icon,
+    required this.color,
+    required this.message,
+    this.action,
+  });
 
-  final int filled;
-  final int total;
-  final VoidCallback onContinue;
+  final IconData icon;
+  final Color color;
+  final String message;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      padding: EdgeInsets.fromLTRB(14, action == null ? 10 : 6, action == null ? 14 : 6, action == null ? 10 : 6),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '$filled of $total slots filled. Complete your team to duel.',
+              message,
               style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             ),
           ),
-          TextButton(onPressed: onContinue, child: const Text('Continue')),
+          if (action != null) action!,
         ],
       ),
     );

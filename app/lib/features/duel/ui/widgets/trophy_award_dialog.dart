@@ -34,15 +34,28 @@ class TrophyAwardDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'You won!',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ).animate().fadeIn(delay: 300.ms),
             const SizedBox(height: 8),
             Text(
               'Your ${duel.mode.label} team beat ${duel.rival.username}\n'
-              '${formatPct(duel.myReturnPct ?? 0)} vs ${formatPct(duel.rivalReturnPct ?? 0)}',
+              '${formatSignedPoints(duel.myPoints)} vs ${formatSignedPoints(duel.rivalPoints)} points',
               textAlign: TextAlign.center,
               style: AppTextStyles.mono(fontSize: 13, color: AppColors.textSecondary),
             ).animate().fadeIn(delay: 450.ms),
+            if (duel.categories != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Categories '
+                '${duel.categories!.where((c) => c.winner == (duel.challenger.isCurrentUser ? 'challenger' : 'opponent')).length}'
+                ' – '
+                '${duel.categories!.where((c) => c.winner == (duel.challenger.isCurrentUser ? 'opponent' : 'challenger')).length}',
+                style: AppTextStyles.mono(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ],
             const SizedBox(height: 12),
             const Text(
               'A trophy has been recorded to your wallet.',

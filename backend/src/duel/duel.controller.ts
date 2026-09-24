@@ -3,7 +3,8 @@ import { AdminGuard, AuthGuard, CurrentUser } from '../auth/auth.guard.js';
 import type { AuthUser, DuelDto, TrophyDto } from '../domain/dto.js';
 import { parseSportMode } from '../domain/sport.js';
 import { requireNumber, requireString } from '../domain/validate.js';
-import { ScoringService } from '../scoring/scoring.service.js';
+import { GameweekService } from '../gameweek/gameweek.service.js';
+import { PriceTickService } from '../scoring/price-tick.service.js';
 import { TrophyService } from '../trophy/trophy.service.js';
 import { DuelService } from './duel.service.js';
 
@@ -52,18 +53,26 @@ export class TrophyController {
   }
 }
 
-/** Demo controls so the hourly tick and duel settlement can run on stage. */
+/** Demo controls so scoring can be driven on stage. */
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(
-    private readonly scoring: ScoringService,
+    private readonly priceTicks: PriceTickService,
+    private readonly gameweeks: GameweekService,
     private readonly duels: DuelService,
   ) {}
 
+  /** Records prices now, then opens, scores and closes gameweeks. */
   @Post('tick')
   tick() {
-    return this.scoring.runTick();
+    return this.priceTicks.tick();
+  }
+
+  /** Closes the current gameweek early and opens the next one. */
+  @Post('gameweeks/:mode/advance')
+  advance(@Param('mode') mode: string) {
+    return this.gameweeks.advance(parseSportMode(mode));
   }
 
   @Post('duels/:id/settle')

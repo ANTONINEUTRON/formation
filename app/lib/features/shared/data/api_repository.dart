@@ -7,7 +7,6 @@ import 'package:solana/base58.dart';
 
 import 'package:symbians/core/constants/app_constants.dart';
 import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 import 'package:symbians/features/shared/domain/roster_shapes.dart';
 
@@ -96,41 +95,24 @@ class ApiRepository implements FormationRepository {
     if (response.statusCode == 401 && auth) _token = null;
     if (response.statusCode >= 400) {
       final message = decoded is Map ? decoded['message'] : null;
-      throw StateError(message is List ? message.join(', ') : '${message ?? 'Request failed (${response.statusCode})'}');
+      throw StateError(message is List
+          ? message.join(', ')
+          : '${message ?? 'Request failed (${response.statusCode})'}');
     }
     return decoded;
   }
 
   void _notify() => _changes.add(null);
 
-  // ── Parsing ────────────────────────────────────────────────────────────────
-
-  Roster _roster(SportMode mode, Map<String, dynamic> json) {
-    final shape = rosterShape(mode);
-    final slots = [
-      for (final s in (json['slots'] as List).cast<Map<String, dynamic>>())
-        RosterSlot(
-          position: shape[s['slotIndex'] as int],
-          stock: s['stock'] == null ? null : XStock.fromJson(s['stock'] as Map<String, dynamic>),
-          balance: (s['balance'] as num).toDouble(),
-        ),
-    ];
-    return Roster(
-      mode: mode,
-      slots: slots,
-      lastReturnPct: (json['lastReturnPct'] as num).toDouble(),
-      classicPoints: (json['classicPoints'] as num).toInt(),
-      classicRank: json['classicRank'] as int?,
-      lastTickAt: json['lastTickAt'] == null ? null : DateTime.parse(json['lastTickAt'] as String),
-      lineup: json['lineup'] == null ? null : Lineup.fromJson(json['lineup'] as Map<String, dynamic>),
-    );
-  }
+  Roster _roster(SportMode mode, Map<String, dynamic> json) =>
+      Roster.fromJson(json, rosterShape(mode, json['formation'] as String?));
 
   // ── FormationRepository ────────────────────────────────────────────────────
 
   @override
   Future<List<XStock>> getXStocks() async {
-    final list = (await _request('GET', '/xstocks', auth: false) as List).cast<Map<String, dynamic>>();
+    final list = (await _request('GET', '/xstocks', auth: false) as List)
+        .cast<Map<String, dynamic>>();
     return list.map(XStock.fromJson).toList();
   }
 
@@ -148,14 +130,36 @@ class ApiRepository implements FormationRepository {
 
   @override
   Future<Roster> fillSlot(SportMode mode, int slotIndex, XStock stock) async {
-    final json = await _request('PUT', '/roster/${mode.apiValue}/slots/$slotIndex', body: {'mint': stock.mint});
+    final json = await _request('PUT', '/roster/${mode.apiValue}/slots/$slotIndex',
+        body: {'mint': stock.mint});
     _notify();
     return _roster(mode, json as Map<String, dynamic>);
   }
 
   @override
-  Future<Roster> setLineup(SportMode mode, Lineup lineup) async {
-    final json = await _request('PUT', '/roster/${mode.apiValue}/lineup', body: lineup.toJson());
+  Future<FormationChange> setFormation(SportMode mode, String formation) async {
+    final json = await _request('PUT', '/roster/${mode.apiValue}/formation',
+        body: {'formation': formation}) as Map<String, dynamic>;
+    _notify();
+    return FormationChange(
+      roster: _roster(mode, json['roster'] as Map<String, dynamic>),
+      dropped: [
+        for (final s in (json['dropped'] as List).cast<Map<String, dynamic>>())
+          XStock.fromJson(s),
+      ],
+    );
+  }
+
+  @override
+  Future<Roster> setCaptaincy(
+    SportMode mode, {
+    int? captainSlot,
+    int? viceCaptainSlot,
+  }) async {
+    final json = await _request('PUT', '/roster/${mode.apiValue}/captain', body: {
+      'captainSlot': captainSlot,
+      'viceCaptainSlot': viceCaptainSlot,
+    });
     _notify();
     return _roster(mode, json as Map<String, dynamic>);
   }
@@ -168,13 +172,15 @@ class ApiRepository implements FormationRepository {
 
   @override
   Future<SwapQuote> getSwapQuote(XStock stock, double usdcAmount) async {
-    final json = await _request('POST', '/swap/quote', body: {'mint': stock.mint, 'usdcAmount': usdcAmount});
+    final json = await _request('POST', '/swap/quote',
+        body: {'mint': stock.mint, 'usdcAmount': usdcAmount});
     return SwapQuote.fromJson(stock, json as Map<String, dynamic>);
   }
 
   @override
   Future<double> executeSwap(SwapQuote quote) async {
-    final built = await _request('POST', '/swap/build', body: {'quoteId': quote.quoteId}) as Map<String, dynamic>;
+    final built = await _request('POST', '/swap/build', body: {'quoteId': quote.quoteId})
+        as Map<String, dynamic>;
     final signature = await _signer.signAndSendTransaction(
       base64Decode(built['swapTransaction'] as String),
     );
@@ -217,16 +223,28 @@ class ApiRepository implements FormationRepository {
     return list.cast<Map<String, dynamic>>().map(Trophy.fromJson).toList();
   }
 
+  // ── Demo controls ──────────────────────────────────────────────────────────
+
+  Map<String, String> get _adminHeaders => {'x-admin-key': _adminKey};
+
   @override
   Future<void> runTick() async {
-    await _request('POST', '/admin/tick', auth: false, headers: {'x-admin-key': _adminKey});
+    await _request('POST', '/admin/tick', auth: false, headers: _adminHeaders);
+    _notify();
+  }
+
+  @override
+  Future<void> advanceGameweek(SportMode mode) async {
+    await _request('POST', '/admin/gameweeks/${mode.apiValue}/advance',
+        auth: false, headers: _adminHeaders);
     _notify();
   }
 
   @override
   Future<Duel> settleDuel(String duelId) async {
-    final json = await _request('POST', '/admin/duels/$duelId/settle', auth: false, headers: {'x-admin-key': _adminKey});
-    final mode = SportMode.fromApi((json as Map<String, dynamic>)['mode'] as String);
+    final json = await _request('POST', '/admin/duels/$duelId/settle',
+        auth: false, headers: _adminHeaders) as Map<String, dynamic>;
+    final mode = SportMode.fromApi(json['mode'] as String);
     _notify();
     // The admin response has no viewer; re-read so "me" and "iWon" resolve.
     return (await getDuels(mode)).firstWhere((d) => d.id == duelId);

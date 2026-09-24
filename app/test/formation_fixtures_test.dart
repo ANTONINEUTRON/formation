@@ -5,25 +5,37 @@ import 'package:symbians/features/shared/data/fixtures/xstock_fixtures.dart';
 import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 import 'package:symbians/features/shared/domain/roster_shapes.dart';
-import 'package:symbians/features/shared/domain/scoring.dart';
+
+const _wallet = 'TestWallet1111111111111111111111111111111';
 
 void main() {
   group('roster shapes', () {
     test('slot counts per mode', () {
       expect(rosterShape(SportMode.basketball), hasLength(5));
-      expect(rosterShape(SportMode.football), hasLength(15)); // FPL squad
+      expect(rosterShape(SportMode.football), hasLength(11)); // 11 starters
       expect(rosterShape(SportMode.americanFootball), hasLength(9));
+    });
+
+    test('football shape follows the formation', () {
+      expect(
+        rosterShape(SportMode.football, '3-5-2').map((s) => s.label),
+        ['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
+      );
+      expect(rosterShape(SportMode.football, '5-4-1').where((s) => s.label == 'DEF'), hasLength(5));
     });
 
     test('every shape can be filled from the pool without duplicates', () {
       for (final mode in SportMode.values) {
-        final used = <String>{};
-        for (final position in rosterShape(mode)) {
-          final pick = xStockFixtures.firstWhere(
-            (s) => position.accepts(s) && !used.contains(s.mint),
-            orElse: () => fail('No stock left for ${position.label} in $mode'),
-          );
-          used.add(pick.mint);
+        for (final formation in [null, '3-4-3', '5-2-3']) {
+          if (mode != SportMode.football && formation != null) continue;
+          final used = <String>{};
+          for (final position in rosterShape(mode, formation)) {
+            final pick = xStockFixtures.firstWhere(
+              (s) => position.accepts(s) && !used.contains(s.mint),
+              orElse: () => fail('No stock left for ${position.label} in $mode'),
+            );
+            used.add(pick.mint);
+          }
         }
       }
     });
@@ -38,151 +50,70 @@ void main() {
     });
   });
 
-  group('scoreWindow', () {
-    SlotWindow slot({double sb = 1, double eb = 1, double sp = 100, double ep = 100}) =>
-        SlotWindow(startBalance: sb, endBalance: eb, startPrice: sp, endPrice: ep);
-
-    test('averages slot returns and converts to basis points', () {
-      final s = scoreWindow([slot(ep: 102), slot(ep: 99)]);
-      expect(s.returnPct, closeTo(0.005, 1e-9));
-      expect(s.points, 50);
+  group('formations', () {
+    test('only FPL-legal shapes are offered', () {
+      expect(footballFormations.every((f) => f.isValid), isTrue);
+      expect(footballFormations.map((f) => f.name), contains('4-4-2'));
+      expect(const Formation(2, 5, 3).isValid, isFalse);
+      expect(const Formation(4, 4, 3).isValid, isFalse);
     });
 
-    test('negative returns score negative points', () {
-      expect(scoreWindow([slot(ep: 97)]).points, -300);
+    test('roles run GK, defenders, midfielders, forwards', () {
+      expect(footballRoles('4-4-2').first, 'GK');
+      expect(footballRoles('4-4-2').where((r) => r == 'MID'), hasLength(4));
     });
 
-    test('slot sold to zero is excluded', () {
-      final s = scoreWindow([slot(ep: 110, eb: 0), slot(ep: 101)]);
-      expect(s.points, 100);
+    test('preview keeps picks in role order and reports the drops', () {
+      // 4-4-2: 0 GK, 1-4 DEF, 5-8 MID, 9-10 FWD
+      final picks = {
+        0: 'gk', 1: 'd1', 2: 'd2', 3: 'd3', 4: 'd4',
+        5: 'm1', 6: 'm2', 7: 'm3', 8: 'm4', 9: 'f1', 10: 'f2',
+      };
+      final preview = previewFormationChange(from: '4-4-2', to: '3-5-2', picks: picks);
+
+      expect(preview.dropped, ['d4']);
+      expect(preview.kept[3], 'd3');
+      expect(preview.kept[4], 'm1'); // midfield starts a slot earlier
+      expect(preview.kept.containsKey(8), isFalse); // the new midfield slot is empty
+      expect(preview.kept[9], 'f1');
     });
 
-    test('balance bought mid-window earns nothing', () {
-      expect(scoreWindow([slot(sb: 0, eb: 50, ep: 150)]).points, 0);
-    });
-
-    test('empty roster scores zero', () {
-      expect(scoreWindow([]).points, 0);
-    });
-
-    test('roster size does not change magnitude', () {
-      final five = scoreWindow(List.generate(5, (_) => slot(ep: 101)));
-      final eleven = scoreWindow(List.generate(11, (_) => slot(ep: 101)));
-      expect(five.points, eleven.points);
-    });
-  });
-
-  group('scoreWindow with captaincy and bench', () {
-    SlotWindow slot({
-      double eb = 1,
-      double ep = 100,
-      double weight = 1,
-      String? role,
-      int? benchOrder,
-      bool vice = false,
-    }) =>
-        SlotWindow(
-          startBalance: 1,
-          endBalance: eb,
-          startPrice: 100,
-          endPrice: ep,
-          weight: weight,
-          role: role,
-          benchOrder: benchOrder,
-          isViceCaptain: vice,
-        );
-
-    test('captain counts double', () {
-      // (2 × 2% + 0%) / 3
-      expect(scoreWindow([slot(ep: 102, weight: 2), slot()]).points, 133);
-    });
-
-    test('vice-captain takes the double when the captain is sold', () {
-      final s = scoreWindow([
-        slot(ep: 110, weight: 2, eb: 0),
-        slot(ep: 103, vice: true),
-        slot(),
-      ]);
-      expect(s.points, 200); // (2 × 3% + 0%) / 3
-    });
-
-    test('substitutes only score when auto-subbed like-for-like, in bench order', () {
-      final s = scoreWindow([
-        slot(ep: 90, eb: 0, role: 'DEF'),
-        slot(role: 'MID'),
-        slot(ep: 150, weight: 0, role: 'MID', benchOrder: 1),
-        slot(ep: 101, weight: 0, role: 'DEF', benchOrder: 2),
-        slot(ep: 120, weight: 0, role: 'DEF', benchOrder: 3),
-      ]);
-      expect(s.points, 50); // DEF at order 2 replaces the sold DEF: (1% + 0%) / 2
-    });
-  });
-
-  group('Lineup (FPL rules)', () {
-    test('default is a valid 4-4-2 with the backup keeper first on the bench', () {
-      final l = Lineup.defaultFootball();
-      expect(l.formation.name, '4-4-2');
-      expect(l.isValid, isTrue);
-      expect(footballSquadRoles[l.bench.first], 'GK');
-    });
-
-    test('every FPL formation is reachable and valid', () {
-      for (final f in footballFormations) {
-        final l = Lineup.defaultFootball().withFormation(f);
-        expect(l.formation, f);
-        expect(l.isValid, isTrue, reason: f.name);
-      }
-    });
-
-    test('changing formation keeps current starters and the captain', () {
-      final l = Lineup.defaultFootball().withCaptain(12).withFormation(const Formation(3, 5, 2));
-      expect(l.starters, containsAll([0, 12, 13]));
-      expect(l.captain, 12);
-    });
-
-    test('substitutions that break formation rules are rejected', () {
-      final l = Lineup.defaultFootball();
-      expect(l.substitute(0, 6), isNull); // keeper for defender
-      expect(l.substitute(2, 3), isNull); // two starters
-      expect(l.withFormation(const Formation(3, 4, 3)).substitute(2, 11), isNull); // 2-5-3
-      expect(l.substitute(12, 6)!.formation.name, '5-4-1');
-    });
-
-    test('benching the captain hands the armband to the vice-captain', () {
-      final l = Lineup.defaultFootball().withCaptain(12).withViceCaptain(0);
-      final sub = l.substitute(12, 14)!;
-      expect(sub.captain, 0);
-      expect(sub.viceCaptain, isNull);
-    });
-
-    test('round-trips through JSON', () {
-      final l = Lineup.defaultFootball().withCaptain(12).withViceCaptain(7);
-      expect(Lineup.fromJson(l.toJson()), l);
+    test('preview drops a forward when the defence grows', () {
+      final picks = {for (var i = 0; i < 11; i++) i: 'p$i'};
+      final preview = previewFormationChange(from: '4-4-2', to: '5-4-1', picks: picks);
+      expect(preview.dropped, ['p10']);
     });
   });
 
   group('FixtureRepository', () {
-    test('seeded football roster is complete and tier-valid', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
+    test('seeded football team is complete, captained and tier-valid', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
       final roster = await repo.getRoster(SportMode.football);
+
       expect(roster.isComplete, isTrue);
+      expect(roster.formation, '4-4-2');
+      expect(roster.captainSlot, 9);
+      expect(roster.armband(9), 'C');
+      expect(roster.armband(0), 'V');
       for (final slot in roster.slots) {
         expect(slot.position.accepts(slot.stock!), isTrue, reason: slot.position.label);
       }
       expect(roster.classicRank, isNotNull);
+      expect(roster.gameweek, isNotNull);
     });
 
-    test('filling a held stock updates the roster and leaderboard', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
-      final pg = xStockFixtures.firstWhere((s) => s.symbol == 'NVDAx');
-      final roster = await repo.fillSlot(SportMode.basketball, 0, pg);
-      expect(roster.slots.first.stock, pg);
+    test('filling a held stock updates the team and the leaderboard', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final nvda = xStockFixtures.firstWhere((s) => s.symbol == 'NVDAx');
+      final roster = await repo.fillSlot(SportMode.basketball, 0, nvda);
+
+      expect(roster.slots.first.stock, nvda);
       final board = await repo.getLeaderboard(SportMode.basketball);
       expect(board.where((e) => e.isCurrentUser), hasLength(1));
     });
 
-    test('cannot fill with an unheld or ineligible stock', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
+    test('rejects an unheld or ineligible stock', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
       final unheld = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
       final wrongTier = xStockFixtures.firstWhere((s) => s.symbol == 'KOx');
       expect(repo.fillSlot(SportMode.basketball, 0, unheld), throwsStateError);
@@ -190,31 +121,77 @@ void main() {
     });
 
     test('buying then filling works for an unheld stock', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
+      final repo = FixtureRepository(walletAddress: _wallet);
       final amd = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
       final quote = await repo.getSwapQuote(amd, 10);
       expect(quote.platformFeeUsdc, closeTo(0.03, 1e-9));
+
       await repo.executeSwap(quote);
       final roster = await repo.fillSlot(SportMode.basketball, 0, amd);
       expect(roster.slots.first.balance, closeTo(quote.estimatedShares, 1e-9));
     });
 
-    test('settling a duel picks the higher return', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
-      final settled = await repo.settleDuel('duel-1');
-      expect(settled.status, DuelStatus.settled);
-      expect(settled.iWon, isTrue); // seeded 0.32% vs 0.19%
-      expect(await repo.getTrophies(), hasLength(2));
+    test('changing formation drops the picks that no longer fit', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final before = await repo.getRoster(SportMode.football);
+      final change = await repo.setFormation(SportMode.football, '3-5-2');
+
+      expect(change.roster.formation, '3-5-2');
+      expect(change.dropped, hasLength(1));
+      expect(change.dropped.first.tier, RiskTier.stable); // the fourth defender
+      expect(change.roster.slots.where((s) => s.isFilled), hasLength(10));
+      expect(change.roster.isComplete, isFalse);
+      // The captain's stock kept its place, so the armband moved with it.
+      expect(
+        change.roster.slots[change.roster.captainSlot!].stock!.symbol,
+        before.slots[before.captainSlot!].stock!.symbol,
+      );
     });
 
-    test('saves a valid lineup and rejects an invalid one', () async {
-      final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
-      final roster = await repo.getRoster(SportMode.football);
-      final next = roster.lineup!.withFormation(const Formation(3, 5, 2));
-      expect((await repo.setLineup(SportMode.football, next)).lineup!.formation.name, '3-5-2');
+    test('captaincy is validated per sport', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final roster = await repo.setCaptaincy(SportMode.football, captainSlot: 5, viceCaptainSlot: 1);
+      expect(roster.captainSlot, 5);
+      expect(roster.viceCaptainSlot, 1);
 
-      final twoKeepers = Lineup(starters: List.generate(11, (i) => i), bench: const [11, 12, 13, 14]);
-      expect(repo.setLineup(SportMode.football, twoKeepers), throwsStateError);
+      expect(
+        repo.setCaptaincy(SportMode.football, captainSlot: 3, viceCaptainSlot: 3),
+        throwsStateError,
+      );
+      expect(
+        repo.setCaptaincy(SportMode.americanFootball, captainSlot: 0),
+        throwsStateError,
+      );
+      // An empty slot can't wear the armband.
+      expect(repo.setCaptaincy(SportMode.basketball, captainSlot: 0), throwsStateError);
+    });
+
+    test('a tick scores the live gameweek and advancing banks it', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      await repo.runTick();
+      final live = await repo.getRoster(SportMode.football);
+      expect(live.gameweek!.slots, hasLength(11));
+      expect(live.gameweek!.entered, isTrue);
+
+      await repo.advanceGameweek(SportMode.football);
+      final next = await repo.getRoster(SportMode.football);
+
+      expect(next.gameweek!.number, live.gameweek!.number + 1);
+      // The finished gameweek is banked into the season total, and only the
+      // new gameweek's points (clean sheets from an unchanged price) sit on top.
+      expect(
+        next.classicPoints,
+        closeTo(live.classicPoints + next.gameweek!.points, 0.01),
+      );
+    });
+
+    test('settling a duel picks the higher score and awards a trophy', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final settled = await repo.settleDuel('duel-1');
+
+      expect(settled.status, DuelStatus.settled);
+      expect(settled.iWon, isTrue); // seeded 34 vs 21 points
+      expect(await repo.getTrophies(), hasLength(2));
     });
   });
 }

@@ -6,7 +6,7 @@ import 'package:symbians/core/theme/theme.dart';
 import 'package:symbians/core/utils/format.dart';
 import 'package:symbians/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:symbians/features/draft/ui/widgets/stock_picker_sheet.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
+import 'package:symbians/features/shared/domain/models.dart';
 
 class SlotAction {
   const SlotAction({required this.icon, required this.label, required this.onTap});
@@ -16,9 +16,14 @@ class SlotAction {
   final VoidCallback onTap;
 }
 
-/// Football player menu: substitute, armbands, or change the stock.
+/// Player menu: hand out the armband, or change the stock in this slot.
 class SlotActionsSheet extends StatelessWidget {
-  const SlotActionsSheet({required this.title, required this.subtitle, required this.actions, super.key});
+  const SlotActionsSheet({
+    required this.title,
+    required this.subtitle,
+    required this.actions,
+    super.key,
+  });
 
   final String title;
   final String subtitle;
@@ -27,9 +32,10 @@ class SlotActionsSheet extends StatelessWidget {
   static Future<void> show(BuildContext context, {required int slotIndex}) {
     final cubit = context.read<DraftCubit>();
     final roster = cubit.state.roster!;
-    final lineup = roster.lineup!;
-    final stock = roster.slots[slotIndex].stock!;
-    final starter = lineup.isStarter(slotIndex);
+    final slot = roster.slots[slotIndex];
+    final stock = slot.stock!;
+    final captainLabel =
+        cubit.mode == SportMode.football ? 'Make captain (2× points)' : 'Make go-to scorer (1.5×)';
 
     Future<void> guarded(Future<void> Function() action) async {
       try {
@@ -42,7 +48,9 @@ class SlotActionsSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) {
         void then(VoidCallback action) {
           Navigator.of(sheetContext).pop();
@@ -51,21 +59,15 @@ class SlotActionsSheet extends StatelessWidget {
 
         return SlotActionsSheet(
           title: stock.symbol,
-          subtitle: '${footballSquadRoles[slotIndex]} · ${stock.companyName} · '
-              '${starter ? 'Starting XI' : 'Substitute ${lineup.bench.indexOf(slotIndex) == 0 ? 'GK' : lineup.bench.indexOf(slotIndex)}'}',
+          subtitle: '${slot.position.label} · ${stock.companyName}',
           actions: [
-            SlotAction(
-              icon: Icons.swap_vert,
-              label: starter ? 'Substitute' : 'Bring onto the pitch',
-              onTap: () => then(() => cubit.startSubstitution(slotIndex)),
-            ),
-            if (starter && lineup.captain != slotIndex)
+            if (cubit.mode != SportMode.americanFootball && roster.captainSlot != slotIndex)
               SlotAction(
                 icon: Icons.stars,
-                label: 'Make captain (double points)',
+                label: captainLabel,
                 onTap: () => then(() => guarded(() => cubit.makeCaptain(slotIndex))),
               ),
-            if (starter && lineup.viceCaptain != slotIndex)
+            if (cubit.mode == SportMode.football && roster.viceCaptainSlot != slotIndex)
               SlotAction(
                 icon: Icons.star_half,
                 label: 'Make vice-captain',
@@ -108,6 +110,13 @@ class SlotActionsSheet extends StatelessWidget {
                 title: Text(action.label),
                 onTap: action.onTap,
               ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                'Changes apply from the next gameweek.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ),
           ],
         ),
       ),

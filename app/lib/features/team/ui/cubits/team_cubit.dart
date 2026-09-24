@@ -8,7 +8,7 @@ import 'package:symbians/features/shared/domain/load_status.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 import 'package:symbians/features/team/ui/cubits/team_state.dart';
 
-/// The signed-in user's live roster for one sport mode.
+/// The signed-in user's team for one sport mode, and its live gameweek.
 class TeamCubit extends Cubit<TeamState> {
   TeamCubit({required FormationRepository repository, required this.mode})
       : _repository = repository,
@@ -32,11 +32,16 @@ class TeamCubit extends Cubit<TeamState> {
     }
   }
 
-  /// Debug-only: runs the hourly scoring tick immediately.
-  Future<void> runTick() async {
+  /// Debug-only: records prices now and rescores the live gameweek.
+  Future<void> runTick() => _busy(_repository.runTick);
+
+  /// Debug-only: closes this gameweek and opens the next.
+  Future<void> advanceGameweek() => _busy(() => _repository.advanceGameweek(mode));
+
+  Future<void> _busy(Future<void> Function() action) async {
     emit(state.copyWith(isTicking: true));
     try {
-      await _repository.runTick();
+      await action();
     } finally {
       if (!isClosed) emit(state.copyWith(isTicking: false));
     }

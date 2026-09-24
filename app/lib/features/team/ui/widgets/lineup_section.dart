@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:symbians/core/theme/theme.dart';
+import 'package:symbians/core/utils/format.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 import 'package:symbians/features/team/ui/widgets/roster_slot_card.dart';
 
-/// The Team tab's roster list. Football shows the starting XI with its
-/// formation and armbands, then the bench in auto-sub order.
+/// The Team tab's roster list, with each pick's gameweek score.
 class LineupSection extends StatelessWidget {
   const LineupSection({required this.roster, required this.onEdit, super.key});
 
@@ -14,76 +14,69 @@ class LineupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lineup = roster.lineup;
-    final titleStyle = Theme.of(context).textTheme.titleMedium;
-
-    if (lineup == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Text('Lineup', style: titleStyle),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Edit'),
-              ),
-            ],
-          ),
-          for (final slot in roster.slots) ...[
-            RosterSlotCard(slot: slot, teamValueUsd: roster.totalValueUsd),
-            const SizedBox(height: 8),
-          ],
-        ],
-      );
-    }
+    final isFootball = roster.mode == SportMode.football;
+    final gameweek = roster.gameweek;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Text('Starting XI', style: titleStyle),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                lineup.formation.name,
-                style: AppTextStyles.mono(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
-              ),
+            Text(
+              isFootball ? 'Starting XI' : 'Lineup',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
+            if (isFootball && roster.formation != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  roster.formation!,
+                  style: AppTextStyles.mono(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
             const Spacer(),
             TextButton.icon(
               onPressed: onEdit,
-              icon: const Icon(Icons.tune, size: 16),
-              label: const Text('Pick team'),
+              icon: Icon(isFootball ? Icons.tune : Icons.edit_outlined, size: 16),
+              label: Text(isFootball ? 'Pick team' : 'Edit'),
             ),
           ],
         ),
-        for (final i in lineup.starters) ...[
+        for (var i = 0; i < roster.slots.length; i++) ...[
           RosterSlotCard(
             slot: roster.slots[i],
             teamValueUsd: roster.totalValueUsd,
-            armband: lineup.armband(i),
+            score: gameweek?.scoreFor(i),
+            armband: roster.armband(i),
           ),
           const SizedBox(height: 8),
         ],
-        const Padding(
-          padding: EdgeInsets.only(top: 8, bottom: 8),
-          child: Text(
-            'SUBSTITUTES',
-            style: TextStyle(fontSize: 11, letterSpacing: 1.2, color: AppColors.textMuted),
-          ),
-        ),
-        for (final i in lineup.bench) ...[
-          RosterSlotCard(slot: roster.slots[i], teamValueUsd: roster.totalValueUsd, isSubstitute: true),
-          const SizedBox(height: 8),
+        if (gameweek != null && gameweek.teamEvents.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          for (final event in gameweek.teamEvents)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.group, size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${event.label} ${formatSignedPoints(event.points)}',
+                    style: AppTextStyles.mono(fontSize: 12, color: pnlColor(event.points)),
+                  ),
+                ],
+              ),
+            ),
         ],
       ],
     );

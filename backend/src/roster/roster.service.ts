@@ -1,47 +1,59 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { ChainService } from '../core/chain.service.js';
-import { DbService, unwrap } from '../core/db.service.js';
-import { AuthUser, RosterDto } from '../domain/dto.js';
-import { defaultLineup, parseLineup } from '../domain/lineup.js';
-import type { Lineup } from '../domain/lineup.js';
-import { ROSTER_SHAPES, SportMode } from '../domain/sport.js';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { DB } from '../core/db.js';
+import type { Db } from '../core/db.js';
+import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
+import type { BalanceSource, PriceSource } from '../core/sources.js';
+import { parseCaptaincy } from '../domain/captaincy.js';
+import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
+import { parseFormation, remapFormation } from '../domain/formation.js';
+import { DEFAULT_FORMATION, rosterShape } from '../domain/sport.js';
+import type { SportMode } from '../domain/sport.js';
+import { GameweekService } from '../gameweek/gameweek.service.js';
 import { LeagueService } from '../league/league.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 
 interface RosterRow {
   id: string;
-  lineup: Lineup | null;
-  last_return_pct: number;
-  last_tick_at: string | null;
-  roster_slots: { slot_index: number; token_mint: string }[];
+  formation: string | null;
+  captain_slot: number | null;
+  vice_captain_slot: number | null;
 }
 
 @Injectable()
 export class RosterService {
   constructor(
-    private readonly db: DbService,
-    private readonly chain: ChainService,
+    @Inject(DB) private readonly db: Db,
+    @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
+    @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
     private readonly league: LeagueService,
+    private readonly gameweeks: GameweekService,
   ) {}
 
   async getRoster(user: AuthUser, mode: SportMode): Promise<RosterDto> {
     const roster = await this.find(user.id, mode);
-    const slots = roster?.roster_slots ?? [];
+    const formation = mode === 'football' ? (roster?.formation ?? DEFAULT_FORMATION) : null;
+    const shape = rosterShape(mode, formation);
+    const slots = roster ? await this.slotsOf(roster.id) : [];
     const mints = slots.map((s) => s.token_mint);
-    const [stocks, prices, balances, standing] = await Promise.all([
+
+    const [stocks, prices, balances, standing, gameweek] = await Promise.all([
       this.xstocks.byMint(),
-      this.chain.getPrices(mints),
+      mints.length > 0 ? this.prices.getPrices(mints) : Promise.resolve(new Map()),
       mints.length > 0
-        ? this.chain.getBalances(user.walletAddress)
+        ? this.balances.getBalances(user.walletAddress)
         : Promise.resolve(new Map<string, number>()),
       this.league.standing(user.id, mode),
+      this.gameweeks.current(mode),
     ]);
     const bySlot = new Map(slots.map((s) => [s.slot_index, s]));
 
     return {
       mode,
-      slots: ROSTER_SHAPES[mode].map((position, slotIndex) => {
+      formation,
+      captainSlot: roster?.captain_slot ?? null,
+      viceCaptainSlot: roster?.vice_captain_slot ?? null,
+      slots: shape.map((position, slotIndex) => {
         const slot = bySlot.get(slotIndex);
         const row = slot ? stocks.get(slot.token_mint) : undefined;
         return {
@@ -51,22 +63,13 @@ export class RosterService {
           balance: slot ? (balances.get(slot.token_mint) ?? 0) : 0,
         };
       }),
-      lastReturnPct: roster?.last_return_pct ?? 0,
       classicPoints: standing?.points ?? 0,
       classicRank: mints.length > 0 ? (standing?.rank ?? null) : null,
-      lastTickAt: roster?.last_tick_at ?? null,
-      lineup: mode === 'football' ? (roster?.lineup ?? defaultLineup(mode)) : null,
+      gameweek: gameweek ? await this.gameweeks.dtoFor(gameweek, user.id) : null,
+      pendingChanges: gameweek
+        ? await this.gameweeks.hasPendingChanges(gameweek.id, user.id, user.walletAddress, mode)
+        : false,
     };
-  }
-
-  /** Football only: saves formation, bench order and armbands. */
-  async setLineup(user: AuthUser, mode: SportMode, value: unknown): Promise<RosterDto> {
-    const lineup = parseLineup(mode, value);
-    const roster = await this.ensure(user.id, mode);
-    unwrap(
-      await this.db.supabase.from('rosters').update({ lineup }).eq('id', roster.id),
-    );
-    return this.getRoster(user, mode);
   }
 
   /** Puts a held xStock into a slot after checking tier and real balance. */
@@ -76,7 +79,9 @@ export class RosterService {
     slotIndex: number,
     mint: string,
   ): Promise<RosterDto> {
-    const position = ROSTER_SHAPES[mode][slotIndex];
+    const roster = await this.ensure(user.id, mode);
+    const shape = rosterShape(mode, roster.formation);
+    const position = shape[slotIndex];
     if (!position) throw new BadRequestException('Invalid slot');
 
     const stock = (await this.xstocks.byMint()).get(mint);
@@ -87,65 +92,170 @@ export class RosterService {
       );
     }
 
-    const balances = await this.chain.getBalances(user.walletAddress, {
-      fresh: true,
-    });
+    const balances = await this.balances.getBalances(user.walletAddress, { fresh: true });
     if ((balances.get(mint) ?? 0) <= 0) {
       throw new BadRequestException(`You do not hold ${stock.symbol}`);
     }
 
-    const roster = await this.ensure(user.id, mode);
-    if (
-      roster.roster_slots.some(
-        (s) => s.token_mint === mint && s.slot_index !== slotIndex,
-      )
-    ) {
+    const slots = await this.slotsOf(roster.id);
+    if (slots.some((s) => s.token_mint === mint && s.slot_index !== slotIndex)) {
       throw new BadRequestException(`${stock.symbol} is already on this team`);
     }
 
-    unwrap(
-      await this.db.supabase.from('roster_slots').upsert({
+    await this.db
+      .insertInto('roster_slots')
+      .values({
         roster_id: roster.id,
         slot_index: slotIndex,
         position_label: position.label,
         token_mint: mint,
+      })
+      .onConflict((oc) =>
+        oc.columns(['roster_id', 'slot_index']).doUpdateSet({
+          token_mint: mint,
+          position_label: position.label,
+        }),
+      )
+      .execute();
+
+    return this.getRoster(user, mode);
+  }
+
+  /**
+   * Football only: switches formation, keeping each role's picks in order.
+   * Anything that no longer fits comes off the team (the stock is still owned).
+   * Takes effect from the next gameweek, because entries are locked.
+   */
+  async setFormation(
+    user: AuthUser,
+    mode: SportMode,
+    value: unknown,
+  ): Promise<FormationChangeDto> {
+    if (mode !== 'football') {
+      throw new BadRequestException('Only football teams have formations');
+    }
+    const formation = parseFormation(value);
+    const roster = await this.ensure(user.id, mode);
+    const slots = await this.slotsOf(roster.id);
+
+    const result = remapFormation({
+      from: roster.formation,
+      to: formation,
+      slots,
+      captainSlot: roster.captain_slot,
+      viceCaptainSlot: roster.vice_captain_slot,
+    });
+    const shape = rosterShape(mode, formation);
+
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable('rosters')
+        .set({
+          formation,
+          captain_slot: result.captainSlot,
+          vice_captain_slot: result.viceCaptainSlot,
+        })
+        .where('id', '=', roster.id)
+        .execute();
+      await trx.deleteFrom('roster_slots').where('roster_id', '=', roster.id).execute();
+      if (result.slots.length > 0) {
+        await trx
+          .insertInto('roster_slots')
+          .values(
+            result.slots.map((slot) => ({
+              roster_id: roster.id,
+              slot_index: slot.slot_index,
+              position_label: shape[slot.slot_index].label,
+              token_mint: slot.token_mint,
+            })),
+          )
+          .execute();
+      }
+    });
+
+    const stocks = await this.xstocks.byMint();
+    const prices = await this.prices.getPrices(result.dropped);
+    return {
+      roster: await this.getRoster(user, mode),
+      dropped: result.dropped.flatMap((mint) => {
+        const row = stocks.get(mint);
+        return row ? [this.xstocks.toDto(row, prices.get(mint))] : [];
       }),
-    );
+    };
+  }
+
+  /** Sets the captain (and football's vice-captain). */
+  async setCaptaincy(user: AuthUser, mode: SportMode, body: unknown): Promise<RosterDto> {
+    const roster = await this.ensure(user.id, mode);
+    const { captainSlot, viceCaptainSlot } = parseCaptaincy(mode, body, roster.formation);
+    const slots = await this.slotsOf(roster.id);
+    const filled = new Set(slots.map((s) => s.slot_index));
+
+    for (const [slot, field] of [
+      [captainSlot, 'captain'],
+      [viceCaptainSlot, 'vice-captain'],
+    ] as const) {
+      if (slot !== null && !filled.has(slot)) {
+        throw new BadRequestException(`Pick a stock for that slot before making it ${field}`);
+      }
+    }
+
+    await this.db
+      .updateTable('rosters')
+      .set({ captain_slot: captainSlot, vice_captain_slot: viceCaptainSlot })
+      .where('id', '=', roster.id)
+      .execute();
     return this.getRoster(user, mode);
   }
 
   /** True when every slot in the user's roster for [mode] is filled. */
   async isComplete(userId: string, mode: SportMode): Promise<boolean> {
     const roster = await this.find(userId, mode);
-    return (roster?.roster_slots.length ?? 0) === ROSTER_SHAPES[mode].length;
+    if (!roster) return false;
+    const slots = await this.slotsOf(roster.id);
+    return slots.length === rosterShape(mode, roster.formation).length;
   }
 
-  private async find(userId: string, mode: SportMode): Promise<RosterRow | null> {
-    return unwrap(
-      await this.db.supabase
-        .from('rosters')
-        .select('id, lineup, last_return_pct, last_tick_at, roster_slots(slot_index, token_mint)')
-        .eq('user_id', userId)
-        .eq('sport_mode', mode)
-        .maybeSingle(),
-    );
+  private async find(userId: string, mode: SportMode): Promise<RosterRow | undefined> {
+    return this.db
+      .selectFrom('rosters')
+      .select(['id', 'formation', 'captain_slot', 'vice_captain_slot'])
+      .where('user_id', '=', userId)
+      .where('sport_mode', '=', mode)
+      .executeTakeFirst();
+  }
+
+  private async slotsOf(rosterId: string) {
+    return this.db
+      .selectFrom('roster_slots')
+      .select(['slot_index', 'token_mint'])
+      .where('roster_id', '=', rosterId)
+      .orderBy('slot_index')
+      .execute();
   }
 
   /** Creates the roster and the user's league entry on first draft. */
   private async ensure(userId: string, mode: SportMode): Promise<RosterRow> {
     const existing = await this.find(userId, mode);
     if (existing) return existing;
-    const db = this.db.supabase;
-    unwrap(
-      await db
-        .from('rosters')
-        .insert({ user_id: userId, sport_mode: mode, lineup: defaultLineup(mode) }),
-    );
-    unwrap(
-      await db
-        .from('classic_scores')
-        .upsert({ user_id: userId, sport_mode: mode }, { ignoreDuplicates: true }),
-    );
-    return (await this.find(userId, mode))!;
+
+    await this.db
+      .insertInto('rosters')
+      .values({
+        user_id: userId,
+        sport_mode: mode,
+        formation: mode === 'football' ? DEFAULT_FORMATION : null,
+      })
+      .onConflict((oc) => oc.columns(['user_id', 'sport_mode']).doNothing())
+      .execute();
+    await this.db
+      .insertInto('classic_scores')
+      .values({ user_id: userId, sport_mode: mode })
+      .onConflict((oc) => oc.columns(['user_id', 'sport_mode']).doNothing())
+      .execute();
+
+    const created = await this.find(userId, mode);
+    if (!created) throw new BadRequestException('Could not create the roster');
+    return created;
   }
 }

@@ -15,12 +15,17 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "seed": "nest build && node dist/scripts/seed.js",
+    "db:migrate": "nest build && node dist/scripts/migrate.js",
+    "db:migrate:test": "nest build && node dist/scripts/migrate.js --test",
+    "db:reset:test": "nest build && node dist/scripts/migrate.js --test --reset",
     "lint": "oxlint --type-aware src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:int": "vitest run --config ./vitest.config.int.ts",
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "test:all": "npm run test && npm run test:int && npm run test:e2e"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -28,8 +33,9 @@
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/schedule": "^12.0.2",
     "@solana/web3.js": "^1.99.0",
-    "@supabase/supabase-js": "^2.116.0",
     "bs58": "^6.0.0",
+    "kysely": "^0.29.6",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "tweetnacl": "^1.0.3"
@@ -41,6 +47,7 @@
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",
     "oxlint": "^1.58.0",

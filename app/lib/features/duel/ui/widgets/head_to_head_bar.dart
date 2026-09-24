@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:symbians/core/theme/theme.dart';
 import 'package:symbians/core/utils/format.dart';
 
-/// Diverging bar from a shared centre: the user's return grows left, the
-/// rival's grows right, and the leader is coloured.
+/// Diverging bar from a shared centre: the user's points grow left, the
+/// rival's grow right, and whoever leads is coloured.
 class HeadToHeadBar extends StatelessWidget {
   const HeadToHeadBar({
-    required this.myReturnPct,
-    required this.rivalReturnPct,
+    required this.myPoints,
+    required this.rivalPoints,
     required this.myLabel,
     required this.rivalLabel,
     this.height = 10,
     super.key,
   });
 
-  final double myReturnPct;
-  final double rivalReturnPct;
+  final double myPoints;
+  final double rivalPoints;
   final String myLabel;
   final String rivalLabel;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final maxAbs = [myReturnPct.abs(), rivalReturnPct.abs(), 0.0001].reduce((a, b) => a > b ? a : b);
-    final iLead = myReturnPct >= rivalReturnPct;
+    final maxAbs = [myPoints.abs(), rivalPoints.abs(), 1.0].reduce((a, b) => a > b ? a : b);
+    final iLead = myPoints >= rivalPoints;
 
     Widget half({required double value, required bool leading, required bool mirrored}) {
       final fraction = (value.abs() / maxAbs).clamp(0.04, 1.0);
@@ -53,9 +53,9 @@ class HeadToHeadBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            half(value: myReturnPct, leading: iLead, mirrored: true),
+            half(value: myPoints, leading: iLead, mirrored: true),
             Container(width: 2, height: height + 8, color: AppColors.textSecondary),
-            half(value: rivalReturnPct, leading: !iLead, mirrored: false),
+            half(value: rivalPoints, leading: !iLead, mirrored: false),
           ],
         ),
         const SizedBox(height: 6),
@@ -63,17 +63,17 @@ class HeadToHeadBar extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '$myLabel  ${formatPct(myReturnPct)}',
+                '$myLabel  ${formatSignedPoints(myPoints)}',
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.mono(fontSize: 12, color: pnlColor(myReturnPct)),
+                style: AppTextStyles.mono(fontSize: 12, color: pnlColor(myPoints)),
               ),
             ),
             Expanded(
               child: Text(
-                '${formatPct(rivalReturnPct)}  $rivalLabel',
+                '${formatSignedPoints(rivalPoints)}  $rivalLabel',
                 textAlign: TextAlign.right,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.mono(fontSize: 12, color: pnlColor(rivalReturnPct)),
+                style: AppTextStyles.mono(fontSize: 12, color: pnlColor(rivalPoints)),
               ),
             ),
           ],

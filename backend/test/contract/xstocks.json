@@ -1,0 +1,29 @@
+[
+  {
+    "symbol": "AAPLx",
+    "companyName": "Apple",
+    "mint": "mint-AAPL",
+    "tier": "blue_chip",
+    "priceUsd": 100,
+    "change24hPct": 0,
+    "logoUrl": null
+  },
+  {
+    "symbol": "AMDx",
+    "companyName": "AMD",
+    "mint": "mint-AMD",
+    "tier": "growth",
+    "priceUsd": 100,
+    "change24hPct": 0,
+    "logoUrl": null
+  },
+  {
+    "symbol": "HOODx",
+    "companyName": "Robinhood",
+    "mint": "mint-HOOD",
+    "tier": "momentum",
+    "priceUsd": 100,
+    "change24hPct": 0,
+    "logoUrl": null
+  }
+]

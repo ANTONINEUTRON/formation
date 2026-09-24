@@ -10,7 +10,7 @@ class SportRecord extends Equatable {
   final int wins;
   final int losses;
   final int? rank;
-  final int? points;
+  final double? points;
 
   @override
   List<Object?> get props => [wins, losses, rank, points];

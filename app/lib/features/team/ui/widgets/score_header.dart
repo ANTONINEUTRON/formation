@@ -5,7 +5,7 @@ import 'package:symbians/core/utils/format.dart';
 import 'package:symbians/core/widgets/stat_pill.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 
-/// Big Classic points figure with rank, last tick return and roster value.
+/// Gameweek points front and centre, with the season total and rank behind it.
 class ScoreHeader extends StatelessWidget {
   const ScoreHeader({required this.roster, required this.totalPlayers, super.key});
 
@@ -14,6 +14,9 @@ class ScoreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gameweek = roster.gameweek;
+    final points = gameweek?.points ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -24,9 +27,9 @@ class ScoreHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'CLASSIC POINTS',
-            style: TextStyle(
+          Text(
+            gameweek == null ? 'POINTS' : 'GAMEWEEK ${gameweek.number}',
+            style: const TextStyle(
               fontSize: 11,
               letterSpacing: 1.4,
               color: AppColors.textSecondary,
@@ -35,31 +38,30 @@ class ScoreHeader extends StatelessWidget {
           const SizedBox(height: 4),
           // Animates from the previous value whenever a tick lands.
           TweenAnimationBuilder<double>(
-            tween: Tween(end: roster.classicPoints.toDouble()),
+            tween: Tween(end: points),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) => Text(
-              formatPoints(value.round()),
+              formatSignedPoints(value),
               style: AppTextStyles.mono(
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: pnlColor(points),
               ),
             ),
           ),
           Text(
-            '${formatPct(roster.lastReturnPct)} last tick  ·  '
-            '${formatSignedPoints((roster.lastReturnPct * 10000).round())} pts',
-            style: AppTextStyles.mono(
-              fontSize: 13,
-              color: pnlColor(roster.lastReturnPct),
-            ),
+            gameweek?.entered == false
+                ? 'Your team joins the next gameweek'
+                : 'Points this gameweek · beat SPYx to score',
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
+              StatPill(label: 'SEASON', value: formatPoints(roster.classicPoints)),
               StatPill(
                 label: 'RANK',
                 value: roster.classicRank == null
@@ -67,11 +69,6 @@ class ScoreHeader extends StatelessWidget {
                     : '#${roster.classicRank} / $totalPlayers',
               ),
               StatPill(label: 'TEAM VALUE', value: formatUsd(roster.totalValueUsd)),
-              StatPill(
-                label: 'SLOTS',
-                value:
-                    '${roster.slots.where((s) => s.isFilled).length}/${roster.slots.length}',
-              ),
             ],
           ),
         ],

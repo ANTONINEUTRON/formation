@@ -1,18 +1,15 @@
 import 'package:equatable/equatable.dart';
 
-/// Football squad roles by slot index, mirroring FPL's 15-player squad:
-/// 2 goalkeepers, 5 defenders, 5 midfielders, 3 forwards.
-/// Must match `FOOTBALL_SQUAD_ROLES` in `backend/src/domain/sport.ts`.
-const footballSquadRoles = [
-  'GK', 'GK',
-  'DEF', 'DEF', 'DEF', 'DEF', 'DEF',
-  'MID', 'MID', 'MID', 'MID', 'MID',
-  'FWD', 'FWD', 'FWD',
-];
-
-/// Outfield shape of a starting XI; the goalkeeper is implied.
+/// Football is 11 starters: the formation decides how many defenders,
+/// midfielders and forwards. There's no bench, because stocks are always
+/// tradable. Mirrors `backend/src/domain/sport.ts`.
 class Formation extends Equatable {
   const Formation(this.def, this.mid, this.fwd);
+
+  factory Formation.parse(String name) {
+    final parts = name.split('-').map(int.parse).toList();
+    return Formation(parts[0], parts[1], parts[2]);
+  }
 
   final int def;
   final int mid;
@@ -28,7 +25,9 @@ class Formation extends Equatable {
   List<Object?> get props => [def, mid, fwd];
 }
 
-/// Every formation FPL allows.
+const defaultFormation = '4-4-2';
+
+/// Every formation the backend accepts.
 const footballFormations = [
   Formation(3, 4, 3),
   Formation(3, 5, 2),
@@ -40,157 +39,56 @@ const footballFormations = [
   Formation(5, 4, 1),
 ];
 
-/// Which squad players start, the bench order, and the armbands.
-///
-/// All operations return a new lineup and keep FPL rules: 11 starters with
-/// one goalkeeper in a valid formation, the backup keeper first on the bench,
-/// and captain / vice-captain only on starters.
-class Lineup extends Equatable {
-  const Lineup({required this.starters, required this.bench, this.captain, this.viceCaptain});
+/// Roles in slot order for a formation: GK, defenders, midfielders, forwards.
+List<String> footballRoles(String formation) {
+  final f = Formation.parse(formation);
+  return [
+    'GK',
+    ...List.filled(f.def, 'DEF'),
+    ...List.filled(f.mid, 'MID'),
+    ...List.filled(f.fwd, 'FWD'),
+  ];
+}
 
-  factory Lineup.fromJson(Map<String, dynamic> json) => Lineup(
-        starters: (json['starters'] as List).cast<int>(),
-        bench: (json['bench'] as List).cast<int>(),
-        captain: json['captain'] as int?,
-        viceCaptain: json['viceCaptain'] as int?,
-      );
+/// What a formation change will do, so the app can confirm before saving.
+/// Mirrors `remapFormation` in `backend/src/domain/formation.ts`.
+class FormationPreview {
+  const FormationPreview({required this.kept, required this.dropped});
 
-  /// 4-4-2 with the first players of each role starting.
-  factory Lineup.defaultFootball() => _build(
-        const Formation(4, 4, 2),
-        preference: [for (var i = 0; i < footballSquadRoles.length; i++) i],
-        previousBench: const [],
-      );
+  /// Slot index in the new shape → the mint that moves there.
+  final Map<int, String> kept;
 
-  /// Slot indices on the pitch, ascending (so grouped GK, DEF, MID, FWD).
-  final List<int> starters;
+  /// Mints that no longer fit; still owned, just off the team.
+  final List<String> dropped;
+}
 
-  /// Substitution order; `bench.first` is always the backup goalkeeper.
-  final List<int> bench;
-  final int? captain;
-  final int? viceCaptain;
+FormationPreview previewFormationChange({
+  required String from,
+  required String to,
+  /// Current picks by slot index.
+  required Map<int, String> picks,
+}) {
+  final fromRoles = footballRoles(from);
+  final toRoles = footballRoles(to);
 
-  Map<String, dynamic> toJson() => {
-        'starters': starters,
-        'bench': bench,
-        'captain': captain,
-        'viceCaptain': viceCaptain,
-      };
-
-  bool isStarter(int slot) => starters.contains(slot);
-
-  Formation get formation {
-    int count(String role) => starters.where((s) => footballSquadRoles[s] == role).length;
-    return Formation(count('DEF'), count('MID'), count('FWD'));
+  final byRole = <String, List<String>>{};
+  for (final slot in picks.keys.toList()..sort()) {
+    final role = fromRoles[slot];
+    byRole.putIfAbsent(role, () => []).add(picks[slot]!);
   }
 
-  bool get isValid {
-    final all = {...starters, ...bench};
-    return starters.length == 11 &&
-        bench.length == 4 &&
-        all.length == footballSquadRoles.length &&
-        all.every((s) => s >= 0 && s < footballSquadRoles.length) &&
-        starters.where((s) => footballSquadRoles[s] == 'GK').length == 1 &&
-        footballSquadRoles[bench.first] == 'GK' &&
-        formation.isValid &&
-        (captain == null || isStarter(captain!)) &&
-        (viceCaptain == null || (isStarter(viceCaptain!) && viceCaptain != captain));
+  final kept = <int, String>{};
+  final taken = <String>{};
+  for (var slot = 0; slot < toRoles.length; slot++) {
+    final queue = byRole[toRoles[slot]];
+    if (queue == null || queue.isEmpty) continue;
+    final mint = queue.removeAt(0);
+    kept[slot] = mint;
+    taken.add(mint);
   }
 
-  /// Scoring weight: 2 for the captain, 1 for starters, 0 for the bench.
-  double weightOf(int slot) => captain == slot ? 2 : isStarter(slot) ? 1 : 0;
-
-  int? benchOrderOf(int slot) {
-    final i = bench.indexOf(slot);
-    return i == -1 ? null : i;
-  }
-
-  /// 'C', 'V' or null, for badges.
-  String? armband(int slot) => captain == slot ? 'C' : viceCaptain == slot ? 'V' : null;
-
-  /// Rearranges into [target], keeping current starters where possible and
-  /// promoting substitutes in bench order.
-  Lineup withFormation(Formation target) => _build(
-        target,
-        preference: [...starters, ...bench],
-        previousBench: bench,
-        captain: captain,
-        viceCaptain: viceCaptain,
-      );
-
-  /// Swaps a starter with a substitute, FPL style. Returns null when the swap
-  /// isn't allowed (two starters, keeper for outfielder, invalid formation).
-  Lineup? substitute(int a, int b) {
-    if (isStarter(a) == isStarter(b)) return null;
-    final off = isStarter(a) ? a : b;
-    final on = isStarter(a) ? b : a;
-    if ((footballSquadRoles[off] == 'GK') != (footballSquadRoles[on] == 'GK')) return null;
-    final next = Lineup(
-      starters: [for (final s in starters) s == off ? on : s]..sort(),
-      bench: [for (final s in bench) s == on ? off : s],
-    )._withArmbands(captain, viceCaptain);
-    return next.formation.isValid ? next : null;
-  }
-
-  Lineup withCaptain(int slot) => !isStarter(slot)
-      ? this
-      : Lineup(
-          starters: starters,
-          bench: bench,
-          captain: slot,
-          viceCaptain: viceCaptain == slot ? captain : viceCaptain,
-        );
-
-  Lineup withViceCaptain(int slot) => !isStarter(slot)
-      ? this
-      : Lineup(
-          starters: starters,
-          bench: bench,
-          captain: captain == slot ? viceCaptain : captain,
-          viceCaptain: slot,
-        );
-
-  /// Drops armbands from benched players; a benched captain hands the
-  /// armband to the vice-captain.
-  Lineup _withArmbands(int? captain, int? viceCaptain) {
-    int? c = captain != null && isStarter(captain) ? captain : null;
-    int? v = viceCaptain != null && isStarter(viceCaptain) && viceCaptain != c ? viceCaptain : null;
-    if (c == null && v != null) {
-      c = v;
-      v = null;
-    }
-    return Lineup(starters: starters, bench: bench, captain: c, viceCaptain: v);
-  }
-
-  static Lineup _build(
-    Formation target, {
-    required List<int> preference,
-    required List<int> previousBench,
-    int? captain,
-    int? viceCaptain,
-  }) {
-    final counts = {'GK': 1, 'DEF': target.def, 'MID': target.mid, 'FWD': target.fwd};
-    final starters = <int>[
-      for (final MapEntry(key: role, value: n) in counts.entries)
-        ...preference.where((s) => footballSquadRoles[s] == role).take(n),
-    ]..sort();
-
-    // Backup keeper first, then outfielders in their previous bench order,
-    // with newly dropped starters last.
-    int rank(int s) {
-      final i = previousBench.indexOf(s);
-      return i == -1 ? 100 + s : i;
-    }
-
-    final benched = [for (var s = 0; s < footballSquadRoles.length; s++) if (!starters.contains(s)) s];
-    final outfield = benched.where((s) => footballSquadRoles[s] != 'GK').toList()
-      ..sort((a, b) => rank(a).compareTo(rank(b)));
-    return Lineup(
-      starters: starters,
-      bench: [...benched.where((s) => footballSquadRoles[s] == 'GK'), ...outfield],
-    )._withArmbands(captain, viceCaptain);
-  }
-
-  @override
-  List<Object?> get props => [starters, bench, captain, viceCaptain];
+  return FormationPreview(
+    kept: kept,
+    dropped: [for (final mint in picks.values) if (!taken.contains(mint)) mint],
+  );
 }

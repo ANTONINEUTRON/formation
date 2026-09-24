@@ -7,8 +7,8 @@ import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/load_status.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 
-/// Drafting a roster: held stocks fill instantly, others go through a swap.
-/// For football, also manages the FPL-style lineup.
+/// Drafting a team: held stocks fill instantly, others go through a swap.
+/// For football it also owns the formation; football and basketball the armband.
 class DraftCubit extends Cubit<DraftState> {
   DraftCubit({required FormationRepository repository, required this.mode})
       : _repository = repository,
@@ -30,7 +30,7 @@ class DraftCubit extends Cubit<DraftState> {
     }
   }
 
-  /// Stocks that fit [slotIndex]'s tier and aren't already on the roster,
+  /// Stocks that fit [slotIndex]'s tier and aren't already on the team,
   /// held ones first.
   List<XStock> eligible(int slotIndex) {
     final roster = state.roster;
@@ -67,51 +67,62 @@ class DraftCubit extends Cubit<DraftState> {
     return shares;
   }
 
-  // ── Football lineup (FPL rules) ──────────────────────────────────────────────
+  // ── Formation and captaincy ─────────────────────────────────────────────────
 
-  Future<void> setFormation(Formation formation) => _saveLineup(_lineup.withFormation(formation));
+  Formation get formation =>
+      Formation.parse(state.roster?.formation ?? defaultFormation);
 
-  Future<void> makeCaptain(int slot) => _saveLineup(_lineup.withCaptain(slot));
-
-  Future<void> makeViceCaptain(int slot) => _saveLineup(_lineup.withViceCaptain(slot));
-
-  void startSubstitution(int slot) => emit(state.copyWith(substituting: slot));
-
-  void cancelSubstitution() => emit(state.copyWith(clearSubstituting: true));
-
-  /// Slots the player being substituted can legally swap with.
-  Set<int> substitutionTargets() {
-    final from = state.substituting;
-    final lineup = state.roster?.lineup;
-    if (from == null || lineup == null) return const {};
-    return {
-      for (var i = 0; i < footballSquadRoles.length; i++)
-        if (lineup.substitute(from, i) != null) i,
-    };
+  /// What switching to [target] would drop, so the UI can confirm first.
+  List<XStock> dropsFor(Formation target) {
+    final roster = state.roster;
+    if (roster == null) return const [];
+    final preview = previewFormationChange(
+      from: roster.formation ?? defaultFormation,
+      to: target.name,
+      picks: roster.picksBySlot,
+    );
+    return [
+      for (final mint in preview.dropped)
+        state.stocks.firstWhere((s) => s.mint == mint),
+    ];
   }
 
-  Future<void> substituteWith(int slot) async {
-    final from = state.substituting;
-    if (from == null) return;
-    final next = _lineup.substitute(from, slot);
-    if (next == null) {
-      emit(state.copyWith(clearSubstituting: true));
-      throw StateError('That swap would break formation rules');
-    }
-    await _saveLineup(next);
-  }
-
-  Lineup get _lineup => state.roster!.lineup!;
-
-  /// Applies the lineup immediately, then saves; reverts if saving fails.
-  Future<void> _saveLineup(Lineup lineup) async {
-    final previous = state.roster!;
-    emit(state.copyWith(roster: previous.copyWith(lineup: lineup), clearSubstituting: true));
+  /// Saves the new shape. Returns the picks that came off the team.
+  Future<List<XStock>> setFormation(Formation formation) async {
+    emit(state.copyWith(isSaving: true));
     try {
-      final saved = await _repository.setLineup(mode, lineup);
-      if (!isClosed) emit(state.copyWith(roster: saved));
+      final change = await _repository.setFormation(mode, formation.name);
+      if (!isClosed) emit(state.copyWith(roster: change.roster, isSaving: false));
+      return change.dropped;
     } catch (_) {
-      if (!isClosed) emit(state.copyWith(roster: previous));
+      if (!isClosed) emit(state.copyWith(isSaving: false));
+      rethrow;
+    }
+  }
+
+  Future<void> makeCaptain(int slot) => _saveCaptaincy(
+        captainSlot: slot,
+        viceCaptainSlot:
+            state.roster?.viceCaptainSlot == slot ? state.roster?.captainSlot : state.roster?.viceCaptainSlot,
+      );
+
+  Future<void> makeViceCaptain(int slot) => _saveCaptaincy(
+        captainSlot:
+            state.roster?.captainSlot == slot ? state.roster?.viceCaptainSlot : state.roster?.captainSlot,
+        viceCaptainSlot: slot,
+      );
+
+  Future<void> _saveCaptaincy({int? captainSlot, int? viceCaptainSlot}) async {
+    emit(state.copyWith(isSaving: true));
+    try {
+      final roster = await _repository.setCaptaincy(
+        mode,
+        captainSlot: captainSlot,
+        viceCaptainSlot: viceCaptainSlot,
+      );
+      if (!isClosed) emit(state.copyWith(roster: roster, isSaving: false));
+    } catch (_) {
+      if (!isClosed) emit(state.copyWith(isSaving: false));
       rethrow;
     }
   }

@@ -20,9 +20,7 @@ class LeaderboardRow extends StatelessWidget {
     final highlight = entry.isCurrentUser;
 
     return Material(
-      color: highlight
-          ? AppColors.primary.withValues(alpha: 0.12)
-          : AppColors.surface,
+      color: highlight ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -44,14 +42,10 @@ class LeaderboardRow extends StatelessWidget {
               SizedBox(
                 width: 36,
                 child: isTop3
-                    ? Icon(Icons.emoji_events,
-                        color: _medalColors[entry.rank - 1], size: 22)
+                    ? Icon(Icons.emoji_events, color: _medalColors[entry.rank - 1], size: 22)
                     : Text(
                         '#${entry.rank}',
-                        style: AppTextStyles.mono(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.mono(fontSize: 13, color: AppColors.textSecondary),
                       ),
               ),
               const SizedBox(width: 8),
@@ -64,31 +58,38 @@ class LeaderboardRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontWeight: highlight || isTop3
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                        fontWeight:
+                            highlight || isTop3 ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
                     Text(
                       shortAddress(entry.walletAddress),
-                      style: AppTextStyles.mono(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
+                      style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],
                 ),
               ),
               if (entry.streak > 1) ...[
-                const Icon(Icons.local_fire_department,
-                    size: 16, color: AppColors.warning),
+                const Icon(Icons.local_fire_department, size: 16, color: AppColors.warning),
                 Text(
                   '${entry.streak}',
-                  style: AppTextStyles.mono(
-                      fontSize: 12, color: AppColors.warning),
+                  style: AppTextStyles.mono(fontSize: 12, color: AppColors.warning),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
               ],
+              // This gameweek, then the season total.
+              SizedBox(
+                width: 54,
+                child: Text(
+                  formatSignedPoints(entry.gameweekPoints),
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.mono(
+                    fontSize: 12,
+                    color: pnlColor(entry.gameweekPoints),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Text(
                 formatPoints(entry.points),
                 style: AppTextStyles.mono(
@@ -96,11 +97,6 @@ class LeaderboardRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: highlight ? AppColors.primary : AppColors.textPrimary,
                 ),
-              ),
-              const SizedBox(width: 4),
-              const Text(
-                'pts',
-                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ],
           ),

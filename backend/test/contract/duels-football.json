@@ -1,0 +1,36 @@
+[
+  {
+    "id": "3ed79a42-5c70-4d97-8c28-0efbb9f896a4",
+    "challenger": {
+      "rank": 0,
+      "userId": "62ab7534-ccf0-4a33-b0bb-689e559f25bf",
+      "username": "GER2…TUhW",
+      "walletAddress": "GER2werVnaHehJ9dDZN7KVpf41aepYaLEEBgZ27MTUhW",
+      "points": 0,
+      "gameweekPoints": 0,
+      "streak": 0,
+      "isCurrentUser": true
+    },
+    "opponent": {
+      "rank": 0,
+      "userId": "d305f2a9-2583-4c14-82a7-99f63affffcf",
+      "username": "HN2f…QDSd",
+      "walletAddress": "HN2f8NAfhNabq9iF1uFZRUTs5DUjELtJTQEZuZrJQDSd",
+      "points": 0,
+      "gameweekPoints": 0,
+      "streak": 0,
+      "isCurrentUser": false
+    },
+    "mode": "football",
+    "durationHours": 1,
+    "status": "settled",
+    "startTime": "2026-01-05T12:30:00.000Z",
+    "endTime": "2026-01-05T13:31:00.000Z",
+    "challengerPoints": 203,
+    "opponentPoints": 24,
+    "categories": null,
+    "challengerBreakdown": null,
+    "opponentBreakdown": null,
+    "winnerId": "62ab7534-ccf0-4a33-b0bb-689e559f25bf"
+  }
+]

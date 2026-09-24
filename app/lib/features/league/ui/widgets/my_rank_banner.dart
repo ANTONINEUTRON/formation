@@ -45,10 +45,7 @@ class MyRankBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                FilledButton(
-                  onPressed: onDraftTeam,
-                  child: const Text('Draft'),
-                ),
+                FilledButton(onPressed: onDraftTeam, child: const Text('Draft')),
               ],
             )
           : Row(
@@ -67,10 +64,7 @@ class MyRankBanner extends StatelessWidget {
                     Text.rich(
                       TextSpan(
                         text: '#${me.rank}',
-                        style: AppTextStyles.mono(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: AppTextStyles.mono(fontSize: 28, fontWeight: FontWeight.w800),
                         children: [
                           TextSpan(
                             text: ' of $totalPlayers',
@@ -89,19 +83,30 @@ class MyRankBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text(
-                      'CLASSIC POINTS',
+                      'SEASON · THIS GW',
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 1.2,
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      formatPoints(me.points),
-                      style: AppTextStyles.mono(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                    Text.rich(
+                      TextSpan(
+                        text: formatPoints(me.points),
+                        style: AppTextStyles.mono(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '  ${formatSignedPoints(me.gameweekPoints)}',
+                            style: AppTextStyles.mono(
+                              fontSize: 13,
+                              color: pnlColor(me.gameweekPoints),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

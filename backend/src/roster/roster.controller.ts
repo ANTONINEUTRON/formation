@@ -1,7 +1,15 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard, CurrentUser } from '../auth/auth.guard.js';
 import { ChainService } from '../core/chain.service.js';
-import type { AuthUser, RosterDto } from '../domain/dto.js';
+import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseSportMode } from '../domain/sport.js';
 import { requireString } from '../domain/validate.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
@@ -32,14 +40,24 @@ export class RosterController {
     );
   }
 
-  /** Football: formation, substitutes order and armbands (FPL rules). */
-  @Put(':mode/lineup')
-  lineup(
+  /** Football: change shape, e.g. {"formation": "3-5-2"}. */
+  @Put(':mode/formation')
+  formation(
+    @Param('mode') mode: string,
+    @Body() body: { formation?: string },
+    @CurrentUser() user: AuthUser,
+  ): Promise<FormationChangeDto> {
+    return this.rosters.setFormation(user, parseSportMode(mode), body?.formation);
+  }
+
+  /** Football and basketball: {"captainSlot": 9, "viceCaptainSlot": 0}. */
+  @Put(':mode/captain')
+  captain(
     @Param('mode') mode: string,
     @Body() body: unknown,
     @CurrentUser() user: AuthUser,
   ): Promise<RosterDto> {
-    return this.rosters.setLineup(user, parseSportMode(mode), body);
+    return this.rosters.setCaptaincy(user, parseSportMode(mode), body);
   }
 }
 

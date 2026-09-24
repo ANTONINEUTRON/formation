@@ -1,0 +1,385 @@
+{
+  "mode": "football",
+  "formation": "3-5-2",
+  "captainSlot": 9,
+  "viceCaptainSlot": 0,
+  "slots": [
+    {
+      "slotIndex": 0,
+      "positionLabel": "GK",
+      "stock": {
+        "symbol": "AAPLx",
+        "companyName": "Apple",
+        "mint": "mint-AAPL",
+        "tier": "blue_chip",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 1,
+      "positionLabel": "DEF",
+      "stock": {
+        "symbol": "KOx",
+        "companyName": "Coca-Cola",
+        "mint": "mint-KO",
+        "tier": "stable",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 2,
+      "positionLabel": "DEF",
+      "stock": {
+        "symbol": "PGx",
+        "companyName": "P&G",
+        "mint": "mint-PG",
+        "tier": "stable",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 3,
+      "positionLabel": "DEF",
+      "stock": {
+        "symbol": "JNJx",
+        "companyName": "J&J",
+        "mint": "mint-JNJ",
+        "tier": "stable",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 4,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "JPMx",
+        "companyName": "JPMorgan",
+        "mint": "mint-JPM",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 5,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "Vx",
+        "companyName": "Visa",
+        "mint": "mint-V",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 6,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "MAx",
+        "companyName": "Mastercard",
+        "mint": "mint-MA",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 7,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "ORCLx",
+        "companyName": "Oracle",
+        "mint": "mint-ORCL",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 8,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "UNHx",
+        "companyName": "UnitedHealth",
+        "mint": "mint-UNH",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 9,
+      "positionLabel": "FWD",
+      "stock": {
+        "symbol": "TSLAx",
+        "companyName": "Tesla",
+        "mint": "mint-TSLA",
+        "tier": "momentum",
+        "priceUsd": 106,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    },
+    {
+      "slotIndex": 10,
+      "positionLabel": "FWD",
+      "stock": {
+        "symbol": "HOODx",
+        "companyName": "Robinhood",
+        "mint": "mint-HOOD",
+        "tier": "momentum",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10
+    }
+  ],
+  "classicPoints": 163,
+  "classicRank": 1,
+  "gameweek": {
+    "id": "3dff5c55-3d91-4e25-bcf8-f9e973ac6c7d",
+    "number": 13,
+    "startsAt": "2026-01-05T12:00:00.000Z",
+    "endsAt": "2026-01-05T13:00:00.000Z",
+    "status": "live",
+    "entered": true,
+    "points": 163,
+    "slots": [
+      {
+        "base": 0,
+        "mint": "mint-AAPL",
+        "role": "GK",
+        "alpha": 0,
+        "total": 4,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 4
+          }
+        ],
+        "symbol": "AAPLx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 0,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-KO",
+        "role": "DEF",
+        "alpha": 0,
+        "total": 4,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 4
+          }
+        ],
+        "symbol": "KOx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 1,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-PG",
+        "role": "DEF",
+        "alpha": 0,
+        "total": 4,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 4
+          }
+        ],
+        "symbol": "PGx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 2,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-JNJ",
+        "role": "DEF",
+        "alpha": 0,
+        "total": 4,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 4
+          }
+        ],
+        "symbol": "JNJx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 3,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-JPM",
+        "role": "MID",
+        "alpha": 0,
+        "total": 1,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 1
+          }
+        ],
+        "symbol": "JPMx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 4,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-V",
+        "role": "MID",
+        "alpha": 0,
+        "total": 1,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 1
+          }
+        ],
+        "symbol": "Vx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 5,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-MA",
+        "role": "MID",
+        "alpha": 0,
+        "total": 1,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 1
+          }
+        ],
+        "symbol": "MAx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 6,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-ORCL",
+        "role": "MID",
+        "alpha": 0,
+        "total": 1,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 1
+          }
+        ],
+        "symbol": "ORCLx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 7,
+        "multiplier": 1
+      },
+      {
+        "base": 0,
+        "mint": "mint-UNH",
+        "role": "MID",
+        "alpha": 0,
+        "total": 1,
+        "events": [
+          {
+            "code": "clean_sheet",
+            "label": "Clean sheet",
+            "points": 1
+          }
+        ],
+        "symbol": "UNHx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 8,
+        "multiplier": 1
+      },
+      {
+        "base": 60,
+        "mint": "mint-TSLA",
+        "role": "FWD",
+        "alpha": 0.06,
+        "total": 142,
+        "events": [
+          {
+            "code": "goal",
+            "label": "2 goals",
+            "points": 8
+          },
+          {
+            "code": "assist",
+            "label": "Assist",
+            "points": 3
+          }
+        ],
+        "symbol": "TSLAx",
+        "counted": true,
+        "ownReturn": 0.06,
+        "slotIndex": 9,
+        "multiplier": 2
+      },
+      {
+        "base": 0,
+        "mint": "mint-HOOD",
+        "role": "FWD",
+        "alpha": 0,
+        "total": 0,
+        "events": [],
+        "symbol": "HOODx",
+        "counted": true,
+        "ownReturn": 0,
+        "slotIndex": 10,
+        "multiplier": 1
+      }
+    ],
+    "teamEvents": []
+  },
+  "pendingChanges": false
+}

@@ -11,18 +11,10 @@ import 'package:symbians/features/shared/domain/roster_shapes.dart';
 /// Positions come from [boardLayout]: fixed per sport, or by formation for
 /// football (substitutes are shown separately in a bench strip).
 class FormationBoard extends StatelessWidget {
-  const FormationBoard({
-    required this.roster,
-    required this.onSlotTap,
-    this.selectedSlot,
-    this.highlightedSlots = const {},
-    super.key,
-  });
+  const FormationBoard({required this.roster, required this.onSlotTap, super.key});
 
   final Roster roster;
   final ValueChanged<int> onSlotTap;
-  final int? selectedSlot;
-  final Set<int> highlightedSlots;
 
   double get _aspectRatio => switch (roster.mode) {
         SportMode.basketball => 0.95,
@@ -60,9 +52,7 @@ class FormationBoard extends StatelessWidget {
                       slot: roster.slots[i],
                       size: chip,
                       onTap: () => onSlotTap(i),
-                      armband: roster.lineup?.armband(i),
-                      isSelected: selectedSlot == i,
-                      isHighlighted: highlightedSlots.contains(i),
+                      armband: roster.armband(i),
                     ),
                   ),
               ],

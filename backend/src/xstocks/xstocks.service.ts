@@ -1,17 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { ChainService, PriceInfo } from '../core/chain.service.js';
-import { DbService, unwrap } from '../core/db.service.js';
-import { XStockDto } from '../domain/dto.js';
-import { RiskTier } from '../domain/sport.js';
-
-export interface XStockRow {
-  mint: string;
-  symbol: string;
-  company_name: string;
-  tier: RiskTier;
-  decimals: number;
-  logo_url: string | null;
-}
+import { Inject, Injectable } from '@nestjs/common';
+import type { PriceInfo } from '../core/chain.service.js';
+import { DB } from '../core/db.js';
+import type { Db } from '../core/db.js';
+import type { XStockRow } from '../core/db-types.js';
+import { PRICE_SOURCE } from '../core/sources.js';
+import type { PriceSource } from '../core/sources.js';
+import type { XStockDto } from '../domain/dto.js';
 
 const CACHE_TTL_MS = 5 * 60_000;
 
@@ -20,17 +14,15 @@ export class XStocksService {
   private cache?: { at: number; rows: XStockRow[] };
 
   constructor(
-    private readonly db: DbService,
-    private readonly chain: ChainService,
+    @Inject(DB) private readonly db: Db,
+    @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
   ) {}
 
   async rows(): Promise<XStockRow[]> {
     if (this.cache && Date.now() - this.cache.at < CACHE_TTL_MS) {
       return this.cache.rows;
     }
-    const rows: XStockRow[] = unwrap(
-      await this.db.supabase.from('xstocks').select('*').order('symbol'),
-    );
+    const rows = await this.db.selectFrom('xstocks').selectAll().orderBy('symbol').execute();
     this.cache = { at: Date.now(), rows };
     return rows;
   }
@@ -41,7 +33,7 @@ export class XStocksService {
 
   async list(): Promise<XStockDto[]> {
     const rows = await this.rows();
-    const prices = await this.chain.getPrices(rows.map((r) => r.mint));
+    const prices = await this.prices.getPrices(rows.map((r) => r.mint));
     return rows.map((r) => this.toDto(r, prices.get(r.mint)));
   }
 

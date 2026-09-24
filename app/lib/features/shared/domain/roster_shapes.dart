@@ -3,47 +3,26 @@ import 'package:flutter/painting.dart';
 import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 
-/// Position slots for each sport mode, in roster order.
+/// Position slots for each sport mode, in slot order.
 ///
+/// Slot index i here is slot index i in the API (`backend/src/domain/sport.ts`).
 /// Board positions are normalized (0..1) with the attacking end at the top.
-/// Slot order is the contract with the backend: slot index i in the API is
-/// `rosterShape(mode)[i]`.
-List<PositionSlot> rosterShape(SportMode mode) => switch (mode) {
+List<PositionSlot> rosterShape(SportMode mode, [String? formation]) =>
+    switch (mode) {
       SportMode.basketball => _basketball,
-      SportMode.football => _football,
+      SportMode.football => footballShape(formation ?? defaultFormation),
       SportMode.americanFootball => _americanFootball,
     };
 
 Roster emptyRoster(SportMode mode) => Roster(
       mode: mode,
       slots: [for (final p in rosterShape(mode)) RosterSlot(position: p)],
-      lineup: mode == SportMode.football ? Lineup.defaultFootball() : null,
+      formation: mode == SportMode.football ? defaultFormation : null,
     );
 
-/// Where each slot sits on the board. Football lays starters out in rows by
-/// formation and returns null for substitutes; other sports are fixed.
-List<Offset?> boardLayout(Roster roster) {
-  final lineup = roster.lineup;
-  if (lineup == null) return [for (final s in roster.slots) s.position.boardPosition];
-
-  const rows = {'GK': 0.9, 'DEF': 0.68, 'MID': 0.43, 'FWD': 0.17};
-  final layout = List<Offset?>.filled(roster.slots.length, null);
-  for (final MapEntry(key: role, value: y) in rows.entries) {
-    final row = lineup.starters.where((s) => footballSquadRoles[s] == role).toList();
-    for (var i = 0; i < row.length; i++) {
-      layout[row[i]] = Offset((i + 1) / (row.length + 1), y);
-    }
-  }
-  return layout;
-}
-
-const _basketball = [
-  PositionSlot(label: 'PG', requiredTier: RiskTier.growth, boardPosition: Offset(0.5, 0.82)),
-  PositionSlot(label: 'SG', requiredTier: RiskTier.growth, boardPosition: Offset(0.18, 0.62)),
-  PositionSlot(label: 'SF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.82, 0.62)),
-  PositionSlot(label: 'PF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.28, 0.3)),
-  PositionSlot(label: 'C', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.72, 0.3)),
-];
+/// Where each slot sits on the board.
+List<Offset?> boardLayout(Roster roster) =>
+    [for (final s in roster.slots) s.position.boardPosition];
 
 const _footballRoleTiers = {
   'GK': RiskTier.blueChip,
@@ -52,10 +31,36 @@ const _footballRoleTiers = {
   'FWD': RiskTier.momentum,
 };
 
-// FPL squad of 15. Board positions come from the lineup (see boardLayout).
-final _football = [
-  for (final role in footballSquadRoles)
-    PositionSlot(label: role, requiredTier: _footballRoleTiers[role], boardPosition: Offset.zero),
+const _footballRows = {'GK': 0.9, 'DEF': 0.68, 'MID': 0.43, 'FWD': 0.17};
+
+/// The 11 starters of a formation, laid out in rows on the pitch.
+List<PositionSlot> footballShape(String formation) {
+  final roles = footballRoles(formation);
+  final counts = <String, int>{};
+  for (final role in roles) {
+    counts[role] = (counts[role] ?? 0) + 1;
+  }
+
+  final placed = <String, int>{};
+  return [
+    for (final role in roles)
+      () {
+        final index = placed[role] = (placed[role] ?? 0) + 1;
+        return PositionSlot(
+          label: role,
+          requiredTier: _footballRoleTiers[role],
+          boardPosition: Offset(index / (counts[role]! + 1), _footballRows[role]!),
+        );
+      }(),
+  ];
+}
+
+const _basketball = [
+  PositionSlot(label: 'PG', requiredTier: RiskTier.growth, boardPosition: Offset(0.5, 0.82)),
+  PositionSlot(label: 'SG', requiredTier: RiskTier.growth, boardPosition: Offset(0.18, 0.62)),
+  PositionSlot(label: 'SF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.82, 0.62)),
+  PositionSlot(label: 'PF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.28, 0.3)),
+  PositionSlot(label: 'C', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.72, 0.3)),
 ];
 
 // Offensive formation, line of scrimmage around y = 0.45.

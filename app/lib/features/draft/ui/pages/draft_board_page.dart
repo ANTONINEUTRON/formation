@@ -9,19 +9,19 @@ import 'package:symbians/core/widgets/empty_state.dart';
 import 'package:symbians/core/widgets/loading_indicator.dart';
 import 'package:symbians/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:symbians/features/draft/ui/cubits/draft_state.dart';
-import 'package:symbians/features/draft/ui/widgets/bench_strip.dart';
 import 'package:symbians/features/draft/ui/widgets/formation_board.dart';
 import 'package:symbians/features/draft/ui/widgets/formation_selector.dart';
 import 'package:symbians/features/draft/ui/widgets/slot_actions_sheet.dart';
 import 'package:symbians/features/draft/ui/widgets/stock_picker_sheet.dart';
 import 'package:symbians/features/shared/data/formation_repository.dart';
+import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/load_status.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 
-/// Draft a roster by tapping positions on the board. For football this is
-/// also FPL's "Pick Team": formation, substitutes and armbands.
+/// Draft a team by tapping positions on the board. For football this is also
+/// "Pick team": the formation and the armbands.
 ///
-/// Each change is saved as it's made, so leaving mid-draft keeps progress.
+/// Every change is saved as it's made and applies from the next gameweek.
 @RoutePage()
 class DraftBoardPage extends StatelessWidget {
   const DraftBoardPage({required this.mode, super.key});
@@ -31,7 +31,8 @@ class DraftBoardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DraftCubit(repository: context.read<FormationRepository>(), mode: mode)..load(),
+      create: (context) =>
+          DraftCubit(repository: context.read<FormationRepository>(), mode: mode)..load(),
       child: BlocBuilder<DraftCubit, DraftState>(
         builder: (context, state) {
           final roster = state.roster;
@@ -40,13 +41,14 @@ class DraftBoardPage extends StatelessWidget {
 
           return Scaffold(
             appBar: AppBar(
-              title: Text('${roster?.lineup != null ? 'Pick team' : 'Draft'} · ${mode.label}'),
+              title: Text('${mode == SportMode.football ? 'Pick team' : 'Draft'} · ${mode.label}'),
               actions: [
                 if (roster != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 16),
                     child: Center(
-                      child: Text('$filled/$total', style: AppTextStyles.mono(fontWeight: FontWeight.w700)),
+                      child: Text('$filled/$total',
+                          style: AppTextStyles.mono(fontWeight: FontWeight.w700)),
                     ),
                   ),
               ],
@@ -59,7 +61,7 @@ class DraftBoardPage extends StatelessWidget {
                   onAction: context.read<DraftCubit>().load,
                 ),
               _ when roster == null => const LoadingIndicator(),
-              _ => SafeArea(child: _DraftBody(state: state, roster: roster, filled: filled, total: total)),
+              _ => SafeArea(child: _DraftBody(roster: roster, filled: filled, total: total)),
             },
           );
         },
@@ -69,62 +71,85 @@ class DraftBoardPage extends StatelessWidget {
 }
 
 class _DraftBody extends StatelessWidget {
-  const _DraftBody({required this.state, required this.roster, required this.filled, required this.total});
+  const _DraftBody({required this.roster, required this.filled, required this.total});
 
-  final DraftState state;
   final Roster roster;
   final int filled;
   final int total;
 
-  Future<void> _onSlotTap(BuildContext context, int slot) async {
-    final cubit = context.read<DraftCubit>();
-    final substituting = cubit.state.substituting;
+  bool get _isFootball => roster.mode == SportMode.football;
 
-    if (substituting != null) {
-      if (slot == substituting) {
-        cubit.cancelSubstitution();
-      } else {
-        await _guard(context, () => cubit.substituteWith(slot));
-      }
-      return;
-    }
-    if (roster.lineup == null || !roster.slots[slot].isFilled) {
+  Future<void> _onSlotTap(BuildContext context, int slot) async {
+    if (!roster.slots[slot].isFilled || roster.mode == SportMode.americanFootball) {
       await StockPickerSheet.show(context, slotIndex: slot);
       return;
     }
     await SlotActionsSheet.show(context, slotIndex: slot);
   }
 
+  /// Confirms first when a shape change would drop picks.
+  Future<void> _onFormationSelected(BuildContext context, Formation formation) async {
+    final cubit = context.read<DraftCubit>();
+    final drops = cubit.dropsFor(formation);
+
+    if (drops.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text('Switch to ${formation.name}?'),
+          content: Text(
+            '${drops.map((s) => s.symbol).join(', ')} '
+            '${drops.length == 1 ? 'no longer fits' : 'no longer fit'} the shape and will come off '
+            'your team. You keep the stock in your wallet.',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text('Switch to ${formation.name}'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    try {
+      final dropped = await cubit.setFormation(formation);
+      if (context.mounted && dropped.isNotEmpty) {
+        context.showInfoToast(
+          message: '${dropped.map((s) => s.symbol).join(', ')} came off your team',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) context.showErrorToast(message: errorText(e));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<DraftCubit>();
-    final lineup = roster.lineup;
-    final substituting = state.substituting;
-    final targets = cubit.substitutionTargets();
-
     return Column(
       children: [
-        if (substituting != null)
-          _SubstitutionBanner(
-            name: roster.slots[substituting].stock?.symbol ?? roster.slots[substituting].position.label,
-            onCancel: cubit.cancelSubstitution,
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-            child: Text(
-              lineup == null
-                  ? 'Tap a position. Stocks you hold fill instantly; anything else you can buy right here.'
-                  : 'Tap a player to substitute, hand out the armband, or change the stock. '
-                      'Captain scores double; substitutes come on if a starter is sold.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Text(
+            _isFootball
+                ? 'Tap a player to give out the armband or change the stock. '
+                    'The captain scores double; changes apply from the next gameweek.'
+                : 'Tap a position. Stocks you hold fill instantly; anything else you can buy here.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
-        if (lineup != null) ...[
+        ),
+        if (_isFootball) ...[
           FormationSelector(
-            current: lineup.formation,
-            onSelected: (f) => _guard(context, () => cubit.setFormation(f)),
+            current: Formation.parse(roster.formation ?? defaultFormation),
+            onSelected: (f) => _onFormationSelected(context, f),
           ),
           const SizedBox(height: 10),
         ],
@@ -135,72 +160,22 @@ class _DraftBody extends StatelessWidget {
               child: FormationBoard(
                 roster: roster,
                 onSlotTap: (i) => _onSlotTap(context, i),
-                selectedSlot: substituting,
-                highlightedSlots: targets,
               ),
             ),
           ),
         ),
-        if (lineup != null) ...[
-          const SizedBox(height: 10),
-          BenchStrip(
-            roster: roster,
-            onSlotTap: (i) => _onSlotTap(context, i),
-            selectedSlot: substituting,
-            highlightedSlots: targets,
-          ),
-        ],
         const _TierLegend(),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: FilledButton(
             onPressed: () => context.router.maybePop(),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-            child: Text(filled == total ? 'Team complete: done' : 'Save & finish later (${total - filled} left)'),
+            child: Text(
+              filled == total ? 'Team complete: done' : 'Save & finish later (${total - filled} left)',
+            ),
           ),
         ),
       ],
-    );
-  }
-}
-
-Future<void> _guard(BuildContext context, Future<void> Function() action) async {
-  try {
-    await action();
-  } catch (e) {
-    if (context.mounted) context.showErrorToast(message: errorText(e));
-  }
-}
-
-class _SubstitutionBanner extends StatelessWidget {
-  const _SubstitutionBanner({required this.name, required this.onCancel});
-
-  final String name;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.swap_vert, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Swap $name with a highlighted player',
-              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
-            ),
-          ),
-          TextButton(onPressed: onCancel, child: const Text('Cancel')),
-        ],
-      ),
     );
   }
 }
@@ -221,7 +196,11 @@ class _TierLegend extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: tier.color, shape: BoxShape.circle)),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: tier.color, shape: BoxShape.circle),
+                ),
                 const SizedBox(width: 4),
                 Text(tier.label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],

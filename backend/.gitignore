@@ -36,6 +36,7 @@ yarn-error.log*
 
 # Environment
 .env
+.env.demo
 .env.local
 .env.*.local
 

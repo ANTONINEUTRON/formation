@@ -1,60 +1,74 @@
-import { Injectable } from '@nestjs/common';
-import { DbService, unwrap } from '../core/db.service.js';
-import { LeaderboardEntryDto } from '../domain/dto.js';
-import { SportMode } from '../domain/sport.js';
+import { Inject, Injectable } from '@nestjs/common';
+import { DB } from '../core/db.js';
+import type { Db } from '../core/db.js';
+import type { LeaderboardEntryDto } from '../domain/dto.js';
+import type { SportMode } from '../domain/sport.js';
+import { GameweekService } from '../gameweek/gameweek.service.js';
 import { UsersService } from '../users/users.service.js';
 
-interface ScoreRow {
-  user_id: string;
-  total_points: number;
-  streak: number;
-  users: { username: string; wallet_address: string };
-}
-
 const BOARD_SIZE = 100;
+
+export interface Standing {
+  /** Season total plus the live gameweek. */
+  points: number;
+  gameweekPoints: number;
+  streak: number;
+  rank: number;
+}
 
 @Injectable()
 export class LeagueService {
   constructor(
-    private readonly db: DbService,
+    @Inject(DB) private readonly db: Db,
     private readonly users: UsersService,
+    private readonly gameweeks: GameweekService,
   ) {}
 
   /** Top of the Classic league, plus the current user if they're below it. */
-  async leaderboard(
-    mode: SportMode,
-    currentUserId?: string,
-  ): Promise<LeaderboardEntryDto[]> {
-    // users is a to-one join, but the untyped client infers an array.
-    const rows = unwrap(
-      await this.db.supabase
-        .from('classic_scores')
-        .select('user_id, total_points, streak, users!inner(username, wallet_address)')
-        .eq('sport_mode', mode)
-        .order('total_points', { ascending: false })
-        .limit(BOARD_SIZE),
-    ) as unknown as ScoreRow[];
-    const entries = rows.map((r, i) => ({
-      rank: i + 1,
-      userId: r.user_id,
-      username: r.users.username,
-      walletAddress: r.users.wallet_address,
-      points: Number(r.total_points),
-      streak: r.streak,
-      isCurrentUser: r.user_id === currentUserId,
-    }));
+  async leaderboard(mode: SportMode, currentUserId?: string): Promise<LeaderboardEntryDto[]> {
+    const live = await this.livePoints(mode);
+    const rows = await this.db
+      .selectFrom('classic_scores')
+      .innerJoin('users', 'users.id', 'classic_scores.user_id')
+      .select([
+        'classic_scores.user_id as user_id',
+        'classic_scores.total_points as total_points',
+        'classic_scores.last_gameweek_points as last_gameweek_points',
+        'classic_scores.streak as streak',
+        'users.username as username',
+        'users.wallet_address as wallet_address',
+      ])
+      .where('classic_scores.sport_mode', '=', mode)
+      .orderBy('classic_scores.total_points', 'desc')
+      .limit(BOARD_SIZE)
+      .execute();
+
+    const entries = rows
+      .map((row) => ({
+        rank: 0,
+        userId: row.user_id,
+        username: row.username,
+        walletAddress: row.wallet_address,
+        points: row.total_points + (live.get(row.user_id) ?? 0),
+        gameweekPoints: live.get(row.user_id) ?? row.last_gameweek_points,
+        streak: row.streak,
+        isCurrentUser: row.user_id === currentUserId,
+      }))
+      .sort((a, b) => b.points - a.points)
+      .map((entry, i) => ({ ...entry, rank: i + 1 }));
 
     if (currentUserId && !entries.some((e) => e.isCurrentUser)) {
-      const mine = await this.standing(currentUserId, mode);
+      const standing = await this.standing(currentUserId, mode);
       const me = (await this.users.getMany([currentUserId])).get(currentUserId);
-      if (mine && me) {
+      if (standing && me) {
         entries.push({
-          rank: mine.rank,
+          rank: standing.rank,
           userId: me.id,
           username: me.username,
           walletAddress: me.wallet_address,
-          points: mine.points,
-          streak: mine.streak,
+          points: standing.points,
+          gameweekPoints: standing.gameweekPoints,
+          streak: standing.streak,
           isCurrentUser: true,
         });
       }
@@ -63,29 +77,37 @@ export class LeagueService {
   }
 
   /** The user's points, streak and rank, or null if they haven't drafted. */
-  async standing(
-    userId: string,
-    mode: SportMode,
-  ): Promise<{ points: number; streak: number; rank: number } | null> {
-    const row: { total_points: number; streak: number } | null = unwrap(
-      await this.db.supabase
-        .from('classic_scores')
-        .select('total_points, streak')
-        .eq('user_id', userId)
-        .eq('sport_mode', mode)
-        .maybeSingle(),
-    );
+  async standing(userId: string, mode: SportMode): Promise<Standing | null> {
+    const row = await this.db
+      .selectFrom('classic_scores')
+      .select(['total_points', 'last_gameweek_points', 'streak'])
+      .where('user_id', '=', userId)
+      .where('sport_mode', '=', mode)
+      .executeTakeFirst();
     if (!row) return null;
-    const { count, error } = await this.db.supabase
-      .from('classic_scores')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('sport_mode', mode)
-      .gt('total_points', row.total_points);
-    unwrap({ data: null, error });
+
+    const live = await this.livePoints(mode);
+    const points = row.total_points + (live.get(userId) ?? 0);
+
+    const ahead = await this.db
+      .selectFrom('classic_scores')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('sport_mode', '=', mode)
+      .where('total_points', '>', row.total_points)
+      .executeTakeFirst();
+
     return {
-      points: Number(row.total_points),
+      points,
+      gameweekPoints: live.get(userId) ?? row.last_gameweek_points,
       streak: row.streak,
-      rank: (count ?? 0) + 1,
+      rank: Number(ahead?.count ?? 0) + 1,
     };
+  }
+
+  /** Points scored so far in the live gameweek, by user. */
+  private async livePoints(mode: SportMode): Promise<Map<string, number>> {
+    const gameweek = await this.gameweeks.current(mode);
+    if (!gameweek || gameweek.status !== 'live') return new Map();
+    return this.gameweeks.livePointsByUser(gameweek.id);
   }
 }

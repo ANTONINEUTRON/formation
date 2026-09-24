@@ -10,19 +10,12 @@ import bs58 from 'bs58';
 import { ChainService } from '../core/chain.service.js';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
-import { DbService, unwrap } from '../core/db.service.js';
+import { DB } from '../core/db.js';
+import type { Db } from '../core/db.js';
 import type { TrophyDto } from '../domain/dto.js';
 import type { SportMode } from '../domain/sport.js';
 
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
-
-interface TrophyRow {
-  id: string;
-  title: string;
-  sport_mode: SportMode;
-  awarded_at: string;
-  tx_signature: string | null;
-}
 
 /**
  * Trophies are stored in the database and anchored on-chain with a memo
@@ -35,7 +28,7 @@ export class TrophyService {
 
   constructor(
     @Inject(CONFIG) config: AppConfig,
-    private readonly db: DbService,
+    @Inject(DB) private readonly db: Db,
     private readonly chain: ChainService,
   ) {
     if (config.trophySecretKey) {
@@ -50,19 +43,17 @@ export class TrophyService {
     title: string;
     duelId?: string;
   }): Promise<void> {
-    const row: { id: string } = unwrap(
-      await this.db.supabase
-        .from('trophies')
-        .insert({
-          user_id: input.userId,
-          sport_mode: input.mode,
-          type: 'duel_win',
-          title: input.title,
-          duel_id: input.duelId ?? null,
-        })
-        .select('id')
-        .single(),
-    );
+    const row = await this.db
+      .insertInto('trophies')
+      .values({
+        user_id: input.userId,
+        sport_mode: input.mode,
+        type: 'duel_win',
+        title: input.title,
+        duel_id: input.duelId ?? null,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
     if (!this.signer) return;
 
     try {
@@ -75,9 +66,11 @@ export class TrophyService {
         }),
       );
       const signature = await sendAndConfirmTransaction(this.chain.connection, tx, [this.signer]);
-      unwrap(
-        await this.db.supabase.from('trophies').update({ tx_signature: signature }).eq('id', row.id),
-      );
+      await this.db
+        .updateTable('trophies')
+        .set({ tx_signature: signature })
+        .where('id', '=', row.id)
+        .execute();
     } catch (e) {
       // The trophy still counts; the memo can be retried later.
       this.logger.warn(`Trophy memo failed for ${row.id}: ${String(e)}`);
@@ -85,18 +78,17 @@ export class TrophyService {
   }
 
   async list(userId: string): Promise<TrophyDto[]> {
-    const rows: TrophyRow[] = unwrap(
-      await this.db.supabase
-        .from('trophies')
-        .select('id, title, sport_mode, awarded_at, tx_signature')
-        .eq('user_id', userId)
-        .order('awarded_at', { ascending: false }),
-    );
+    const rows = await this.db
+      .selectFrom('trophies')
+      .select(['id', 'title', 'sport_mode', 'awarded_at', 'tx_signature'])
+      .where('user_id', '=', userId)
+      .orderBy('awarded_at', 'desc')
+      .execute();
     return rows.map((r) => ({
       id: r.id,
       title: r.title,
       mode: r.sport_mode,
-      awardedAt: r.awarded_at,
+      awardedAt: new Date(r.awarded_at).toISOString(),
       txSignature: r.tx_signature,
     }));
   }

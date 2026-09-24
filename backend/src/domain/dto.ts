@@ -1,5 +1,5 @@
-import type { Lineup } from './lineup.js';
-import { RiskTier, SportMode } from './sport.js';
+import type { EntryBreakdown, ScoreEvent, SlotScore } from '../scoring/engine/types.js';
+import type { RiskTier, SportMode } from './sport.js';
 
 /** The signed-in player, set on the request by AuthGuard. */
 export interface AuthUser {
@@ -28,15 +28,39 @@ export interface RosterSlotDto {
   balance: number;
 }
 
+export interface GameweekDto {
+  id: string;
+  number: number;
+  startsAt: string;
+  endsAt: string;
+  status: 'live' | 'final';
+  /** True once this player's lineup is locked into the gameweek. */
+  entered: boolean;
+  /** Points so far (live) or final points once settled. */
+  points: number;
+  slots: SlotScore[];
+  teamEvents: ScoreEvent[];
+}
+
 export interface RosterDto {
   mode: SportMode;
+  /** Football only, e.g. "4-4-2". */
+  formation: string | null;
+  captainSlot: number | null;
+  viceCaptainSlot: number | null;
   slots: RosterSlotDto[];
-  lastReturnPct: number;
+  /** Season total from finalised gameweeks. */
   classicPoints: number;
   classicRank: number | null;
-  lastTickAt: string | null;
-  /** Football only; null for other sports. */
-  lineup: Lineup | null;
+  gameweek: GameweekDto | null;
+  /** True when the team has changed since the current gameweek locked. */
+  pendingChanges: boolean;
+}
+
+export interface FormationChangeDto {
+  roster: RosterDto;
+  /** Picks that no longer fit the new shape; still owned, just off the team. */
+  dropped: XStockDto[];
 }
 
 export interface LeaderboardEntryDto {
@@ -44,9 +68,19 @@ export interface LeaderboardEntryDto {
   userId: string;
   username: string;
   walletAddress: string;
+  /** Season total plus live gameweek points. */
   points: number;
+  gameweekPoints: number;
   streak: number;
   isCurrentUser: boolean;
+}
+
+export interface DuelCategoryDto {
+  code: string;
+  name: string;
+  challenger: number;
+  opponent: number;
+  winner: 'challenger' | 'opponent' | 'tie';
 }
 
 export interface DuelDto {
@@ -58,8 +92,12 @@ export interface DuelDto {
   status: 'pending' | 'active' | 'settled' | 'declined';
   startTime: string | null;
   endTime: string | null;
-  challengerReturnPct: number | null;
-  opponentReturnPct: number | null;
+  challengerPoints: number | null;
+  opponentPoints: number | null;
+  /** Basketball duels are decided on categories. */
+  categories: DuelCategoryDto[] | null;
+  challengerBreakdown: EntryBreakdown | null;
+  opponentBreakdown: EntryBreakdown | null;
   winnerId: string | null;
 }
 

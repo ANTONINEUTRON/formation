@@ -1,11 +1,9 @@
-import 'package:symbians/features/shared/domain/lineup.dart';
 import 'package:symbians/features/shared/domain/models.dart';
 
 /// Everything the Formation UI needs, independent of where it comes from.
 ///
 /// [FixtureRepository] serves in-memory data for building and demoing the UI;
-/// [ApiRepository] talks to the NestJS backend. Widgets and cubits depend only
-/// on this interface.
+/// [ApiRepository] talks to the NestJS backend, which owns all scoring.
 abstract class FormationRepository {
   /// Backend user id of the signed-in player.
   String get currentUserId;
@@ -18,15 +16,18 @@ abstract class FormationRepository {
   /// Token balances held by the connected wallet, keyed by mint.
   Future<Map<String, double>> getHeldBalances(List<String> mints);
 
-  /// The user's roster for [mode]. Returns an empty roster if never drafted.
+  /// The user's team for [mode], with its live gameweek.
   Future<Roster> getRoster(SportMode mode);
 
   /// Puts [stock] into slot [slotIndex], using the wallet's real balance.
   Future<Roster> fillSlot(SportMode mode, int slotIndex, XStock stock);
 
-  /// Football only: saves the starting XI, bench order and armbands.
-  /// Takes effect from the next scoring tick.
-  Future<Roster> setLineup(SportMode mode, Lineup lineup);
+  /// Football only: changes shape. Picks that no longer fit come off the team
+  /// and are returned as `dropped`. Applies from the next gameweek.
+  Future<FormationChange> setFormation(SportMode mode, String formation);
+
+  /// Football and basketball: the captain scores a multiplier.
+  Future<Roster> setCaptaincy(SportMode mode, {int? captainSlot, int? viceCaptainSlot});
 
   Future<List<LeaderboardEntry>> getLeaderboard(SportMode mode);
 
@@ -50,8 +51,11 @@ abstract class FormationRepository {
 
   // ── Demo controls (debug builds only) ─────────────────────────────────────
 
-  /// Runs the hourly Classic scoring tick now.
+  /// Records prices now and rescores the live gameweek.
   Future<void> runTick();
+
+  /// Closes the current gameweek early and opens the next.
+  Future<void> advanceGameweek(SportMode mode);
 
   /// Settles an active duel now instead of waiting for its end time.
   Future<Duel> settleDuel(String duelId);

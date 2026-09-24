@@ -91,7 +91,15 @@ export class ChainService {
     for (let i = 0; i < missing.length; i += 50) {
       const batch = missing.slice(i, i + 50);
       const url = `${this.config.jupiterApiUrl}/price/v3?ids=${batch.join(',')}`;
-      const res = await fetch(url);
+      // A price outage must not take down the stock list or the tick: skip
+      // the batch and let callers fall back to the last known prices.
+      let res: Response;
+      try {
+        res = await fetch(url);
+      } catch (e) {
+        this.logger.warn(`Price request failed: ${String(e)}`);
+        continue;
+      }
       if (!res.ok) {
         this.logger.warn(`Price request failed: ${res.status}`);
         continue;

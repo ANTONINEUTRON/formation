@@ -3,12 +3,13 @@ import 'package:intl/intl.dart';
 
 import 'package:symbians/core/theme/theme.dart';
 
-final _points = NumberFormat('#,##0');
+/// Points are numeric(10,1): show the decimal only when there is one.
+final _points = NumberFormat('#,##0.#');
 final _usd = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 
-String formatPoints(int points) => _points.format(points);
+String formatPoints(num points) => _points.format(points);
 
-String formatSignedPoints(int points) =>
+String formatSignedPoints(num points) =>
     '${points > 0 ? '+' : points < 0 ? '−' : ''}${_points.format(points.abs())}';
 
 /// Formats a fraction (0.0125) as a percentage ("+1.25%").
