@@ -1,4 +1,5 @@
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Everything the Formation UI needs, independent of where it comes from.
 ///
@@ -8,7 +9,7 @@ abstract class FormationRepository {
   /// Backend user id of the signed-in player.
   String get currentUserId;
 
-  /// Emits after any mutation (draft, duel, tick) so open screens can reload.
+  /// Emits after any mutation (draft, substitution, tick) so screens reload.
   Stream<void> get changes;
 
   Future<List<XStock>> getXStocks();
@@ -16,47 +17,80 @@ abstract class FormationRepository {
   /// Token balances held by the connected wallet, keyed by mint.
   Future<Map<String, double>> getHeldBalances(List<String> mints);
 
-  /// The user's team for [mode], with its live gameweek.
+  /// The user's team for [mode], with its live session and bench.
   Future<Roster> getRoster(SportMode mode);
 
   /// Puts [stock] into slot [slotIndex], using the wallet's real balance.
   Future<Roster> fillSlot(SportMode mode, int slotIndex, XStock stock);
 
   /// Football only: changes shape. Picks that no longer fit come off the team
-  /// and are returned as `dropped`. Applies from the next gameweek.
+  /// and are returned as `dropped`.
   Future<FormationChange> setFormation(SportMode mode, String formation);
 
   /// Football and basketball: the captain scores a multiplier.
   Future<Roster> setCaptaincy(SportMode mode, {int? captainSlot, int? viceCaptainSlot});
 
-  Future<List<LeaderboardEntry>> getLeaderboard(SportMode mode);
+  /// Standings for [mode] over [period], defaulting to the all-time board.
+  Future<List<LeaderboardEntry>> getLeaderboard(
+    SportMode mode, {
+    LeaguePeriod period = const LeaguePeriod.allTime(),
+  });
 
   Future<SwapQuote> getSwapQuote(XStock stock, double usdcAmount);
 
   /// Buys the quoted stock. Returns the number of shares received.
   Future<double> executeSwap(SwapQuote quote);
 
-  Future<List<Duel>> getDuels(SportMode mode);
+  // ── Leagues (custom leagues and PvP duels are the same object) ───────────
 
-  /// Challenges [opponent] (wallet address or username).
-  Future<Duel> createDuel({
+  /// Public leagues open to join, plus every league the player is in.
+  Future<List<League>> getLeagues(SportMode mode);
+
+  Future<League> getLeague(String id);
+
+  /// Creates a league. Pass [opponent] with `maxMembers: 2` for a PvP duel.
+  Future<League> createLeague({
     required SportMode mode,
-    required String opponent,
+    required String name,
+    required bool isPrivate,
+    required DateTime startsAt,
     required Duration duration,
+    int? maxMembers,
+    String? opponent,
   });
 
-  Future<Duel> respondToDuel(String duelId, {required bool accept});
+  /// Joins by id (public) or by shareable code.
+  Future<League> joinLeague({String? id, String? code});
 
-  Future<List<Trophy>> getTrophies();
+  Future<void> leaveLeague(String id);
+
+  // ── Managers ───────────────────────────────────────────────────────────────
+
+  /// Another player's profile, lineup and holdings for [mode].
+  Future<Manager> getManager(String userId, SportMode mode);
+
+  /// Follows or unfollows a manager. Returns the new state.
+  Future<bool> setFollowing(String userId, {required bool following});
+
+  // ── Notifications ──────────────────────────────────────────────────────────
+
+  Future<List<AppNotification>> getNotifications();
+
+  /// Unread count for the bell badge.
+  Future<int> getUnreadNotificationCount();
+
+  Future<void> markNotificationRead(String id);
+
+  Future<void> markAllNotificationsRead();
 
   // ── Demo controls (debug builds only) ─────────────────────────────────────
 
-  /// Records prices now and rescores the live gameweek.
+  /// Records prices now and banks everything owed since the last tick.
   Future<void> runTick();
 
-  /// Closes the current gameweek early and opens the next.
-  Future<void> advanceGameweek(SportMode mode);
+  /// Opens scheduled leagues and settles finished ones without waiting.
+  Future<void> processLeagues();
 
-  /// Settles an active duel now instead of waiting for its end time.
-  Future<Duel> settleDuel(String duelId);
+  /// Settles a league now instead of waiting for its end time.
+  Future<void> settleLeague(String id);
 }

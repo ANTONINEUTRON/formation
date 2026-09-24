@@ -2,26 +2,25 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/route/app_route.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/widgets/loading_indicator.dart';
-import 'package:symbians/features/profile/ui/cubits/profile_cubit.dart';
-import 'package:symbians/features/profile/ui/cubits/profile_state.dart';
-import 'package:symbians/features/profile/ui/widgets/action_tile.dart';
-import 'package:symbians/features/profile/ui/widgets/profile_card.dart';
-import 'package:symbians/features/profile/ui/widgets/record_summary.dart';
-import 'package:symbians/features/profile/ui/widgets/section_header.dart';
-import 'package:symbians/features/profile/ui/widgets/token_balance.dart';
-import 'package:symbians/features/profile/ui/widgets/trophy_case.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_cubit.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
-import 'package:symbians/features/wallet/ui/widgets/connect_wallet_view.dart';
-import 'package:symbians/features/wallet/ui/widgets/connected_wallet_view.dart';
-import 'package:symbians/gen/assets.gen.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/features/profile/ui/cubits/profile_cubit.dart';
+import 'package:formation/features/profile/ui/cubits/profile_state.dart';
+import 'package:formation/features/profile/ui/widgets/action_tile.dart';
+import 'package:formation/features/profile/ui/widgets/profile_card.dart';
+import 'package:formation/features/profile/ui/widgets/record_summary.dart';
+import 'package:formation/features/profile/ui/widgets/section_header.dart';
+import 'package:formation/features/profile/ui/widgets/token_balance.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
+import 'package:formation/features/wallet/ui/widgets/connect_wallet_view.dart';
+import 'package:formation/features/wallet/ui/widgets/connected_wallet_view.dart';
+import 'package:formation/gen/assets.gen.dart';
 
-/// Profile: record across sports, trophy case, wallet and balances.
+/// Profile: record across sports, wallet and balances.
 /// Opened from the avatar in the sport pages' app bar.
 @RoutePage()
 class ProfilePage extends StatelessWidget {
@@ -56,10 +55,6 @@ class ProfilePage extends StatelessWidget {
                     SectionHeader(title: 'Record'),
                     const SizedBox(height: 12),
                     RecordSummary(records: state.records),
-                    const SizedBox(height: 24),
-                    SectionHeader(title: 'Trophies'),
-                    const SizedBox(height: 12),
-                    TrophyCase(trophies: state.trophies),
                   ],
                 );
               },

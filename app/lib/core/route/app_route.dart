@@ -1,15 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/features/draft/ui/pages/draft_board_page.dart';
-import 'package:symbians/features/duel/ui/pages/create_duel_page.dart';
-import 'package:symbians/features/duel/ui/pages/duel_detail_page.dart';
-import 'package:symbians/features/home/ui/pages/home_page.dart';
-import 'package:symbians/features/notifications/ui/pages/notifications_page.dart';
-import 'package:symbians/features/profile/ui/pages/profile_page.dart';
-import 'package:symbians/features/profile/ui/pages/transaction_history_page.dart';
-import 'package:symbians/features/reports/ui/pages/reports_page.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/features/draft/ui/pages/draft_board_page.dart';
+import 'package:formation/features/leagues/ui/pages/league_detail_page.dart';
+import 'package:formation/features/managers/ui/pages/manager_profile_page.dart';
+import 'package:formation/features/leagues/ui/pages/leagues_page.dart';
+import 'package:formation/features/home/ui/pages/home_page.dart';
+import 'package:formation/features/notifications/ui/pages/notifications_page.dart';
+import 'package:formation/features/profile/ui/pages/profile_page.dart';
+import 'package:formation/features/profile/ui/pages/transaction_history_page.dart';
+import 'package:formation/features/reports/ui/pages/reports_page.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 part 'app_route.gr.dart';
 
@@ -29,9 +30,12 @@ class AppRouter extends RootStackRouter {
         // Draft a roster for one sport mode
         AutoRoute(page: DraftBoardRoute.page, path: '/draft'),
 
-        // Duels
-        AutoRoute(page: CreateDuelRoute.page, path: '/duels/new'),
-        AutoRoute(page: DuelDetailRoute.page, path: '/duels/:duelId'),
+        // Another player's profile, lineup and wallet
+        AutoRoute(page: ManagerProfileRoute.page, path: '/managers/:userId'),
+
+        // Custom leagues (a PvP duel is a two-player private league)
+        AutoRoute(page: LeaguesRoute.page, path: '/leagues'),
+        AutoRoute(page: LeagueDetailRoute.page, path: '/leagues/:leagueId'),
 
         // App bar destinations
         AutoRoute(page: ProfileRoute.page, path: '/profile'),

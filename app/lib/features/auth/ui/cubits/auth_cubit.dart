@@ -1,9 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/features/auth/domain/entities/app_user.dart';
-import 'package:symbians/features/auth/ui/cubits/auth_state.dart';
+import 'package:formation/features/auth/domain/entities/app_user.dart';
+import 'package:formation/features/auth/ui/cubits/auth_state.dart';
 
-export 'package:symbians/features/auth/ui/cubits/auth_state.dart';
+export 'package:formation/features/auth/ui/cubits/auth_state.dart';
 
 /// Cubit for managing authentication state.
 ///

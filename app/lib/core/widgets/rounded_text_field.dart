@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 /// A reusable rounded form field with validation support.
 class RoundedFormField extends FormField<String> {

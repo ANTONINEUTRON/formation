@@ -1,4 +1,4 @@
-import { scoreEntry } from './score-entry.js';
+import { scoreEntry, substitutionCost } from './score-entry.js';
 import type { LineupSnapshot, PriceBook, ScoreInput, ScoreWindow } from './types.js';
 
 const HOUR = 3_600_000;
@@ -139,5 +139,44 @@ describe('scoreEntry', () => {
 
   it('scores an empty lineup as zero', () => {
     expect(scoreEntry(input([])).total).toBe(0);
+  });
+
+  it('scores a substituted pick up to its sale price, not to zero', () => {
+    // Bought at 100, fell to 94 by mid-week, sold there, then rallied to 130.
+    const sold = input(
+      [{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 130, endBalance: 0 }],
+      { extraTicks: { TSLAx: [[0, 100], [3 * 24 * HOUR, 94], [WEEK.end, 130]] } },
+    );
+    const result = scoreEntry({
+      ...sold,
+      exits: { TSLAx: { at: 3 * 24 * HOUR, price: 94 } },
+    });
+
+    const slot = result.slots[0];
+    expect(slot).toMatchObject({ counted: true, substituted: true });
+    // -6% own return against a flat benchmark: the loss sticks, the later
+    // rally does not, because it happened after the sale.
+    expect(slot.ownReturn).toBeCloseTo(-0.06);
+    expect(slot.base).toBe(-60);
+  });
+
+  it('charges only substitutions beyond the daily allowance', () => {
+    expect(substitutionCost(0)).toBe(0);
+    expect(substitutionCost(3)).toBe(0); // three are free every day
+    expect(substitutionCost(5)).toBe(-8); // two paid at 4 points each
+  });
+
+  it('banks base alpha and role events on separate clocks', () => {
+    const picks = [{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 107.5 }];
+
+    const baseOnly = scoreEntry({ ...input(picks), parts: { base: true, events: false } });
+    expect(baseOnly.slots[0].events).toEqual([]);
+    expect(baseOnly.slots[0].base).toBe(75);
+
+    const eventsOnly = scoreEntry({ ...input(picks), parts: { base: false, events: true } });
+    expect(eventsOnly.slots[0].base).toBe(0);
+    // +7.5% against a flat benchmark: two 3% goals at 4 each, plus an assist
+    // for clearing 1% of alpha.
+    expect(eventsOnly.slots[0].total).toBe(11);
   });
 });

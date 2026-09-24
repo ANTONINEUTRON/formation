@@ -154,8 +154,156 @@
     ],
     "classicPoints": 0,
     "classicRank": 1,
-    "gameweek": null,
-    "pendingChanges": false
+    "session": {
+      "startsAt": "2026-01-05T12:00:00.000Z",
+      "endsAt": "2026-01-05T12:10:00.000Z",
+      "entered": false,
+      "points": 0,
+      "slots": [],
+      "teamEvents": [],
+      "substitutionsUsed": 0,
+      "freeSubstitutionsLeft": 3
+    },
+    "bench": [
+      {
+        "stock": {
+          "symbol": "SPYx",
+          "companyName": "S&P 500",
+          "mint": "SPYx-test-mint",
+          "tier": "blue_chip",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          0
+        ]
+      },
+      {
+        "stock": {
+          "symbol": "MSFTx",
+          "companyName": "Microsoft",
+          "mint": "mint-MSFT",
+          "tier": "blue_chip",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          0
+        ]
+      },
+      {
+        "stock": {
+          "symbol": "WMTx",
+          "companyName": "Walmart",
+          "mint": "mint-WMT",
+          "tier": "stable",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "stock": {
+          "symbol": "MCDx",
+          "companyName": "McDonald's",
+          "mint": "mint-MCD",
+          "tier": "stable",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "stock": {
+          "symbol": "UNHx",
+          "companyName": "UnitedHealth",
+          "mint": "mint-UNH",
+          "tier": "balanced",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "stock": {
+          "symbol": "NVDAx",
+          "companyName": "NVIDIA",
+          "mint": "mint-NVDA",
+          "tier": "growth",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": []
+      },
+      {
+        "stock": {
+          "symbol": "METAx",
+          "companyName": "Meta",
+          "mint": "mint-META",
+          "tier": "growth",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": []
+      },
+      {
+        "stock": {
+          "symbol": "AMDx",
+          "companyName": "AMD",
+          "mint": "mint-AMD",
+          "tier": "growth",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": []
+      },
+      {
+        "stock": {
+          "symbol": "PLTRx",
+          "companyName": "Palantir",
+          "mint": "mint-PLTR",
+          "tier": "momentum",
+          "priceUsd": 100,
+          "change24hPct": 0,
+          "logoUrl": null
+        },
+        "balance": 10,
+        "eligibleSlots": [
+          9,
+          10
+        ]
+      }
+    ]
   },
   "dropped": [
     {

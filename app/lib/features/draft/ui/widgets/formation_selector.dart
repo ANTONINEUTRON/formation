@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
 
 /// Horizontal picker of the FPL formations.
 class FormationSelector extends StatelessWidget {

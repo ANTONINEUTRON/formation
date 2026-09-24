@@ -11,70 +11,6 @@
 part of 'app_route.dart';
 
 /// generated route for
-/// [CreateDuelPage]
-class CreateDuelRoute extends PageRouteInfo<CreateDuelRouteArgs> {
-  CreateDuelRoute({
-    required SportMode mode,
-    String? initialOpponent,
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
-         CreateDuelRoute.name,
-         args: CreateDuelRouteArgs(
-           mode: mode,
-           initialOpponent: initialOpponent,
-           key: key,
-         ),
-         initialChildren: children,
-       );
-
-  static const String name = 'CreateDuelRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      final args = data.argsAs<CreateDuelRouteArgs>();
-      return CreateDuelPage(
-        mode: args.mode,
-        initialOpponent: args.initialOpponent,
-        key: args.key,
-      );
-    },
-  );
-}
-
-class CreateDuelRouteArgs {
-  const CreateDuelRouteArgs({
-    required this.mode,
-    this.initialOpponent,
-    this.key,
-  });
-
-  final SportMode mode;
-
-  final String? initialOpponent;
-
-  final Key? key;
-
-  @override
-  String toString() {
-    return 'CreateDuelRouteArgs{mode: $mode, initialOpponent: $initialOpponent, key: $key}';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! CreateDuelRouteArgs) return false;
-    return mode == other.mode &&
-        initialOpponent == other.initialOpponent &&
-        key == other.key;
-  }
-
-  @override
-  int get hashCode => mode.hashCode ^ initialOpponent.hashCode ^ key.hashCode;
-}
-
-/// generated route for
 /// [DraftBoardPage]
 class DraftBoardRoute extends PageRouteInfo<DraftBoardRouteArgs> {
   DraftBoardRoute({
@@ -122,64 +58,6 @@ class DraftBoardRouteArgs {
 }
 
 /// generated route for
-/// [DuelDetailPage]
-class DuelDetailRoute extends PageRouteInfo<DuelDetailRouteArgs> {
-  DuelDetailRoute({
-    required String duelId,
-    required SportMode mode,
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
-         DuelDetailRoute.name,
-         args: DuelDetailRouteArgs(duelId: duelId, mode: mode, key: key),
-         initialChildren: children,
-       );
-
-  static const String name = 'DuelDetailRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      final args = data.argsAs<DuelDetailRouteArgs>();
-      return DuelDetailPage(
-        duelId: args.duelId,
-        mode: args.mode,
-        key: args.key,
-      );
-    },
-  );
-}
-
-class DuelDetailRouteArgs {
-  const DuelDetailRouteArgs({
-    required this.duelId,
-    required this.mode,
-    this.key,
-  });
-
-  final String duelId;
-
-  final SportMode mode;
-
-  final Key? key;
-
-  @override
-  String toString() {
-    return 'DuelDetailRouteArgs{duelId: $duelId, mode: $mode, key: $key}';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! DuelDetailRouteArgs) return false;
-    return duelId == other.duelId && mode == other.mode && key == other.key;
-  }
-
-  @override
-  int get hashCode => duelId.hashCode ^ mode.hashCode ^ key.hashCode;
-}
-
-/// generated route for
 /// [HomePage]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})
@@ -193,6 +71,158 @@ class HomeRoute extends PageRouteInfo<void> {
       return const HomePage();
     },
   );
+}
+
+/// generated route for
+/// [LeagueDetailPage]
+class LeagueDetailRoute extends PageRouteInfo<LeagueDetailRouteArgs> {
+  LeagueDetailRoute({
+    required String leagueId,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         LeagueDetailRoute.name,
+         args: LeagueDetailRouteArgs(leagueId: leagueId, key: key),
+         initialChildren: children,
+       );
+
+  static const String name = 'LeagueDetailRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<LeagueDetailRouteArgs>();
+      return LeagueDetailPage(leagueId: args.leagueId, key: args.key);
+    },
+  );
+}
+
+class LeagueDetailRouteArgs {
+  const LeagueDetailRouteArgs({required this.leagueId, this.key});
+
+  final String leagueId;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'LeagueDetailRouteArgs{leagueId: $leagueId, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LeagueDetailRouteArgs) return false;
+    return leagueId == other.leagueId && key == other.key;
+  }
+
+  @override
+  int get hashCode => leagueId.hashCode ^ key.hashCode;
+}
+
+/// generated route for
+/// [LeaguesPage]
+class LeaguesRoute extends PageRouteInfo<LeaguesRouteArgs> {
+  LeaguesRoute({
+    required SportMode mode,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         LeaguesRoute.name,
+         args: LeaguesRouteArgs(mode: mode, key: key),
+         initialChildren: children,
+       );
+
+  static const String name = 'LeaguesRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<LeaguesRouteArgs>();
+      return LeaguesPage(mode: args.mode, key: args.key);
+    },
+  );
+}
+
+class LeaguesRouteArgs {
+  const LeaguesRouteArgs({required this.mode, this.key});
+
+  final SportMode mode;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'LeaguesRouteArgs{mode: $mode, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LeaguesRouteArgs) return false;
+    return mode == other.mode && key == other.key;
+  }
+
+  @override
+  int get hashCode => mode.hashCode ^ key.hashCode;
+}
+
+/// generated route for
+/// [ManagerProfilePage]
+class ManagerProfileRoute extends PageRouteInfo<ManagerProfileRouteArgs> {
+  ManagerProfileRoute({
+    required String userId,
+    required SportMode mode,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         ManagerProfileRoute.name,
+         args: ManagerProfileRouteArgs(userId: userId, mode: mode, key: key),
+         initialChildren: children,
+       );
+
+  static const String name = 'ManagerProfileRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<ManagerProfileRouteArgs>();
+      return ManagerProfilePage(
+        userId: args.userId,
+        mode: args.mode,
+        key: args.key,
+      );
+    },
+  );
+}
+
+class ManagerProfileRouteArgs {
+  const ManagerProfileRouteArgs({
+    required this.userId,
+    required this.mode,
+    this.key,
+  });
+
+  final String userId;
+
+  final SportMode mode;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'ManagerProfileRouteArgs{userId: $userId, mode: $mode, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ManagerProfileRouteArgs) return false;
+    return userId == other.userId && mode == other.mode && key == other.key;
+  }
+
+  @override
+  int get hashCode => userId.hashCode ^ mode.hashCode ^ key.hashCode;
 }
 
 /// generated route for

@@ -1,9 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/domain/entity/transaction.dart';
-import 'package:symbians/features/profile/ui/widgets/transaction_tile.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/domain/entity/transaction.dart';
+import 'package:formation/features/profile/ui/widgets/transaction_tile.dart';
 
 /// Transaction history page.
 @RoutePage()

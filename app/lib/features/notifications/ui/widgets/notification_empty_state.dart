@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 class NotificationEmptyState extends StatelessWidget {
   const NotificationEmptyState({super.key});

@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/extensions/context_extensions.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_cubit.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Quote preview and confirm for buying an xStock with USDC via Jupiter.
 class BuyStockSheet extends StatefulWidget {
@@ -33,9 +36,14 @@ class BuyStockSheet extends StatefulWidget {
 }
 
 class _BuyStockSheetState extends State<BuyStockSheet> {
-  static const _amounts = [5.0, 10.0, 25.0, 50.0];
+  /// Matches the backend's guard in swap.service.ts.
+  static const _minUsdc = 1.0;
+  static const _maxUsdc = 100000.0;
 
-  double _amount = _amounts[1];
+  final _controller = TextEditingController(text: '10');
+  Timer? _debounce;
+
+  double _amount = 10;
   SwapQuote? _quote;
   bool _buying = false;
   int _quoteRequest = 0;
@@ -46,7 +54,35 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     _fetchQuote();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Null while the amount is usable; otherwise why it isn't.
+  String? get _amountError {
+    final raw = _controller.text.trim();
+    if (raw.isEmpty) return 'Enter an amount';
+    final value = double.tryParse(raw);
+    if (value == null) return 'Enter a number';
+    if (value < _minUsdc) return 'Minimum is ${formatUsd(_minUsdc)}';
+    if (value > _maxUsdc) return 'Maximum is ${formatUsd(_maxUsdc)}';
+    return null;
+  }
+
+  /// Re-quotes once the user stops typing, so each keystroke isn't a request.
+  void _onAmountChanged(String raw) {
+    _debounce?.cancel();
+    setState(() => _quote = null);
+    if (_amountError != null) return;
+    _amount = double.parse(raw.trim());
+    _debounce = Timer(const Duration(milliseconds: 500), _fetchQuote);
+  }
+
   Future<void> _fetchQuote() async {
+    if (_amountError != null) return;
     final request = ++_quoteRequest;
     setState(() => _quote = null);
     try {
@@ -90,24 +126,23 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
               style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final a in _amounts)
-                  ChoiceChip(
-                    label: Text(formatUsd(a).replaceAll('.00', '')),
-                    selected: a == _amount,
-                    showCheckmark: false,
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(color: a == _amount ? AppColors.textInverse : AppColors.textPrimary),
-                    onSelected: _buying
-                        ? null
-                        : (_) {
-                            setState(() => _amount = a);
-                            _fetchQuote();
-                          },
-                  ),
+            TextField(
+              controller: _controller,
+              enabled: !_buying,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
+              style: AppTextStyles.mono(fontSize: 22, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                prefixText: r'$ ',
+                suffixText: 'USDC',
+                errorText: _controller.text.isEmpty ? null : _amountError,
+              ),
+              onChanged: _onAmountChanged,
+              onSubmitted: (_) => _fetchQuote(),
             ),
             const SizedBox(height: 20),
             Container(
@@ -123,10 +158,7 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
                         _QuoteRow('You pay', '${formatUsd(quote.inputUsdc)} USDC'),
                         _QuoteRow('You receive (est.)', '${formatShares(quote.estimatedShares)} ${widget.stock.symbol}'),
                         _QuoteRow('Price impact', formatPct(quote.priceImpactPct, signed: false)),
-                        _QuoteRow(
-                          'Platform fee (${formatPct(quote.platformFeeBps / 10000, signed: false)})',
-                          formatUsd(quote.platformFeeUsdc),
-                        ),
+                        
                         const _QuoteRow('Route', 'Jupiter'),
                       ],
                     ),
@@ -139,7 +171,7 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
             ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: quote == null || _buying ? null : _confirm,
+              onPressed: quote == null || _buying || _amountError != null ? null : _confirm,
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
               child: _buying
                   ? const Row(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart' as styled_toast;
 
-import 'package:symbians/services/notification_service.dart';
+import 'package:formation/services/notification_service.dart';
 
 /// Extension methods for [BuildContext].
 extension ContextExtensions on BuildContext {

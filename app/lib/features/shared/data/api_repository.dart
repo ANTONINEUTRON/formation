@@ -5,10 +5,13 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:solana/base58.dart';
 
-import 'package:symbians/core/constants/app_constants.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/domain/roster_shapes.dart';
+import 'package:formation/core/constants/app_constants.dart';
+import 'package:formation/core/errors/app_exception.dart';
+import 'package:formation/core/utils/app_log.dart';
+import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/roster_shapes.dart';
 
 /// Signs on behalf of the connected wallet (implemented by WalletCubit via MWA).
 abstract class WalletSigner {
@@ -88,19 +91,70 @@ class ApiRepository implements FormationRepository {
       });
     if (body != null) request.body = jsonEncode(body);
 
-    final response = await http.Response.fromStream(
-      await _http.send(request).timeout(AppConstants.apiTimeout),
-    );
-    final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+    // Transport failures: no server, no DNS, no signal. The player only needs
+    // to know it couldn't reach us; the cause is logged.
+    final http.Response response;
+    try {
+      response = await http.Response.fromStream(
+        await _http.send(request).timeout(AppConstants.apiTimeout),
+      );
+    } on TimeoutException catch (e, s) {
+      AppLog.error('$method $path timed out', e, s);
+      throw const NetworkException(
+        message: "Formation isn't responding. Please try again.",
+      );
+    } catch (e, s) {
+      AppLog.error('$method $path could not reach the server', e, s);
+      throw const NetworkException(
+        message: "Can't reach Formation. Check your connection and try again.",
+      );
+    }
+
+    // A proxy or captive portal can return HTML where JSON is expected.
+    Object? decoded;
+    try {
+      decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+    } on FormatException catch (e, s) {
+      AppLog.error('$method $path returned a non-JSON body', e, s);
+      throw const NetworkException(
+        message: 'Formation sent something unexpected. Please try again.',
+      );
+    }
+
     if (response.statusCode == 401 && auth) _token = null;
     if (response.statusCode >= 400) {
-      final message = decoded is Map ? decoded['message'] : null;
-      throw StateError(message is List
-          ? message.join(', ')
-          : '${message ?? 'Request failed (${response.statusCode})'}');
+      throw _failure(method, path, response.statusCode, decoded);
     }
     return decoded;
   }
+
+  /// Turns an error response into an exception whose message is safe to show.
+  ///
+  /// The backend writes its 4xx messages for players ("You do not hold AAPLx"),
+  /// so those are passed through. A 5xx is our bug, not theirs, and gets a
+  /// neutral line instead of whatever the stack trace said.
+  AppException _failure(String method, String path, int status, Object? decoded) {
+    final raw = decoded is Map ? decoded['message'] : null;
+    final message = raw is List ? raw.join(', ') : raw as String?;
+    AppLog.warn('$method $path failed with $status: ${message ?? "no message"}');
+
+    if (status >= 500) {
+      return NetworkException(
+        message: 'Formation is having trouble right now. Please try again shortly.',
+        statusCode: status,
+      );
+    }
+    if (status == 401) {
+      return const AuthException(
+        message: 'Your session expired. Reconnect your wallet to continue.',
+      );
+    }
+    if (status == 404) {
+      return NotFoundException(message: message ?? 'We could not find that.');
+    }
+    return ValidationException(message: message ?? 'That request was not accepted.');
+  }
+
 
   void _notify() => _changes.add(null);
 
@@ -165,8 +219,12 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
-  Future<List<LeaderboardEntry>> getLeaderboard(SportMode mode) async {
-    final list = await _request('GET', '/league/${mode.apiValue}') as List;
+  Future<List<LeaderboardEntry>> getLeaderboard(
+    SportMode mode, {
+    LeaguePeriod period = const LeaguePeriod.allTime(),
+  }) async {
+    final query = Uri(queryParameters: period.query).query;
+    final list = await _request('GET', '/league/${mode.apiValue}?$query') as List;
     return list.cast<Map<String, dynamic>>().map(LeaderboardEntry.fromJson).toList();
   }
 
@@ -189,38 +247,100 @@ class ApiRepository implements FormationRepository {
     return quote.estimatedShares;
   }
 
+  // ── Leagues ────────────────────────────────────────────────────────────────
+
   @override
-  Future<List<Duel>> getDuels(SportMode mode) async {
-    final list = await _request('GET', '/duels?mode=${mode.apiValue}') as List;
-    return list.cast<Map<String, dynamic>>().map(Duel.fromJson).toList();
+  Future<List<League>> getLeagues(SportMode mode) async {
+    final list = await _request('GET', '/leagues?mode=${mode.apiValue}') as List;
+    return list.cast<Map<String, dynamic>>().map(League.fromJson).toList();
   }
 
   @override
-  Future<Duel> createDuel({
+  Future<League> getLeague(String id) async {
+    final json = await _request('GET', '/leagues/$id');
+    return League.fromJson(json as Map<String, dynamic>);
+  }
+
+  @override
+  Future<League> createLeague({
     required SportMode mode,
-    required String opponent,
+    required String name,
+    required bool isPrivate,
+    required DateTime startsAt,
     required Duration duration,
+    int? maxMembers,
+    String? opponent,
   }) async {
-    final json = await _request('POST', '/duels', body: {
+    final json = await _request('POST', '/leagues', body: {
+      'name': name,
       'mode': mode.apiValue,
-      'opponent': opponent,
+      'visibility': isPrivate ? 'private' : 'public',
+      'startsAt': startsAt.toUtc().toIso8601String(),
       'durationHours': duration.inHours,
+      if (maxMembers != null) 'maxMembers': maxMembers,
+      if (opponent != null) 'opponent': opponent,
     });
     _notify();
-    return Duel.fromJson(json as Map<String, dynamic>);
+    return League.fromJson(json as Map<String, dynamic>);
   }
 
   @override
-  Future<Duel> respondToDuel(String duelId, {required bool accept}) async {
-    final json = await _request('POST', '/duels/$duelId/${accept ? 'accept' : 'decline'}');
+  Future<League> joinLeague({String? id, String? code}) async {
+    final json = await _request('POST', '/leagues/join', body: {
+      if (id != null) 'id': id,
+      if (code != null) 'code': code,
+    });
     _notify();
-    return Duel.fromJson(json as Map<String, dynamic>);
+    return League.fromJson(json as Map<String, dynamic>);
   }
 
   @override
-  Future<List<Trophy>> getTrophies() async {
-    final list = await _request('GET', '/trophies') as List;
-    return list.cast<Map<String, dynamic>>().map(Trophy.fromJson).toList();
+  Future<void> leaveLeague(String id) async {
+    await _request('DELETE', '/leagues/$id/membership');
+    _notify();
+  }
+
+  // ── Managers ───────────────────────────────────────────────────────────────
+
+  @override
+  Future<Manager> getManager(String userId, SportMode mode) async {
+    final json = await _request('GET', '/managers/$userId?mode=${mode.apiValue}')
+        as Map<String, dynamic>;
+    // Their formation decides the shape their lineup slots map onto.
+    return Manager.fromJson(json, rosterShape(mode, json['formation'] as String?));
+  }
+
+  @override
+  Future<bool> setFollowing(String userId, {required bool following}) async {
+    await _request(following ? 'POST' : 'DELETE', '/managers/$userId/follow');
+    _notify();
+    return following;
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────────
+
+  @override
+  Future<List<AppNotification>> getNotifications() async {
+    final list = await _request('GET', '/notifications') as List;
+    return list.cast<Map<String, dynamic>>().map(AppNotification.fromJson).toList();
+  }
+
+  @override
+  Future<int> getUnreadNotificationCount() async {
+    final json = await _request('GET', '/notifications/unread-count') as Map<String, dynamic>;
+    return json['count'] as int;
+  }
+
+  @override
+  Future<void> markNotificationRead(String id) async {
+    await _request('POST', '/notifications/$id/read');
+    _notify();
+  }
+
+  @override
+  Future<void> markAllNotificationsRead() async {
+    await _request('POST', '/notifications/read-all');
+    _notify();
   }
 
   // ── Demo controls ──────────────────────────────────────────────────────────
@@ -234,19 +354,14 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
-  Future<void> advanceGameweek(SportMode mode) async {
-    await _request('POST', '/admin/gameweeks/${mode.apiValue}/advance',
-        auth: false, headers: _adminHeaders);
+  Future<void> processLeagues() async {
+    await _request('POST', '/admin/leagues/process', auth: false, headers: _adminHeaders);
     _notify();
   }
 
   @override
-  Future<Duel> settleDuel(String duelId) async {
-    final json = await _request('POST', '/admin/duels/$duelId/settle',
-        auth: false, headers: _adminHeaders) as Map<String, dynamic>;
-    final mode = SportMode.fromApi(json['mode'] as String);
+  Future<void> settleLeague(String id) async {
+    await _request('POST', '/admin/leagues/$id/settle', auth: false, headers: _adminHeaders);
     _notify();
-    // The admin response has no viewer; re-read so "me" and "iWon" resolve.
-    return (await getDuels(mode)).firstWhere((d) => d.id == duelId);
   }
 }

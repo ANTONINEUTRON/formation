@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/reports/ui/widgets/feature_preview_card.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/reports/ui/widgets/feature_preview_card.dart';
 
 /// Reports page - portfolio analytics, coming soon (premium tier).
 @RoutePage()

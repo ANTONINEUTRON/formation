@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/profile/ui/cubits/profile_state.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/profile/ui/cubits/profile_state.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// W/L and league rank for each sport.
 class RecordSummary extends StatelessWidget {

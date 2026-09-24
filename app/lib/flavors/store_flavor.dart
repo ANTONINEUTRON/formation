@@ -1,4 +1,4 @@
-import 'package:symbians/flavors/flavor_config.dart';
+import 'package:formation/flavors/flavor_config.dart';
 
 /// Store flavor configuration.
 ///
@@ -10,8 +10,8 @@ class StoreFlavor {
 
   static FlavorConfig get config => const FlavorConfig(
         flavor: FlavorType.store,
-        name: 'Symbians',
-        bundleId: 'com.symbians.app',
+        name: 'Formation',
+        bundleId: 'app.formation.store',
         enableWeb3Features: false,
       );
 }

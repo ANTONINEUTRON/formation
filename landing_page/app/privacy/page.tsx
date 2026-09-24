@@ -3,7 +3,7 @@ import { Header, Footer, Container } from "@/components/layout";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Symbians collects, uses, and protects your data.",
+  description: "How Formation collects, uses, and protects your data.",
 };
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">1. Introduction</h2>
                 <p>
-                  Symbians ("we", "our", "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our platform.
+                  Formation ("we", "our", "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our platform.
                 </p>
               </section>
 
@@ -118,8 +118,8 @@ export default function PrivacyPage() {
                 </ul>
                 <p className="mt-2">
                   To exercise these rights, contact us at{" "}
-                  <a href="mailto:privacy@symbians.app" className="text-primary hover:underline">
-                    privacy@symbians.app
+                  <a href="mailto:privacy@formation.app" className="text-primary hover:underline">
+                    privacy@formation.app
                   </a>
                   .
                 </p>
@@ -161,12 +161,12 @@ export default function PrivacyPage() {
                 <ul className="list-none mt-2 space-y-1">
                   <li>
                     Email:{" "}
-                    <a href="mailto:privacy@symbians.app" className="text-primary hover:underline">
-                      privacy@symbians.app
+                    <a href="mailto:privacy@formation.app" className="text-primary hover:underline">
+                      privacy@formation.app
                     </a>
                   </li>
-                  <li>X: @symbians_sol</li>
-                  <li>Discord: discord.gg/symbians</li>
+                  <li>X: @formation_sol</li>
+                  <li>Discord: discord.gg/formation</li>
                 </ul>
               </section>
             </div>

@@ -1,4 +1,4 @@
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Supported xStocks for fixture mode.
 ///

@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_state.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/draft/ui/cubits/draft_state.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Drafting a team: held stocks fill instantly, others go through a swap.
 /// For football it also owns the formation; football and basketball the armband.

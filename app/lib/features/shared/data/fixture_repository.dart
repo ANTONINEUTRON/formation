@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:symbians/features/shared/data/fixtures/xstock_fixtures.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/domain/roster_shapes.dart';
+import 'package:formation/core/errors/app_exception.dart';
+import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/shared/data/fixtures/xstock_fixtures.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/roster_shapes.dart';
 
 /// In-memory [FormationRepository] for building and demoing the UI offline.
 ///
-/// It imitates the backend closely enough to exercise every screen: gameweeks
-/// open and close, picks score points with role events, and duels settle.
+/// It imitates the backend closely enough to exercise every screen: points
+/// bank on each tick, picks score role events, and leagues settle.
 /// The real scoring engine lives in the backend (docs/formation-scoring.md).
 class FixtureRepository implements FormationRepository {
   FixtureRepository({required String walletAddress, int seed = 7})
@@ -31,11 +33,11 @@ class FixtureRepository implements FormationRepository {
   final Map<String, double> _held = Map.of(heldBalanceFixtures);
   final Map<SportMode, Roster> _rosters = {};
   final Map<SportMode, double> _classicPoints = {};
-  final Map<SportMode, Gameweek> _gameweeks = {};
+  final Map<SportMode, Session> _sessions = {};
   final Map<SportMode, Map<String, double>> _windowStartPrices = {};
   final Map<SportMode, List<LeaderboardEntry>> _seedBoards = {};
-  final List<Duel> _duels = [];
-  final List<Trophy> _trophies = [];
+  final List<League> _leagues = [];
+  final List<AppNotification> _notifications = [];
   int _nextId = 100;
 
   @override
@@ -65,13 +67,13 @@ class FixtureRepository implements FormationRepository {
             username: names[i],
             walletAddress: _fakeAddress(),
             points: (600 - i * 19 + _rng.nextInt(15)).toDouble(),
-            gameweekPoints: (_rng.nextInt(70) - 25).toDouble(),
+            todayPoints: (_rng.nextInt(70) - 25).toDouble(),
             streak: _rng.nextInt(6),
           ),
       ];
     }
 
-    // Football arrives pre-drafted so League, Team and Duels all have content;
+    // Football arrives pre-drafted so League and Team have content;
     // Basketball and American Football start empty to demo the draft.
     final picks = [
       'AAPLx', 'KOx', 'PGx', 'JNJx', 'WMTx',
@@ -88,65 +90,87 @@ class FixtureRepository implements FormationRepository {
       viceCaptainSlot: 0,
     );
     _classicPoints[SportMode.football] = 312;
-    _openGameweek(SportMode.football, number: 13);
+    _openSession(SportMode.football);
 
     final board = _seedBoards[SportMode.football]!;
     final now = DateTime.now();
-    _duels.addAll([
-      Duel(
-        id: 'duel-1',
-        challenger: _me(SportMode.football),
-        opponent: board[4],
+    _leagues.addAll([
+      League(
+        id: 'league-1',
+        name: 'Office Rivals',
         mode: SportMode.football,
-        duration: const Duration(hours: 1),
-        status: DuelStatus.active,
-        startTime: now.subtract(const Duration(minutes: 22)),
-        endTime: now.add(const Duration(minutes: 38)),
-        challengerPoints: 34,
-        opponentPoints: 21,
+        visibility: 'private',
+        joinCode: 'A1B2C3D4',
+        startsAt: now.subtract(const Duration(minutes: 22)),
+        endsAt: now.add(const Duration(minutes: 38)),
+        status: LeagueStatus.live,
+        maxMembers: null,
+        memberCount: 4,
+        createdBy: _myUsername,
+        joined: true,
+        joinable: false,
+        standings: [
+          LeagueStanding(
+            rank: 1,
+            userId: currentUserId,
+            username: _myUsername,
+            walletAddress: _walletAddress,
+            points: 34,
+            isCurrentUser: true,
+          ),
+          for (var i = 0; i < 3; i++)
+            LeagueStanding(
+              rank: i + 2,
+              userId: board[i].userId,
+              username: board[i].username,
+              walletAddress: board[i].walletAddress,
+              points: 28 - i * 9,
+              isCurrentUser: false,
+            ),
+        ],
       ),
-      Duel(
-        id: 'duel-2',
-        challenger: board[1],
-        opponent: _me(SportMode.football),
+      League(
+        id: 'league-2',
+        name: 'Weekend Open',
         mode: SportMode.football,
-        duration: const Duration(hours: 24),
-        status: DuelStatus.pending,
-      ),
-      Duel(
-        id: 'duel-3',
-        challenger: _me(SportMode.football),
-        opponent: board[9],
-        mode: SportMode.football,
-        duration: const Duration(hours: 6),
-        status: DuelStatus.settled,
-        startTime: now.subtract(const Duration(days: 1, hours: 6)),
-        endTime: now.subtract(const Duration(days: 1)),
-        challengerPoints: 124,
-        opponentPoints: -31,
-        winnerId: 'me',
-      ),
-      Duel(
-        id: 'duel-4',
-        challenger: board[2],
-        opponent: _me(SportMode.football),
-        mode: SportMode.football,
-        duration: const Duration(days: 3),
-        status: DuelStatus.settled,
-        startTime: now.subtract(const Duration(days: 5)),
-        endTime: now.subtract(const Duration(days: 2)),
-        challengerPoints: 210,
-        opponentPoints: 87,
-        winnerId: board[2].userId,
+        visibility: 'public',
+        joinCode: 'E5F6G7H8',
+        startsAt: now.add(const Duration(hours: 3)),
+        endsAt: now.add(const Duration(days: 1, hours: 3)),
+        status: LeagueStatus.scheduled,
+        maxMembers: null,
+        memberCount: 12,
+        createdBy: board[1].username,
+        joined: false,
+        joinable: true,
       ),
     ]);
 
-    _trophies.add(Trophy(
-      id: 'trophy-1',
-      title: 'Duel win vs ${board[9].username}',
-      mode: SportMode.football,
-      awardedAt: now.subtract(const Duration(days: 1)),
-    ));
+    _notifications.addAll([
+      AppNotification(
+        id: 'n1',
+        kind: NotificationKind.leagueJoined,
+        title: '${board[3].username} joined Office Rivals',
+        body: 'Your league has a new member.',
+        createdAt: now.subtract(const Duration(minutes: 12)),
+        data: const {'leagueId': 'league-1'},
+      ),
+      AppNotification(
+        id: 'n2',
+        kind: NotificationKind.points,
+        title: "Yesterday's points are in",
+        body: 'Your football team scored +41 from role events.',
+        createdAt: now.subtract(const Duration(hours: 9)),
+      ),
+      AppNotification(
+        id: 'n3',
+        kind: NotificationKind.leagueSettled,
+        title: 'Weekend Open is done',
+        body: 'You finished #2 of 12 with 87 points.',
+        createdAt: now.subtract(const Duration(days: 1)),
+        read: true,
+      ),
+    ]);
   }
 
   XStock _bySymbol(String symbol) => _stocks.firstWhere((s) => s.symbol == symbol);
@@ -159,7 +183,7 @@ class FixtureRepository implements FormationRepository {
         username: _myUsername,
         walletAddress: _walletAddress,
         points: _totalPoints(mode),
-        gameweekPoints: _gameweeks[mode]?.points ?? 0,
+        todayPoints: _sessions[mode]?.points ?? 0,
         isCurrentUser: true,
       );
 
@@ -175,33 +199,32 @@ class FixtureRepository implements FormationRepository {
 
   void _notify() => _changes.add(null);
 
-  // ── Gameweeks and scoring (a simplified mirror of the backend) ─────────────
+  // ── Sessions and scoring (a simplified mirror of the backend) ─────────────
 
   double _totalPoints(SportMode mode) =>
-      (_classicPoints[mode] ?? 0) + (_gameweeks[mode]?.points ?? 0);
+      (_classicPoints[mode] ?? 0) + (_sessions[mode]?.points ?? 0);
 
-  void _openGameweek(SportMode mode, {int? number}) {
+  void _openSession(SportMode mode) {
     final roster = _rosters[mode]!;
     final now = DateTime.now();
     _windowStartPrices[mode] = {for (final s in _stocks) s.mint: s.priceUsd};
-    _gameweeks[mode] = Gameweek(
-      id: 'gw-${mode.apiValue}-${_nextId++}',
-      number: number ?? ((_gameweeks[mode]?.number ?? 0) + 1),
+    _sessions[mode] = Session(
       startsAt: now,
-      endsAt: now.add(const Duration(hours: 1)),
-      status: 'live',
+      endsAt: now.add(const Duration(days: 1)),
       entered: roster.isComplete,
       points: 0,
       slots: const [],
       teamEvents: const [],
+      substitutionsUsed: 0,
+      freeSubstitutionsLeft: 3,
     );
   }
 
-  /// Scores the live gameweek: alpha against SPYx, plus a few role events.
+  /// Scores the live session: alpha against SPYx, plus a few role events.
   void _rescore(SportMode mode) {
-    final gameweek = _gameweeks[mode];
+    final session = _sessions[mode];
     final roster = _rosters[mode]!;
-    if (gameweek == null || !roster.isComplete) return;
+    if (session == null || !roster.isComplete) return;
 
     final start = _windowStartPrices[mode]!;
     final benchmark = _bySymbol(_benchmarkSymbol);
@@ -239,16 +262,16 @@ class FixtureRepository implements FormationRepository {
       ));
     }
 
-    _gameweeks[mode] = Gameweek(
-      id: gameweek.id,
-      number: gameweek.number,
-      startsAt: gameweek.startsAt,
-      endsAt: gameweek.endsAt,
-      status: gameweek.status,
+    _sessions[mode] = Session(
+      startsAt: session.startsAt,
+      endsAt: session.endsAt,
       entered: true,
+      // Continuous banking: today's points accumulate rather than reset.
       points: _round1(slots.fold<double>(0, (sum, s) => sum + s.total)),
       slots: slots,
       teamEvents: const [],
+      substitutionsUsed: session.substitutionsUsed,
+      freeSubstitutionsLeft: session.freeSubstitutionsLeft,
     );
   }
 
@@ -346,7 +369,20 @@ class FixtureRepository implements FormationRepository {
     return refreshed.copyWith(
       classicPoints: _totalPoints(mode),
       classicRank: _board(mode).firstWhere((e) => e.isCurrentUser).rank,
-      gameweek: _gameweeks[mode],
+      session: _sessions[mode],
+      bench: [
+        for (final entry in _held.entries)
+          if (entry.value > 0 &&
+              !refreshed.slots.any((s) => s.stock?.mint == entry.key))
+            BenchSlot(
+              stock: _byMint(entry.key),
+              balance: entry.value,
+              eligibleSlots: [
+                for (var i = 0; i < refreshed.slots.length; i++)
+                  if (refreshed.slots[i].position.accepts(_byMint(entry.key))) i,
+              ],
+            ),
+      ],
     );
   }
 
@@ -356,19 +392,19 @@ class FixtureRepository implements FormationRepository {
         final slot = roster.slots[slotIndex];
         final balance = _held[stock.mint] ?? 0;
         if (!slot.position.accepts(stock)) {
-          throw StateError(
-            "${stock.symbol} can't play ${slot.position.label}: it needs a "
-            '${slot.position.requiredTier?.label.toLowerCase()} stock',
+          throw ValidationException(
+            message: "${stock.symbol} can't play ${slot.position.label}: it "
+                'needs a ${slot.position.requiredTier?.label.toLowerCase()} stock',
           );
         }
-        if (balance <= 0) throw StateError('You do not hold ${stock.symbol}');
+        if (balance <= 0) throw ValidationException(message: 'You do not hold ${stock.symbol}');
         if (roster.slots.any((s) => s.stock?.mint == stock.mint)) {
-          throw StateError('${stock.symbol} is already on this team');
+          throw ValidationException(message: '${stock.symbol} is already on this team');
         }
         final slots = List.of(roster.slots)..[slotIndex] = slot.fill(stock, balance);
         _rosters[mode] = roster.copyWith(slots: slots);
-        if (_rosters[mode]!.isComplete && _gameweeks[mode] == null) {
-          _openGameweek(mode);
+        if (_rosters[mode]!.isComplete && _sessions[mode] == null) {
+          _openSession(mode);
         }
         _rescore(mode);
         _notify();
@@ -378,7 +414,7 @@ class FixtureRepository implements FormationRepository {
   @override
   Future<FormationChange> setFormation(SportMode mode, String formation) => _delay(() {
         if (mode != SportMode.football) {
-          throw StateError('Only football teams have formations');
+          throw const ValidationException(message: 'Only football teams have formations');
         }
         final roster = _rosters[mode]!;
         final preview = previewFormationChange(
@@ -435,16 +471,18 @@ class FixtureRepository implements FormationRepository {
   }) =>
       _delay(() {
         if (mode == SportMode.americanFootball) {
-          throw StateError("American football teams don't have a captain");
+          throw const ValidationException(
+            message: "American football teams don't have a captain",
+          );
         }
         final roster = _rosters[mode]!;
         for (final slot in [captainSlot, viceCaptainSlot]) {
           if (slot != null && !roster.slots[slot].isFilled) {
-            throw StateError('Pick a stock for that slot before giving it the armband');
+            throw const ValidationException(message: 'Pick a stock for that slot before giving it the armband');
           }
         }
         if (captainSlot != null && captainSlot == viceCaptainSlot) {
-          throw StateError('The vice-captain must be a different player');
+          throw const ValidationException(message: 'The vice-captain must be a different player');
         }
         _rosters[mode] = Roster(
           mode: mode,
@@ -461,7 +499,12 @@ class FixtureRepository implements FormationRepository {
   // ── League ─────────────────────────────────────────────────────────────────
 
   @override
-  Future<List<LeaderboardEntry>> getLeaderboard(SportMode mode) => _delay(() => _board(mode));
+  Future<List<LeaderboardEntry>> getLeaderboard(
+    SportMode mode, {
+    LeaguePeriod period = const LeaguePeriod.allTime(),
+  }) =>
+      // Fixtures hold no history, so every period shows the same board.
+      _delay(() => _board(mode));
 
   List<LeaderboardEntry> _board(SportMode mode) {
     final roster = _rosters[mode]!;
@@ -477,7 +520,7 @@ class FixtureRepository implements FormationRepository {
           username: entries[i].username,
           walletAddress: entries[i].walletAddress,
           points: entries[i].points,
-          gameweekPoints: entries[i].gameweekPoints,
+          todayPoints: entries[i].todayPoints,
           streak: entries[i].streak,
           isCurrentUser: entries[i].isCurrentUser,
         ),
@@ -508,80 +551,146 @@ class FixtureRepository implements FormationRepository {
     return quote.estimatedShares;
   }
 
-  // ── Duels ──────────────────────────────────────────────────────────────────
+  // ── Leagues ────────────────────────────────────────────────────────────────
 
   @override
-  Future<List<Duel>> getDuels(SportMode mode) => _delay(
-        () => _duels.where((d) => d.mode == mode).toList().reversed.toList(),
-      );
+  Future<List<League>> getLeagues(SportMode mode) =>
+      _delay(() => _leagues.where((l) => l.mode == mode).toList());
 
   @override
-  Future<Duel> createDuel({
+  Future<League> getLeague(String id) =>
+      _delay(() => _leagues.firstWhere((l) => l.id == id));
+
+  @override
+  Future<League> createLeague({
     required SportMode mode,
-    required String opponent,
+    required String name,
+    required bool isPrivate,
+    required DateTime startsAt,
     required Duration duration,
+    int? maxMembers,
+    String? opponent,
   }) =>
       _delay(() {
-        if (!_rosters[mode]!.isComplete) {
-          throw StateError('Finish your ${mode.label} team before challenging someone');
-        }
-        final query = opponent.trim().toLowerCase();
-        final rival = _seedBoards[mode]!.firstWhere(
-          (e) => e.username.toLowerCase() == query || e.walletAddress.toLowerCase() == query,
-          orElse: () => LeaderboardEntry(
-            rank: 0,
-            userId: 'invite-${_nextId++}',
-            username: opponent.trim(),
-            walletAddress: opponent.trim(),
-            points: 0,
-          ),
-        );
-        final duel = Duel(
-          id: 'duel-${_nextId++}',
-          challenger: _me(mode),
-          opponent: rival,
+        final league = League(
+          id: 'league-${_nextId++}',
+          name: name,
           mode: mode,
-          duration: duration,
-          // Seeded rivals can't tap accept, so fixture mode starts duels at once.
-          status: DuelStatus.active,
-          startTime: DateTime.now(),
-          endTime: DateTime.now().add(duration),
-          challengerPoints: 0,
-          opponentPoints: 0,
+          visibility: isPrivate ? 'private' : 'public',
+          joinCode: _fakeAddress().substring(0, 8).toUpperCase(),
+          startsAt: startsAt,
+          endsAt: startsAt.add(duration),
+          status: LeagueStatus.scheduled,
+          maxMembers: maxMembers,
+          memberCount: opponent == null ? 1 : 2,
+          createdBy: _myUsername,
+          joined: true,
+          joinable: false,
         );
-        _duels.add(duel);
+        _leagues.add(league);
         _notify();
-        return duel;
+        return league;
       });
 
   @override
-  Future<Duel> respondToDuel(String duelId, {required bool accept}) => _delay(() {
-        final i = _duels.indexWhere((d) => d.id == duelId);
-        final duel = _duels[i];
-        if (accept && !_rosters[duel.mode]!.isComplete) {
-          throw StateError('Finish your ${duel.mode.label} team before accepting');
+  Future<League> joinLeague({String? id, String? code}) => _delay(() {
+        final i = _leagues.indexWhere((l) => l.id == id || l.joinCode == code);
+        if (i < 0) throw const ValidationException(message: 'No league with that code');
+        final l = _leagues[i];
+        final joined = League(
+          id: l.id,
+          name: l.name,
+          mode: l.mode,
+          visibility: l.visibility,
+          joinCode: l.joinCode,
+          startsAt: l.startsAt,
+          endsAt: l.endsAt,
+          status: l.status,
+          maxMembers: l.maxMembers,
+          memberCount: l.memberCount + 1,
+          createdBy: l.createdBy,
+          joined: true,
+          joinable: false,
+          standings: l.standings,
+        );
+        _leagues[i] = joined;
+        _notify();
+        return joined;
+      });
+
+  @override
+  Future<void> leaveLeague(String id) => _delay(() {
+        _leagues.removeWhere((l) => l.id == id);
+        _notify();
+      });
+
+  // ── Managers ───────────────────────────────────────────────────────────────
+
+  final Set<String> _following = {};
+
+  @override
+  Future<Manager> getManager(String userId, SportMode mode) => _delay(() {
+        final entry = _board(mode).firstWhere((e) => e.userId == userId);
+        final roster = _rosters[mode]!;
+        return Manager(
+          userId: entry.userId,
+          username: entry.username,
+          walletAddress: entry.walletAddress,
+          mode: mode,
+          rank: entry.rank,
+          points: entry.points,
+          todayPoints: entry.todayPoints,
+          streak: entry.streak,
+          leaguesWon: 2,
+          leaguesPlayed: 5,
+          lineup: roster.slots,
+          holdings: [
+            for (final slot in roster.slots)
+              if (slot.stock != null)
+                ManagerHolding(
+                  stock: slot.stock!,
+                  balance: slot.balance,
+                  valueUsd: slot.valueUsd,
+                  starting: true,
+                ),
+          ],
+          followers: 12,
+          following: _following.contains(userId),
+          isCurrentUser: entry.isCurrentUser,
+        );
+      });
+
+  @override
+  Future<bool> setFollowing(String userId, {required bool following}) => _delay(() {
+        following ? _following.add(userId) : _following.remove(userId);
+        _notify();
+        return following;
+      });
+
+  // ── Notifications ──────────────────────────────────────────────────────────
+
+  @override
+  Future<List<AppNotification>> getNotifications() =>
+      _delay(() => List.unmodifiable(_notifications));
+
+  @override
+  Future<int> getUnreadNotificationCount() =>
+      _delay(() => _notifications.where((n) => !n.read).length);
+
+  @override
+  Future<void> markNotificationRead(String id) => _delay(() {
+        final i = _notifications.indexWhere((n) => n.id == id);
+        if (i >= 0) _notifications[i] = _notifications[i].copyWith(read: true);
+        _notify();
+      });
+
+  @override
+  Future<void> markAllNotificationsRead() => _delay(() {
+        for (var i = 0; i < _notifications.length; i++) {
+          _notifications[i] = _notifications[i].copyWith(read: true);
         }
-        final now = DateTime.now();
-        _duels[i] = accept
-            ? Duel(
-                id: duel.id,
-                challenger: duel.challenger,
-                opponent: duel.opponent,
-                mode: duel.mode,
-                duration: duel.duration,
-                status: DuelStatus.active,
-                startTime: now,
-                endTime: now.add(duel.duration),
-                challengerPoints: 0,
-                opponentPoints: 0,
-              )
-            : duel.copyWith(status: DuelStatus.declined);
         _notify();
-        return _duels[i];
       });
-
-  @override
-  Future<List<Trophy>> getTrophies() => _delay(() => _trophies.reversed.toList());
 
   // ── Demo controls ──────────────────────────────────────────────────────────
 
@@ -601,90 +710,33 @@ class FixtureRepository implements FormationRepository {
         for (final mode in SportMode.values) {
           _rescore(mode);
         }
-        // Active duels drift with the live gameweek.
-        for (var i = 0; i < _duels.length; i++) {
-          final d = _duels[i];
-          if (d.status != DuelStatus.active) continue;
-          final mine = _gameweeks[d.mode]?.points ?? 0;
-          final theirs = (_rng.nextDouble() - 0.5) * 40;
-          _duels[i] = Duel(
-            id: d.id,
-            challenger: d.challenger,
-            opponent: d.opponent,
-            mode: d.mode,
-            duration: d.duration,
-            status: d.status,
-            startTime: d.startTime,
-            endTime: d.endTime,
-            challengerPoints: d.challenger.isCurrentUser ? mine : theirs,
-            opponentPoints: d.opponent.isCurrentUser ? mine : theirs,
-          );
-        }
         _notify();
       });
 
   @override
-  Future<void> advanceGameweek(SportMode mode) => _delay(() {
-        final gameweek = _gameweeks[mode];
-        if (gameweek != null) {
-          _classicPoints[mode] = (_classicPoints[mode] ?? 0) + gameweek.points;
-        }
-        _openGameweek(mode, number: (gameweek?.number ?? 0) + 1);
-        _rescore(mode);
-        _notify();
-      });
+  Future<void> processLeagues() => _delay(_notify);
 
   @override
-  Future<Duel> settleDuel(String duelId) => _delay(() {
-        final i = _duels.indexWhere((d) => d.id == duelId);
-        final d = _duels[i];
-        final c = d.challengerPoints ?? 0;
-        final o = d.opponentPoints ?? 0;
-        final winner = c >= o ? d.challenger : d.opponent;
-        _duels[i] = Duel(
-          id: d.id,
-          challenger: d.challenger,
-          opponent: d.opponent,
-          mode: d.mode,
-          duration: d.duration,
-          status: DuelStatus.settled,
-          startTime: d.startTime,
-          endTime: DateTime.now(),
-          challengerPoints: c,
-          opponentPoints: o,
-          categories: d.mode == SportMode.basketball ? _fixtureCategories(c, o) : null,
-          winnerId: winner.userId,
+  Future<void> settleLeague(String id) => _delay(() {
+        final i = _leagues.indexWhere((l) => l.id == id);
+        if (i < 0) return;
+        final l = _leagues[i];
+        _leagues[i] = League(
+          id: l.id,
+          name: l.name,
+          mode: l.mode,
+          visibility: l.visibility,
+          joinCode: l.joinCode,
+          startsAt: l.startsAt,
+          endsAt: l.endsAt,
+          status: LeagueStatus.fin,
+          maxMembers: l.maxMembers,
+          memberCount: l.memberCount,
+          createdBy: l.createdBy,
+          joined: l.joined,
+          joinable: false,
+          standings: l.standings,
         );
-        if (winner.isCurrentUser) {
-          _trophies.add(Trophy(
-            id: 'trophy-${_nextId++}',
-            title: 'Duel win vs ${d.rival.username}',
-            mode: d.mode,
-            awardedAt: DateTime.now(),
-          ));
-        }
         _notify();
-        return _duels[i];
       });
-
-  List<DuelCategory> _fixtureCategories(double mine, double theirs) {
-    const names = {
-      'alpha': 'Alpha',
-      'hitRate': 'Hit rate',
-      'bestPick': 'Best pick',
-      'defense': 'Defense',
-      'hotHand': 'Hot hand',
-    };
-    final lead = mine >= theirs;
-    return [
-      for (final entry in names.entries)
-        DuelCategory(
-          code: entry.key,
-          name: entry.value,
-          challenger: _round1(mine / 100 + _rng.nextDouble() * 0.02),
-          opponent: _round1(theirs / 100 + _rng.nextDouble() * 0.02),
-          winner: lead == (entry.key != 'defense') ? 'challenger' : 'opponent',
-        ),
-    ];
-  }
 }

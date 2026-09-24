@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:symbians/features/wallet/domain/entities/wallet_balance.dart';
+import 'package:formation/features/wallet/domain/entities/wallet_balance.dart';
 
 /// State for [WalletCubit].
 ///

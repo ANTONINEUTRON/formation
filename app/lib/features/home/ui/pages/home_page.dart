@@ -2,9 +2,9 @@ import 'package:auto_route/auto_route.dart';
 import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/sport/ui/pages/sport_page.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/sport/ui/pages/sport_page.dart';
 
 /// Home page - main shell with one bottom navigation tab per sport.
 @RoutePage()

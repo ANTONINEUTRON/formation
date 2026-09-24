@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/core/widgets/stat_pill.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/core/widgets/stat_pill.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
-/// Gameweek points front and centre, with the season total and rank behind it.
+/// Today's points front and centre, with the running total and rank behind.
 class ScoreHeader extends StatelessWidget {
   const ScoreHeader({required this.roster, required this.totalPlayers, super.key});
 
@@ -14,8 +14,8 @@ class ScoreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gameweek = roster.gameweek;
-    final points = gameweek?.points ?? 0;
+    final session = roster.session;
+    final points = session?.points ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -28,7 +28,7 @@ class ScoreHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            gameweek == null ? 'POINTS' : 'GAMEWEEK ${gameweek.number}',
+            session == null ? 'POINTS' : 'TODAY',
             style: const TextStyle(
               fontSize: 11,
               letterSpacing: 1.4,
@@ -51,9 +51,9 @@ class ScoreHeader extends StatelessWidget {
             ),
           ),
           Text(
-            gameweek?.entered == false
-                ? 'Your team joins the next gameweek'
-                : 'Points this gameweek · beat SPYx to score',
+            session?.entered == false
+                ? 'Finish your team to start scoring'
+                : 'Banked today · beat SPYx to score',
             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),

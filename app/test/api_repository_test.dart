@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:formation/core/errors/app_exception.dart';
+import 'package:formation/core/utils/format.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:symbians/features/shared/data/api_repository.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/shared/data/api_repository.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Contract tests: the app parses responses recorded from the real backend
 /// (`backend/test/e2e/flow.e2e-spec.ts` writes them into test/contract).
@@ -45,8 +48,9 @@ void main() {
         '/roster/football' => _sample('roster-football'),
         '/roster/football/formation' => _sample('formation-change'),
         '/league/football' => _sample('league-football'),
-        '/duels' => _sample('duels-football'),
-        '/trophies' => _sample('trophies'),
+        '/leagues' => _sample('leagues-browse'),
+        '/notifications' => _sample('notifications'),
+        _ when path.startsWith('/managers/') => _sample('manager-profile'),
         _ => jsonEncode({'message': 'not stubbed: $path'}),
       };
       return http.Response(body, 200, headers: {'content-type': 'application/json'});
@@ -58,6 +62,15 @@ void main() {
     );
   }
 
+
+  /// A repository whose every call fails the way [respond] says.
+  ApiRepository failing(Future<http.Response> Function(http.Request) respond) =>
+      ApiRepository(
+        baseUrl: 'http://localhost:3000',
+        signer: _FakeSigner(),
+        client: MockClient(respond),
+      );
+
   test('signs in with the wallet before the first authenticated call', () async {
     await repository().getRoster(SportMode.football);
     expect(requested, [
@@ -67,33 +80,42 @@ void main() {
     ]);
   });
 
-  test('parses a team with its live gameweek', () async {
+  test('parses a team with its live session and bench', () async {
     final roster = await repository().getRoster(SportMode.football);
 
     expect(roster.mode, SportMode.football);
-    expect(roster.formation, '3-5-2');
     expect(roster.slots, hasLength(11));
     expect(roster.slots.first.position.label, 'GK');
     expect(roster.slots.first.stock!.symbol, isNotEmpty);
-    expect(roster.captainSlot, 9);
-    expect(roster.viceCaptainSlot, 0);
-    expect(roster.armband(9), 'C');
-    expect(roster.armband(0), 'V');
 
-    final gameweek = roster.gameweek!;
-    expect(gameweek.entered, isTrue);
-    expect(gameweek.isLive, isTrue);
-    expect(gameweek.points, greaterThan(0));
-    expect(gameweek.slots, hasLength(11));
+    final session = roster.session!;
+    expect(session.entered, isTrue);
+    expect(session.points, isNot(0));
+    expect(session.slots, hasLength(11));
+    // Three free substitutions a day, none used in the recorded run.
+    expect(session.freeSubstitutionsLeft, 3);
+    expect(session.substitutionsUsed, 0);
 
     // Every score lines up with the slot it belongs to.
-    for (final score in gameweek.slots) {
+    for (final score in session.slots) {
       expect(roster.slots[score.slotIndex].stock!.mint, score.mint);
     }
-    // The captain carries the multiplier, and events are labelled for the UI.
-    final captain = gameweek.scoreFor(9)!;
-    expect(captain.multiplier, 2);
-    expect(captain.events.map((e) => e.label), everyElement(isNotEmpty));
+
+    // The bench is whatever the wallet holds that isn't starting.
+    expect(roster.bench, isNotEmpty);
+    final startingMints = {
+      for (final slot in roster.slots) if (slot.stock != null) slot.stock!.mint,
+    };
+    for (final benched in roster.bench) {
+      expect(startingMints, isNot(contains(benched.stock.mint)));
+      // A tier that fits no slot in the current shape legitimately has none.
+      expect(
+        benched.eligibleSlots,
+        everyElement(inInclusiveRange(0, roster.slots.length - 1)),
+      );
+    }
+    // At least one benched stock can actually come on.
+    expect(roster.bench.any((b) => b.eligibleSlots.isNotEmpty), isTrue);
   });
 
   test('parses a formation change and the picks it dropped', () async {
@@ -114,74 +136,103 @@ void main() {
     expect(board.where((e) => e.isCurrentUser), hasLength(1));
   });
 
-  test('parses duels, including points and the current user side', () async {
-    final duels = await repository().getDuels(SportMode.football);
+  test('parses leagues, including a settled table', () async {
+    final leagues = await repository().getLeagues(SportMode.football);
+    expect(leagues, isNotEmpty);
+    expect(requested.last, 'GET /leagues?mode=football');
 
-    expect(duels, isNotEmpty);
-    final duel = duels.first;
-    expect(duel.mode, SportMode.football);
-    expect(duel.status, DuelStatus.settled);
-    expect(duel.winnerId, isNotNull);
-    expect(duel.me.isCurrentUser, isTrue);
-    expect(duel.myPoints, isNot(0));
-    expect(requested.last, 'GET /duels?mode=football');
+    final settled = League.fromJson(
+      jsonDecode(_sample('league-settled')) as Map<String, dynamic>,
+    );
+    expect(settled.status, LeagueStatus.fin);
+    expect(settled.standings, hasLength(2));
+    expect(settled.standings.first.rank, 1);
+    // A PvP duel is a two-member private league.
+    expect(settled.isDuel, isTrue);
+    expect(settled.isPrivate, isTrue);
   });
 
-  test('parses a basketball duel decided on categories', () async {
-    final duel = Duel.fromJson(
-      jsonDecode(_sample('duel-basketball-settled')) as Map<String, dynamic>,
-    );
+  test('parses a manager profile with lineup and holdings', () async {
+    final manager = await repository().getManager('someone', SportMode.football);
 
-    expect(duel.mode, SportMode.basketball);
-    expect(duel.categories, hasLength(5));
-    expect(duel.categories!.map((c) => c.name), contains('Hot hand'));
+    expect(manager.username, isNotEmpty);
+    expect(manager.isCurrentUser, isFalse);
+    expect(manager.following, isFalse);
+    expect(manager.lineup, isNotEmpty);
+    expect(manager.holdings, isNotEmpty);
+    // At least one holding is in their starting lineup.
+    expect(manager.holdings.any((h) => h.starting), isTrue);
+  });
+
+  test('parses notifications and their read state', () async {
+    final items = await repository().getNotifications();
+
+    expect(items, isNotEmpty);
+    expect(items.first.title, isNotEmpty);
+    expect(items.first.body, isNotEmpty);
     expect(
-      duel.categories!.every((c) => ['challenger', 'opponent', 'tie'].contains(c.winner)),
-      isTrue,
+      items.map((n) => n.kind),
+      everyElement(isIn(NotificationKind.values)),
     );
   });
 
-  test('parses the stock pool and trophies', () async {
-    final repo = repository();
+  group('errors reach the UI as short sentences, never stack traces', () {
+    test('a 4xx passes the backend message through, since we wrote it', () async {
+      final repo = failing((_) async => http.Response(
+            jsonEncode({'message': 'You do not hold AAPLx'}),
+            400,
+            headers: {'content-type': 'application/json'},
+          ));
 
-    final stocks = await repo.getXStocks();
-    expect(stocks, isNotEmpty);
-    expect(stocks.first.tier, isA<RiskTier>());
-
-    final trophies = await repo.getTrophies();
-    expect(trophies, isNotEmpty);
-    expect(trophies.first.title, isNotEmpty);
-  });
-
-  test('surfaces the backend error message', () async {
-    final client = MockClient((request) async {
-      if (request.url.path.startsWith('/auth')) {
-        return http.Response(
-          jsonEncode({
-            'message': 'Sign in to Formation',
-            'token': 't',
-            'user': {'id': 'u'},
-          }),
-          200,
-          headers: {'content-type': 'application/json'},
-        );
-      }
-      return http.Response(
-        jsonEncode({'message': 'TSLAx is already on this team'}),
-        400,
-        headers: {'content-type': 'application/json'},
+      await expectLater(
+        repo.getXStocks(),
+        throwsA(isA<ValidationException>()
+            .having((e) => e.message, 'message', 'You do not hold AAPLx')),
       );
+      expect(errorText(await _caught(repo.getXStocks())), 'You do not hold AAPLx');
     });
-    final repo = ApiRepository(
-      baseUrl: 'http://localhost:3000',
-      signer: _FakeSigner(),
-      client: client,
-    );
 
-    await expectLater(
-      repo.getRoster(SportMode.football),
-      throwsA(isA<StateError>()
-          .having((e) => e.message, 'message', contains('already on this team'))),
-    );
+    test('a 5xx is our bug, so the player gets a neutral line', () async {
+      final repo = failing((_) async => http.Response(
+            jsonEncode({'message': 'TypeError: cannot read property of undefined'}),
+            500,
+            headers: {'content-type': 'application/json'},
+          ));
+
+      final message = errorText(await _caught(repo.getXStocks()));
+      expect(message, isNot(contains('TypeError')));
+      expect(message, contains('having trouble'));
+    });
+
+    test('an unreachable server does not surface the socket error', () async {
+      final repo = failing((_) async => throw const SocketException('failed host lookup'));
+
+      final message = errorText(await _caught(repo.getXStocks()));
+      expect(message, isNot(contains('SocketException')));
+      expect(message, contains("Can't reach Formation"));
+    });
+
+    test('a non-JSON body does not surface the parse error', () async {
+      final repo = failing((_) async => http.Response('<html>502 Bad Gateway</html>', 200));
+
+      final message = errorText(await _caught(repo.getXStocks()));
+      expect(message, isNot(contains('FormatException')));
+      expect(message, contains('unexpected'));
+    });
+
+    test('an unrecognised error never shows its own text', () {
+      expect(errorText(ArgumentError('internal: bad mint index 7')), isNot(contains('mint')));
+      expect(errorText(TypeError()), isNot(contains('TypeError')));
+    });
   });
+}
+
+/// Runs [future] and returns whatever it threw.
+Future<Object> _caught(Future<Object?> future) async {
+  try {
+    await future;
+    return StateError('expected a failure');
+  } catch (e) {
+    return e;
+  }
 }

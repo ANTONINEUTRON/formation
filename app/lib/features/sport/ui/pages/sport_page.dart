@@ -1,16 +1,17 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/extensions/context_extensions.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/duel/ui/cubits/duel_cubit.dart';
-import 'package:symbians/features/league/ui/cubits/league_cubit.dart';
-import 'package:symbians/features/league/ui/widgets/league_tab.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/sport/ui/widgets/formation_app_bar.dart';
-import 'package:symbians/features/team/ui/cubits/team_cubit.dart';
-import 'package:symbians/features/team/ui/widgets/team_tab.dart';
+import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/league/ui/cubits/league_cubit.dart';
+import 'package:formation/features/league/ui/widgets/league_tab.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/sport/ui/widgets/formation_app_bar.dart';
+import 'package:formation/features/team/ui/cubits/team_cubit.dart';
+import 'package:formation/features/team/ui/widgets/team_tab.dart';
 
 /// One nav bar destination per sport: League and Team tabs plus the
 /// create-league FAB.
@@ -27,7 +28,6 @@ class SportPage extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => LeagueCubit(repository: repository, mode: mode)..load()),
         BlocProvider(create: (_) => TeamCubit(repository: repository, mode: mode)..load()),
-        BlocProvider(create: (_) => DuelCubit(repository: repository, mode: mode)..load()),
       ],
       child: DefaultTabController(
         length: 2,
@@ -40,28 +40,47 @@ class SportPage extends StatelessWidget {
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textMuted,
               dividerColor: AppColors.border,
+              // Icon beside the label rather than above it, so the bar stays
+              // one line tall.
               tabs: [
-                Tab(text: 'League', icon: Icon(Icons.leaderboard_outlined, size: 20), iconMargin: EdgeInsets.only(bottom: 2)),
-                Tab(text: 'Team', icon: Icon(Icons.groups_outlined, size: 20), iconMargin: EdgeInsets.only(bottom: 2)),
+                Tab(child: _TabLabel(icon: Icons.leaderboard_outlined, label: 'League')),
+                Tab(child: _TabLabel(icon: Icons.groups_outlined, label: 'Team')),
               ],
             ),
           ),
           body: const TabBarView(children: [LeagueTab(), TeamTab()]),
           floatingActionButton: Padding(
             padding: const EdgeInsets.only(bottom: 85),
-            child: FloatingActionButton.extended(
-              heroTag: 'create-league-${mode.apiValue}',
-              onPressed: () => context.showInfoToast(
-                message: 'Private leagues are coming soon. For now, everyone plays the global league.',
-              ),
+            child: FloatingActionButton(
+              heroTag: 'leagues-${mode.apiValue}',
+              onPressed: () => context.router.push(LeaguesRoute(mode: mode)),
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textInverse,
-              icon: const Icon(Icons.group_add),
-              label: const Text('Create league'),
+              tooltip: 'Leagues',
+              shape: const CircleBorder(),
+              child: const Icon(Icons.group_add),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// A tab label with its icon on the same line.
+class _TabLabel extends StatelessWidget {
+  const _TabLabel({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      );
 }

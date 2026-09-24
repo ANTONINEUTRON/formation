@@ -1,12 +1,19 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/material.dart' hide Notification;
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/domain/entity/notification.dart';
-import 'package:symbians/features/notifications/ui/widgets/notification_empty_state.dart';
-import 'package:symbians/features/notifications/ui/widgets/notification_tile.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/empty_state.dart';
+import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
+import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
+import 'package:formation/features/notifications/ui/widgets/notification_tile.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
 
-/// Notifications page - displays system and agent notifications.
+/// Notification inbox. Tapping one marks it read and, when it carries a
+/// league, opens that league.
 @RoutePage()
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -16,103 +23,86 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final List<Notification> _notifications = [
-    Notification(
-      id: '1',
-      type: NotificationType.alert,
-      title: 'Duel invite',
-      body: 'A player challenged you to a 24h Football duel.',
-      time: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-    Notification(
-      id: '2',
-      type: NotificationType.trade,
-      title: 'Hourly tick',
-      body: 'Your Football team scored +41 points this hour.',
-      time: DateTime.now().subtract(const Duration(minutes: 18)),
-    ),
-    Notification(
-      id: '3',
-      type: NotificationType.alert,
-      title: 'Duel won',
-      body: 'Your team finished +1.24% vs −0.31%. Trophy recorded.',
-      time: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: true,
-    ),
-    Notification(
-      id: '4',
-      type: NotificationType.system,
-      title: 'Welcome to Formation',
-      body: 'Draft a team in any sport to join its global league.',
-      time: DateTime.now().subtract(const Duration(days: 2)),
-      isRead: true,
-    ),
-  ];
-
-  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
-
-  void _markAllRead() {
-    setState(() {
-      for (var i = 0; i < _notifications.length; i++) {
-        _notifications[i] = Notification(
-          id: _notifications[i].id,
-          type: _notifications[i].type,
-          title: _notifications[i].title,
-          body: _notifications[i].body,
-          time: _notifications[i].time,
-          isRead: true,
-        );
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    // The cubit is provided app-wide so the bell badge and this inbox stay in
+    // step; opening the page just refreshes it.
+    context.read<NotificationsCubit>().load();
   }
 
-  void _markRead(String id) {
-    final index = _notifications.indexWhere((n) => n.id == id);
-    if (index == -1) return;
-    final n = _notifications[index];
-    if (n.isRead) return;
-    setState(() {
-      _notifications[index] = Notification(
-        id: n.id,
-        type: n.type,
-        title: n.title,
-        body: n.body,
-        time: n.time,
-        isRead: true,
-      );
-    });
+  @override
+  Widget build(BuildContext context) => const _NotificationsView();
+}
+
+class _NotificationsView extends StatelessWidget {
+  const _NotificationsView();
+
+  void _open(BuildContext context, AppNotification notification) {
+    context.read<NotificationsCubit>().markRead(notification);
+    final leagueId = notification.leagueId;
+    if (leagueId != null) {
+      context.router.push(LeagueDetailRoute(leagueId: leagueId));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cubit = context.read<NotificationsCubit>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (_unreadCount > 0)
-            IconButton(
-              icon: const Icon(Icons.checklist_rtl),
-              onPressed: _markAllRead,
-              tooltip: 'Mark all read',
-            ),
+          BlocBuilder<NotificationsCubit, NotificationsState>(
+            buildWhen: (a, b) => a.items != b.items,
+            builder: (context, state) {
+              final hasUnread = state.items.any((n) => !n.read);
+              return TextButton(
+                onPressed: hasUnread ? cubit.markAllRead : null,
+                child: const Text('Mark all read'),
+              );
+            },
+          ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? NotificationEmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: _notifications.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final notif = _notifications[index];
-                return NotificationTile(
-                  notification: notif,
-                  onTap: () => _markRead(notif.id),
-                );
-              },
+      body: BlocBuilder<NotificationsCubit, NotificationsState>(
+        builder: (context, state) {
+          if (state.status == LoadStatus.initial ||
+              (state.status == LoadStatus.loading && state.items.isEmpty)) {
+            return const LoadingIndicator();
+          }
+          if (state.status == LoadStatus.failure && state.items.isEmpty) {
+            return EmptyState(
+              icon: Icons.cloud_off,
+              message: state.error ?? 'Could not load notifications.',
+              actionLabel: 'Retry',
+              onAction: cubit.load,
+            );
+          }
+          if (state.items.isEmpty) {
+            return const EmptyState(
+              icon: Icons.notifications_none_rounded,
+              message: 'Nothing yet. You will hear from us when your daily '
+                  'points land or a league starts, settles or gains a member.',
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: cubit.load,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              itemCount: state.items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, i) => NotificationTile(
+                notification: state.items[i],
+                onTap: () => _open(context, state.items[i]),
+              ),
             ),
+          );
+        },
+      ),
     );
   }
 }
-

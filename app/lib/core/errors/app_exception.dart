@@ -58,3 +58,14 @@ class NotFoundException extends AppException {
   final String? resourceType;
   final String? resourceId;
 }
+
+/// Thrown when a wallet action is rejected or cancelled by the player.
+///
+/// Not a failure of ours, so the message is theirs to read and act on.
+class WalletException extends AppException {
+  const WalletException({
+    required super.message,
+    super.code,
+    super.originalError,
+  });
+}

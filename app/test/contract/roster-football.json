@@ -161,12 +161,9 @@
   ],
   "classicPoints": 163,
   "classicRank": 1,
-  "gameweek": {
-    "id": "3dff5c55-3d91-4e25-bcf8-f9e973ac6c7d",
-    "number": 13,
-    "startsAt": "2026-01-05T12:00:00.000Z",
-    "endsAt": "2026-01-05T13:00:00.000Z",
-    "status": "live",
+  "session": {
+    "startsAt": "2026-01-05T12:30:00.000Z",
+    "endsAt": "2026-01-05T12:40:00.000Z",
     "entered": true,
     "points": 163,
     "slots": [
@@ -175,195 +172,140 @@
         "mint": "mint-AAPL",
         "role": "GK",
         "alpha": 0,
-        "total": 4,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 4
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "AAPLx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 0,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-KO",
         "role": "DEF",
         "alpha": 0,
-        "total": 4,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 4
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "KOx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 1,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-PG",
         "role": "DEF",
         "alpha": 0,
-        "total": 4,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 4
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "PGx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 2,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-JNJ",
         "role": "DEF",
         "alpha": 0,
-        "total": 4,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 4
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "JNJx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 3,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-JPM",
         "role": "MID",
         "alpha": 0,
-        "total": 1,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 1
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "JPMx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 4,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-V",
         "role": "MID",
         "alpha": 0,
-        "total": 1,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 1
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "Vx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 5,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-MA",
         "role": "MID",
         "alpha": 0,
-        "total": 1,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 1
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "MAx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 6,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-ORCL",
         "role": "MID",
         "alpha": 0,
-        "total": 1,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 1
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "ORCLx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 7,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 0,
         "mint": "mint-UNH",
         "role": "MID",
         "alpha": 0,
-        "total": 1,
-        "events": [
-          {
-            "code": "clean_sheet",
-            "label": "Clean sheet",
-            "points": 1
-          }
-        ],
+        "total": 0,
+        "events": [],
         "symbol": "UNHx",
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 8,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       },
       {
         "base": 60,
         "mint": "mint-TSLA",
         "role": "FWD",
         "alpha": 0.06,
-        "total": 142,
-        "events": [
-          {
-            "code": "goal",
-            "label": "2 goals",
-            "points": 8
-          },
-          {
-            "code": "assist",
-            "label": "Assist",
-            "points": 3
-          }
-        ],
+        "total": 120,
+        "events": [],
         "symbol": "TSLAx",
         "counted": true,
         "ownReturn": 0.06,
         "slotIndex": 9,
-        "multiplier": 2
+        "multiplier": 2,
+        "substituted": false
       },
       {
         "base": 0,
@@ -376,10 +318,133 @@
         "counted": true,
         "ownReturn": 0,
         "slotIndex": 10,
-        "multiplier": 1
+        "multiplier": 1,
+        "substituted": false
       }
     ],
-    "teamEvents": []
+    "teamEvents": [],
+    "substitutionsUsed": 0,
+    "freeSubstitutionsLeft": 3
   },
-  "pendingChanges": false
+  "bench": [
+    {
+      "stock": {
+        "symbol": "SPYx",
+        "companyName": "S&P 500",
+        "mint": "SPYx-test-mint",
+        "tier": "blue_chip",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": [
+        0
+      ]
+    },
+    {
+      "stock": {
+        "symbol": "MSFTx",
+        "companyName": "Microsoft",
+        "mint": "mint-MSFT",
+        "tier": "blue_chip",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": [
+        0
+      ]
+    },
+    {
+      "stock": {
+        "symbol": "WMTx",
+        "companyName": "Walmart",
+        "mint": "mint-WMT",
+        "tier": "stable",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "stock": {
+        "symbol": "MCDx",
+        "companyName": "McDonald's",
+        "mint": "mint-MCD",
+        "tier": "stable",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "stock": {
+        "symbol": "NVDAx",
+        "companyName": "NVIDIA",
+        "mint": "mint-NVDA",
+        "tier": "growth",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": []
+    },
+    {
+      "stock": {
+        "symbol": "METAx",
+        "companyName": "Meta",
+        "mint": "mint-META",
+        "tier": "growth",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": []
+    },
+    {
+      "stock": {
+        "symbol": "AMDx",
+        "companyName": "AMD",
+        "mint": "mint-AMD",
+        "tier": "growth",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": []
+    },
+    {
+      "stock": {
+        "symbol": "PLTRx",
+        "companyName": "Palantir",
+        "mint": "mint-PLTR",
+        "tier": "momentum",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null
+      },
+      "balance": 10,
+      "eligibleSlots": [
+        9,
+        10
+      ]
+    }
+  ]
 }

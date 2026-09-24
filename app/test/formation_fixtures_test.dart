@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:symbians/features/shared/data/fixture_repository.dart';
-import 'package:symbians/features/shared/data/fixtures/xstock_fixtures.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/domain/roster_shapes.dart';
+import 'package:formation/core/errors/app_exception.dart';
+
+import 'package:formation/features/shared/data/fixture_repository.dart';
+import 'package:formation/features/shared/data/fixtures/xstock_fixtures.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/roster_shapes.dart';
 
 const _wallet = 'TestWallet1111111111111111111111111111111';
 
@@ -99,7 +101,7 @@ void main() {
         expect(slot.position.accepts(slot.stock!), isTrue, reason: slot.position.label);
       }
       expect(roster.classicRank, isNotNull);
-      expect(roster.gameweek, isNotNull);
+      expect(roster.session, isNotNull);
     });
 
     test('filling a held stock updates the team and the leaderboard', () async {
@@ -116,8 +118,8 @@ void main() {
       final repo = FixtureRepository(walletAddress: _wallet);
       final unheld = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
       final wrongTier = xStockFixtures.firstWhere((s) => s.symbol == 'KOx');
-      expect(repo.fillSlot(SportMode.basketball, 0, unheld), throwsStateError);
-      expect(repo.fillSlot(SportMode.basketball, 0, wrongTier), throwsStateError);
+      expect(repo.fillSlot(SportMode.basketball, 0, unheld), throwsA(isA<ValidationException>()));
+      expect(repo.fillSlot(SportMode.basketball, 0, wrongTier), throwsA(isA<ValidationException>()));
     });
 
     test('buying then filling works for an unheld stock', () async {
@@ -156,42 +158,66 @@ void main() {
 
       expect(
         repo.setCaptaincy(SportMode.football, captainSlot: 3, viceCaptainSlot: 3),
-        throwsStateError,
+        throwsA(isA<ValidationException>()),
       );
       expect(
         repo.setCaptaincy(SportMode.americanFootball, captainSlot: 0),
-        throwsStateError,
+        throwsA(isA<ValidationException>()),
       );
       // An empty slot can't wear the armband.
-      expect(repo.setCaptaincy(SportMode.basketball, captainSlot: 0), throwsStateError);
+      expect(repo.setCaptaincy(SportMode.basketball, captainSlot: 0), throwsA(isA<ValidationException>()));
     });
 
-    test('a tick scores the live gameweek and advancing banks it', () async {
+    test('a tick scores the live session', () async {
       final repo = FixtureRepository(walletAddress: _wallet);
       await repo.runTick();
       final live = await repo.getRoster(SportMode.football);
-      expect(live.gameweek!.slots, hasLength(11));
-      expect(live.gameweek!.entered, isTrue);
 
-      await repo.advanceGameweek(SportMode.football);
-      final next = await repo.getRoster(SportMode.football);
-
-      expect(next.gameweek!.number, live.gameweek!.number + 1);
-      // The finished gameweek is banked into the season total, and only the
-      // new gameweek's points (clean sheets from an unchanged price) sit on top.
-      expect(
-        next.classicPoints,
-        closeTo(live.classicPoints + next.gameweek!.points, 0.01),
-      );
+      expect(live.session!.slots, hasLength(11));
+      expect(live.session!.entered, isTrue);
+      // Points bank continuously, so the running total already includes them.
+      expect(live.classicPoints, isNot(0));
     });
 
-    test('settling a duel picks the higher score and awards a trophy', () async {
+    test('the bench holds what the wallet owns but is not fielding', () async {
       final repo = FixtureRepository(walletAddress: _wallet);
-      final settled = await repo.settleDuel('duel-1');
+      final roster = await repo.getRoster(SportMode.football);
 
-      expect(settled.status, DuelStatus.settled);
-      expect(settled.iWon, isTrue); // seeded 34 vs 21 points
-      expect(await repo.getTrophies(), hasLength(2));
+      final starting = {
+        for (final slot in roster.slots) if (slot.stock != null) slot.stock!.mint,
+      };
+      for (final benched in roster.bench) {
+        expect(starting, isNot(contains(benched.stock.mint)));
+      }
+    });
+
+    test('creating and settling a league ranks its members', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final league = await repo.createLeague(
+        mode: SportMode.football,
+        name: 'Test League',
+        isPrivate: true,
+        startsAt: DateTime.now().add(const Duration(minutes: 5)),
+        duration: const Duration(hours: 1),
+      );
+
+      expect(league.status, LeagueStatus.scheduled);
+      expect(league.joined, isTrue);
+      expect(league.joinCode, isNotEmpty);
+
+      await repo.settleLeague(league.id);
+      final settled = await repo.getLeague(league.id);
+      expect(settled.status, LeagueStatus.fin);
+    });
+
+    test('following a manager is reflected on their profile', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final board = await repo.getLeaderboard(SportMode.football);
+      final other = board.firstWhere((e) => !e.isCurrentUser);
+
+      expect((await repo.getManager(other.userId, SportMode.football)).following, isFalse);
+      await repo.setFollowing(other.userId, following: true);
+      expect((await repo.getManager(other.userId, SportMode.football)).following, isTrue);
     });
   });
 }

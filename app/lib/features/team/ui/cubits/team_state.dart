@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 class TeamState extends Equatable {
   const TeamState({

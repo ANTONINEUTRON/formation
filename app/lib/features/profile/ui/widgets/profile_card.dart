@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/profile/ui/widgets/icon_action.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/profile/ui/widgets/icon_action.dart';
 
 class ProfileCard extends StatelessWidget {
   const ProfileCard({required this.walletAddress, super.key});

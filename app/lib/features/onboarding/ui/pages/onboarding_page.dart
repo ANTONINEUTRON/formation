@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/constants/app_constants.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_cubit.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
-import 'package:symbians/features/wallet/ui/widgets/connect_wallet_view.dart';
-import 'package:symbians/gen/assets.gen.dart';
+import 'package:formation/core/constants/app_constants.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
+import 'package:formation/features/wallet/ui/widgets/connect_wallet_view.dart';
+import 'package:formation/gen/assets.gen.dart';
 
 /// Full-screen onboarding page shown when no wallet is connected.
 ///
@@ -31,7 +31,7 @@ class OnboardingPage extends StatelessWidget {
                   const Spacer(flex: 2),
 
                   // Logo
-                  Assets.brand.symbiansLogoNobg.image(
+                  Assets.brand.formationLogoNobg.image(
                     width: 88,
                     height: 88,
                     fit: BoxFit.contain,

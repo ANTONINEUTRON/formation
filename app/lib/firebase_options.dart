@@ -70,6 +70,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '557477536716',
     projectId: 'symbians-820b0',
     storageBucket: 'symbians-820b0.firebasestorage.app',
-    iosBundleId: 'ng.anto.symbians.sol',
+    iosBundleId: 'ng.anto.formation',
   );
 }

@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/route/app_route.dart';
-import 'package:symbians/core/widgets/empty_state.dart';
-import 'package:symbians/core/widgets/loading_indicator.dart';
-import 'package:symbians/features/league/ui/cubits/league_cubit.dart';
-import 'package:symbians/features/league/ui/cubits/league_state.dart';
-import 'package:symbians/features/league/ui/widgets/leaderboard_row.dart';
-import 'package:symbians/features/league/ui/widgets/my_rank_banner.dart';
-import 'package:symbians/features/shared/domain/load_status.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/widgets/empty_state.dart';
+import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/features/league/ui/cubits/league_cubit.dart';
+import 'package:formation/features/league/ui/cubits/league_state.dart';
+import 'package:formation/features/league/ui/widgets/leaderboard_row.dart';
+import 'package:formation/features/league/ui/widgets/my_rank_banner.dart';
+import 'package:formation/features/league/ui/widgets/period_selector.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
 
 /// League tab: the global Classic leaderboard for the page's sport mode.
 class LeagueTab extends StatelessWidget {
@@ -37,8 +38,13 @@ class LeagueTab extends StatelessWidget {
 
         return Column(
           children: [
+            const SizedBox(height: 12),
+            PeriodSelector(
+              period: state.period,
+              onChanged: cubit.setPeriod,
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: MyRankBanner(
                 mode: cubit.mode,
                 me: state.me,
@@ -57,12 +63,14 @@ class LeagueTab extends StatelessWidget {
                     final entry = state.entries[i];
                     return LeaderboardRow(
                       entry: entry,
-                      onTap: entry.isCurrentUser
-                          ? null
-                          : () => context.router.push(CreateDuelRoute(
-                                mode: cubit.mode,
-                                initialOpponent: entry.username,
-                              )),
+                      // Tapping a manager opens their profile, where you can
+                      // follow them or adopt their wallet.
+                      onTap: () => context.router.push(
+                        ManagerProfileRoute(
+                          userId: entry.userId,
+                          mode: cubit.mode,
+                        ),
+                      ),
                     )
                         .animate()
                         .fadeIn(delay: (20 * i.clamp(0, 15)).ms)

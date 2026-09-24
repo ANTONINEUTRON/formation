@@ -1,7 +1,7 @@
 import 'package:flutter/painting.dart';
 
-import 'package:symbians/features/shared/domain/lineup.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Position slots for each sport mode, in slot order.
 ///

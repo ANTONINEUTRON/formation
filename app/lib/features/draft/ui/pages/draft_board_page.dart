@@ -2,26 +2,26 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/extensions/context_extensions.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/core/widgets/empty_state.dart';
-import 'package:symbians/core/widgets/loading_indicator.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_cubit.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_state.dart';
-import 'package:symbians/features/draft/ui/widgets/formation_board.dart';
-import 'package:symbians/features/draft/ui/widgets/formation_selector.dart';
-import 'package:symbians/features/draft/ui/widgets/slot_actions_sheet.dart';
-import 'package:symbians/features/draft/ui/widgets/stock_picker_sheet.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/lineup.dart';
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/core/widgets/empty_state.dart';
+import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
+import 'package:formation/features/draft/ui/cubits/draft_state.dart';
+import 'package:formation/features/draft/ui/widgets/formation_board.dart';
+import 'package:formation/features/draft/ui/widgets/formation_selector.dart';
+import 'package:formation/features/draft/ui/widgets/slot_actions_sheet.dart';
+import 'package:formation/features/draft/ui/widgets/stock_picker_sheet.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/lineup.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Draft a team by tapping positions on the board. For football this is also
 /// "Pick team": the formation and the armbands.
 ///
-/// Every change is saved as it's made and applies from the next gameweek.
+/// Every change is saved as it's made and counts from the next tick.
 @RoutePage()
 class DraftBoardPage extends StatelessWidget {
   const DraftBoardPage({required this.mode, super.key});
@@ -140,7 +140,7 @@ class _DraftBody extends StatelessWidget {
           child: Text(
             _isFootball
                 ? 'Tap a player to give out the armband or change the stock. '
-                    'The captain scores double; changes apply from the next gameweek.'
+                    'The captain scores double; changes count from the next tick.'
                 : 'Tap a position. Stocks you hold fill instantly; anything else you can buy here.',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),

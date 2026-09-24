@@ -17,7 +17,7 @@ plugins {
 }
 
 android {
-    namespace = "ng.anto.symbians.sol"
+    namespace = "ng.anto.formation"
     compileSdk = 37
     ndkVersion = "28.2.13676358"
 
@@ -27,8 +27,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "ng.anto.symbians.sol"
+        applicationId = "ng.anto.formation"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion  // solana_mobile_client (MWA) requires API 23+

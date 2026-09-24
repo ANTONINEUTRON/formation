@@ -38,51 +38,62 @@ describe('league', () => {
     expect(board[1]).toMatchObject({ rank: 2, isCurrentUser: true, points: 300 });
   });
 
-  it('adds live gameweek points to the season total', async () => {
+  it('banks points on every tick without waiting for a window to close', async () => {
     await h.draft(me, 'football');
     await giveSeason(me.id, 100);
+    // The first tick only takes the baseline; nothing is owed yet.
     await h.priceTicks.tick();
+    expect((await h.league.standing(me.id, 'football'))!.points).toBe(100);
 
     h.clock.advance(30);
     h.prices.move('mint-TSLA', 1.05);
     await h.priceTicks.tick();
 
     const standing = (await h.league.standing(me.id, 'football'))!;
-    expect(standing.gameweekPoints).toBeGreaterThan(0);
-    expect(standing.points).toBe(100 + standing.gameweekPoints);
+    expect(standing.points).toBeGreaterThan(100);
+    expect(standing.todayPoints).toBeGreaterThan(0);
 
     const board = await h.league.leaderboard('football', me.id);
     expect(board[0].points).toBe(standing.points);
   });
 
-  it('banks a finished gameweek into the season total exactly once', async () => {
+  it('accumulates across ticks instead of recomputing from the start', async () => {
     await h.draft(me, 'football');
     await h.priceTicks.tick();
-    const first = (await h.gameweeks.current('football'))!;
+
     h.clock.advance(30);
     h.prices.move('mint-TSLA', 1.05);
     await h.priceTicks.tick();
-    const live = (await h.league.standing(me.id, 'football'))!;
+    const afterFirst = (await h.league.standing(me.id, 'football'))!.points;
 
-    h.clock.advance(40); // past the end: the gameweek closes and the next one opens
-    await h.gameweeks.process();
+    h.clock.advance(30);
+    h.prices.move('mint-TSLA', 1.05);
+    await h.priceTicks.tick();
+    const afterSecond = (await h.league.standing(me.id, 'football'))!.points;
 
-    const season = await h.db
-      .selectFrom('classic_scores')
-      .select(['total_points', 'last_gameweek_points'])
+    expect(afterFirst).toBeGreaterThan(0);
+    expect(afterSecond).toBeGreaterThan(afterFirst);
+
+    // Every movement is on the ledger, and the two must agree.
+    const ledger = await h.db
+      .selectFrom('points_ledger')
+      .select((eb) => eb.fn.sum<string>('points').as('total'))
       .where('user_id', '=', me.id)
       .where('sport_mode', '=', 'football')
       .executeTakeFirstOrThrow();
-    // Prices didn't move after the live read, so the banked score equals it.
-    expect(season.total_points).toBeCloseTo(live.gameweekPoints, 1);
-    expect(season.last_gameweek_points).toBeCloseTo(live.gameweekPoints, 1);
+    expect(Number(ledger.total)).toBeCloseTo(afterSecond, 1);
+  });
 
-    // Only the new gameweek's live points sit on top of the banked total.
-    const next = (await h.gameweeks.current('football'))!;
-    expect(next.id).not.toBe(first.id);
-    const nextLive = (await h.gameweeks.livePointsByUser(next.id)).get(me.id) ?? 0;
-    const standing = (await h.league.standing(me.id, 'football'))!;
-    expect(standing.points).toBeCloseTo(season.total_points + nextLive, 1);
+  it('ticking again with no time elapsed banks nothing extra', async () => {
+    await h.draft(me, 'football');
+    await h.priceTicks.tick();
+    h.clock.advance(30);
+    h.prices.move('mint-TSLA', 1.05);
+    await h.priceTicks.tick();
+
+    const before = (await h.league.standing(me.id, 'football'))!.points;
+    await h.priceTicks.tick();
+    expect((await h.league.standing(me.id, 'football'))!.points).toBeCloseTo(before, 1);
   });
 
   it('returns nothing for a player who has not drafted', async () => {

@@ -1,6 +1,6 @@
 # Formation — 2-Day Build Plan
 
-> Pivoting the Symbians codebase to Formation (fantasy sports for real tokenized stocks) for Stocklana.
+> Pivoting the Formation codebase to Formation (fantasy sports for real tokenized stocks) for Stocklana.
 > Product spec: [formation-stocklana-spec.md](../potential_pivot/formation-stocklana-spec.md)
 >
 > **Deadline:** Friday, September 18, 2026, 4:00 PM ET. Submission is the Android app as a demo video
@@ -20,7 +20,7 @@
 | Client | **Flutter (Android)**, not the spec's Next.js | Wallet connect (MWA) and balance reads already work in [wallet_cubit.dart](../app/lib/features/wallet/ui/cubits/wallet_cubit.dart). Rewriting costs a day. MWA is Android-only, which is fine for a demo video + APK. |
 | Backend | **NestJS** in [backend/](../backend/) | Scaffold already exists. It owns scoring, cron, Jupiter calls, and trophies. |
 | Database | **Supabase Postgres**, called from NestJS | Already a dependency; schema from spec §4.2. The app never talks to Supabase directly. |
-| On-chain program | **None** | Spec non-goal. [symbians_program/](../symbians_program/) is ignored. |
+| On-chain program | **None** | Spec non-goal. [formation_program/](../formation_program/) is ignored. |
 | Navigation | **3 nav bar tabs, one per sport:** Football, Basketball, American Football | Each sport is its own page with League / Team tabs. Profile moves to the app bar (§2.1). |
 | Sport modes | **All three pages ship; Basketball's Team tab is the must-have** | One `SportPage(mode)` widget serves all three. Only the board shape differs, so Football and American Football are fixtures + court/pitch paint. If a board isn't ready, that Team tab shows a "coming soon" state; its League tab still works. |
 | Create league | **FAB on every sport page shows "Coming soon"** | Private leagues are cut from the MVP (spec §6), but the entry point signals the roadmap. |

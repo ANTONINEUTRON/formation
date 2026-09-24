@@ -8,8 +8,9 @@ import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseFormation, remapFormation } from '../domain/formation.js';
 import { DEFAULT_FORMATION, rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
-import { GameweekService } from '../gameweek/gameweek.service.js';
 import { LeagueService } from '../league/league.service.js';
+import { ManagersService } from '../managers/managers.service.js';
+import { GeneralScoringService } from '../scoring/general-scoring.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 
 interface RosterRow {
@@ -27,7 +28,8 @@ export class RosterService {
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
     private readonly league: LeagueService,
-    private readonly gameweeks: GameweekService,
+    private readonly general: GeneralScoringService,
+    private readonly managers: ManagersService,
   ) {}
 
   async getRoster(user: AuthUser, mode: SportMode): Promise<RosterDto> {
@@ -37,16 +39,18 @@ export class RosterService {
     const slots = roster ? await this.slotsOf(roster.id) : [];
     const mints = slots.map((s) => s.token_mint);
 
-    const [stocks, prices, balances, standing, gameweek] = await Promise.all([
+    // The wallet is the squad: everything held is available, and whatever
+    // isn't in the starting lineup sits on the bench.
+    const [stocks, balances, standing, session] = await Promise.all([
       this.xstocks.byMint(),
-      mints.length > 0 ? this.prices.getPrices(mints) : Promise.resolve(new Map()),
-      mints.length > 0
-        ? this.balances.getBalances(user.walletAddress)
-        : Promise.resolve(new Map<string, number>()),
+      this.balances.getBalances(user.walletAddress),
       this.league.standing(user.id, mode),
-      this.gameweeks.current(mode),
+      this.general.sessionFor(user.id, mode),
     ]);
+    const held = [...balances].filter(([mint, amount]) => stocks.has(mint) && amount > 0);
+    const priced = await this.prices.getPrices(held.map(([mint]) => mint));
     const bySlot = new Map(slots.map((s) => [s.slot_index, s]));
+    const started = new Set(mints);
 
     return {
       mode,
@@ -59,16 +63,28 @@ export class RosterService {
         return {
           slotIndex,
           positionLabel: position.label,
-          stock: row ? this.xstocks.toDto(row, prices.get(row.mint)) : null,
+          stock: row ? this.xstocks.toDto(row, priced.get(row.mint)) : null,
           balance: slot ? (balances.get(slot.token_mint) ?? 0) : 0,
         };
       }),
       classicPoints: standing?.points ?? 0,
       classicRank: mints.length > 0 ? (standing?.rank ?? null) : null,
-      gameweek: gameweek ? await this.gameweeks.dtoFor(gameweek, user.id) : null,
-      pendingChanges: gameweek
-        ? await this.gameweeks.hasPendingChanges(gameweek.id, user.id, user.walletAddress, mode)
-        : false,
+      session,
+      bench: held
+        .filter(([mint]) => !started.has(mint))
+        .flatMap(([mint, balance]) => {
+          const row = stocks.get(mint);
+          if (!row) return [];
+          return [
+            {
+              stock: this.xstocks.toDto(row, priced.get(mint)),
+              balance,
+              eligibleSlots: shape.flatMap((position, i) =>
+                !position.tier || position.tier === row.tier ? [i] : [],
+              ),
+            },
+          ];
+        }),
     };
   }
 
@@ -102,6 +118,12 @@ export class RosterService {
       throw new BadRequestException(`${stock.symbol} is already on this team`);
     }
 
+    // Bringing a bench stock into an occupied slot is a substitution; filling
+    // an empty slot during the initial draft is not. Buying and selling — the
+    // transfers — happen through the swap flow and are never charged.
+    const previous = slots.find((s) => s.slot_index === slotIndex);
+    const isSubstitution = previous !== undefined && previous.token_mint !== mint;
+
     await this.db
       .insertInto('roster_slots')
       .values({
@@ -118,13 +140,21 @@ export class RosterService {
       )
       .execute();
 
+    if (isSubstitution) {
+      await this.general.chargeSubstitution(user.id, mode);
+      const stocks = await this.xstocks.byMint();
+      await this.managers.announceMove(user.id, mode, {
+        off: stocks.get(previous.token_mint)?.symbol ?? 'a pick',
+        on: stock.symbol,
+      });
+    }
     return this.getRoster(user, mode);
   }
 
   /**
    * Football only: switches formation, keeping each role's picks in order.
    * Anything that no longer fits comes off the team (the stock is still owned).
-   * Takes effect from the next gameweek, because entries are locked.
+   * Takes effect from the next tick; any running league keeps its locked lineup.
    */
   async setFormation(
     user: AuthUser,

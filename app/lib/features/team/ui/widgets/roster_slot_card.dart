@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/ui/widgets/armband_badge.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
 
 /// One row of the team: position, stock, holding, and how it is scoring.
 class RosterSlotCard extends StatelessWidget {
@@ -18,7 +18,7 @@ class RosterSlotCard extends StatelessWidget {
   final RosterSlot slot;
   final double teamValueUsd;
 
-  /// This pick's gameweek score, when the team is entered.
+  /// This pick's session score, when the team is being scored.
   final SlotScore? score;
 
   /// 'C' or 'V' badge, if any.

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:symbians/core/route/app_route.dart';
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/theme/theme.dart';
 
 /// Shown in the profile tab when a wallet is connected.
 class ConnectedWalletView extends StatelessWidget {

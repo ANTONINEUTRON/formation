@@ -8,12 +8,12 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { PRICE_SOURCE } from '../core/sources.js';
 import type { PriceSource } from '../core/sources.js';
-import { GameweekService } from '../gameweek/gameweek.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
+import { GeneralScoringService } from './general-scoring.service.js';
 
 /**
- * Records a price for every xStock on an interval, then advances gameweeks.
- * The interval comes from config (short in the demo profile), so it's
+ * Records a price for every xStock on an interval, then banks the general
+ * league. The interval comes from config (short in the demo profile), so it's
  * registered at runtime rather than with a @Cron decorator.
  */
 @Injectable()
@@ -26,7 +26,7 @@ export class PriceTickService implements OnModuleInit {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
-    private readonly gameweeks: GameweekService,
+    private readonly general: GeneralScoringService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -60,7 +60,8 @@ export class PriceTickService implements OnModuleInit {
         .execute();
     }
 
-    await this.gameweeks.process(capturedAt.getTime());
+    // Points bank here, on every tick — nothing waits for a window to close.
+    await this.general.process(capturedAt.getTime());
     return { mints: values.length, capturedAt };
   }
 }

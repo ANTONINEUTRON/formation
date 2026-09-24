@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Duel record and league standing in one sport mode.
 class SportRecord extends Equatable {
@@ -20,15 +20,13 @@ class ProfileState extends Equatable {
   const ProfileState({
     this.status = LoadStatus.initial,
     this.records = const {},
-    this.trophies = const [],
     this.error,
   });
 
   final LoadStatus status;
   final Map<SportMode, SportRecord> records;
-  final List<Trophy> trophies;
   final String? error;
 
   @override
-  List<Object?> get props => [status, records, trophies, error];
+  List<Object?> get props => [status, records, error];
 }

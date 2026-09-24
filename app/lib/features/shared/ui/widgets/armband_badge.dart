@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 /// Captain ('C') or vice-captain ('V') marker.
 class ArmbandBadge extends StatelessWidget {

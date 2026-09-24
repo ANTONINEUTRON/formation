@@ -46,8 +46,8 @@ export class SwapService {
   }
 
   async quote(user: AuthUser, mint: string, usdcAmount: number): Promise<SwapQuoteDto> {
-    if (usdcAmount < 1 || usdcAmount > 1_000) {
-      throw new BadRequestException('Amount must be between $1 and $1,000');
+    if (usdcAmount < 1 || usdcAmount > 100_000) {
+      throw new BadRequestException('Amount must be between $1 and $100,000');
     }
     const stock = (await this.xstocks.byMint()).get(mint);
     if (!stock) throw new BadRequestException('Unsupported token');

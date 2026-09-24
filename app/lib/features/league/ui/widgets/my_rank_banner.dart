@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Pinned above the leaderboard so the user's standing is always visible.
 class MyRankBanner extends StatelessWidget {
@@ -82,34 +82,8 @@ class MyRankBanner extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
-                      'SEASON · THIS GW',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text.rich(
-                      TextSpan(
-                        text: formatPoints(me.points),
-                        style: AppTextStyles.mono(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '  ${formatSignedPoints(me.gameweekPoints)}',
-                            style: AppTextStyles.mono(
-                              fontSize: 13,
-                              color: pnlColor(me.gameweekPoints),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    
+              ],
                 ),
               ],
             ),

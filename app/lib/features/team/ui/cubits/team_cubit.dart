@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/shared/domain/load_status.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/team/ui/cubits/team_state.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/team/ui/cubits/team_state.dart';
 
-/// The signed-in user's team for one sport mode, and its live gameweek.
+/// The signed-in user's team for one sport mode, and its live session.
 class TeamCubit extends Cubit<TeamState> {
   TeamCubit({required FormationRepository repository, required this.mode})
       : _repository = repository,
@@ -32,11 +32,11 @@ class TeamCubit extends Cubit<TeamState> {
     }
   }
 
-  /// Debug-only: records prices now and rescores the live gameweek.
+  /// Debug-only: records prices now and banks everything owed.
   Future<void> runTick() => _busy(_repository.runTick);
 
-  /// Debug-only: closes this gameweek and opens the next.
-  Future<void> advanceGameweek() => _busy(() => _repository.advanceGameweek(mode));
+  /// Debug-only: opens scheduled leagues and settles finished ones.
+  Future<void> processLeagues() => _busy(() => _repository.processLeagues());
 
   Future<void> _busy(Future<void> Function() action) async {
     emit(state.copyWith(isTicking: true));

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({super.key, required this.title});

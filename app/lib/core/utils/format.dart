@@ -1,11 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/errors/app_exception.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/app_log.dart';
 
 /// Points are numeric(10,1): show the decimal only when there is one.
 final _points = NumberFormat('#,##0.#');
 final _usd = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+final _shortDate = DateFormat('d MMM');
+
+/// "4 Sep" — compact enough for a leaderboard period chip.
+String formatShortDate(DateTime date) => _shortDate.format(date);
+
+/// "1h", "3d" — a league's length, as the creator picked it.
+String formatDuration(Duration d) =>
+    d.inHours < 24 ? '${d.inHours}h' : '${d.inDays}d';
 
 String formatPoints(num points) => _points.format(points);
 
@@ -43,7 +55,22 @@ Color pnlColor(num value) => value > 0
         : AppColors.textSecondary;
 
 /// User-facing text for an exception thrown by a repository.
-String errorText(Object error) => switch (error) {
-      StateError(:final message) => message,
-      _ => error.toString(),
-    };
+/// Shown when we have nothing better to say. Deliberately not the exception.
+const _genericError = 'Something went wrong. Please try again.';
+
+/// A short, human sentence for [error], safe to put on screen.
+///
+/// The full error and its stack trace are logged; only messages we wrote
+/// ourselves ever reach the UI. Anything unrecognised becomes a generic line
+/// rather than a type-cast message or a socket dump, which tell a player
+/// nothing and leak internals.
+String errorText(Object error, [StackTrace? stackTrace]) {
+  AppLog.error('Surfaced to the user', error, stackTrace);
+
+  return switch (error) {
+    // Our own exceptions carry a message written for a player to read.
+    AppException(:final message) => message,
+    TimeoutException() => 'That took too long. Please try again.',
+    _ => _genericError,
+  };
+}

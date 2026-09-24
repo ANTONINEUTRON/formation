@@ -16,13 +16,13 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/brand/symbians_logo_nobg.png"
-              alt="Symbians"
+              src="/brand/formation_logo_nobg.png"
+              alt="Formation"
               width={32}
               height={32}
               className="w-8 h-8"
             />
-            <span className="font-semibold text-lg text-text">Symbians</span>
+            <span className="font-semibold text-lg text-text">Formation</span>
           </Link>
 
           {/* Desktop Nav */}

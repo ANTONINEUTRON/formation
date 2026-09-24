@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
-import 'package:symbians/core/constants/app_constants.dart';
-import 'package:symbians/core/route/app_route.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/onboarding/ui/pages/onboarding_page.dart';
-import 'package:symbians/features/shared/data/api_repository.dart';
-import 'package:symbians/features/shared/data/fixture_repository.dart';
-import 'package:symbians/features/shared/data/formation_repository.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_cubit.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
+import 'package:formation/core/constants/app_constants.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/onboarding/ui/pages/onboarding_page.dart';
+import 'package:formation/features/shared/data/api_repository.dart';
+import 'package:formation/features/shared/data/fixture_repository.dart';
+import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
 
 /// Main application widget.
 class MyApp extends StatefulWidget {
@@ -85,7 +86,14 @@ class _ConnectedApp extends StatelessWidget {
               baseUrl: AppConstants.apiUrl,
               signer: context.read<WalletCubit>(),
             ),
-      child: _toastWrapped(),
+      child: Builder(
+        builder: (context) => BlocProvider(
+          create: (context) => NotificationsCubit(
+            repository: context.read<FormationRepository>(),
+          )..refreshUnread(),
+          child: _toastWrapped(),
+        ),
+      ),
     );
   }
 

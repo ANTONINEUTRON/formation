@@ -1,4 +1,4 @@
-import 'package:symbians/flavors/flavor_config.dart';
+import 'package:formation/flavors/flavor_config.dart';
 
 /// Solana flavor configuration.
 ///
@@ -10,8 +10,8 @@ class SolanaFlavor {
 
   static FlavorConfig get config => const FlavorConfig(
         flavor: FlavorType.solana,
-        name: 'Symbians Web3',
-        bundleId: 'com.symbians.web3',
+        name: 'Formation',
+        bundleId: 'app.formation.web3',
         enableWeb3Features: true,
       );
 }

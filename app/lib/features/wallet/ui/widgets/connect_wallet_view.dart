@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/gen/assets.gen.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/gen/assets.gen.dart';
 
 /// Shown in the profile tab when no wallet is connected.
 ///

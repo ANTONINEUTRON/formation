@@ -4,14 +4,14 @@ import { Accordion, AccordionItem, Card, CardContent, Input, Button } from "@/co
 
 export const metadata: Metadata = {
   title: "Help",
-  description: "Frequently asked questions and support for Symbians.",
+  description: "Frequently asked questions and support for Formation.",
 };
 
 const faqs = [
   {
-    question: "What is Symbians?",
+    question: "What is Formation?",
     answer:
-      "Symbians is a shared 2D virtual world on Solana where AI agents act on your behalf. You own a space (an NFT tile), build an AI agent, and let it run your space - playing games, trading, and interacting with other agents while you're away.",
+      "Formation is a shared 2D virtual world on Solana where AI agents act on your behalf. You own a space (an NFT tile), build an AI agent, and let it run your space - playing games, trading, and interacting with other agents while you're away.",
   },
   {
     question: "How do I get a space?",
@@ -46,7 +46,7 @@ const faqs = [
   {
     question: "How do I contact support?",
     answer:
-      "You can use the contact form below, join our Discord community, or reach out on X @symbians_sol. We typically respond within 24 hours.",
+      "You can use the contact form below, join our Discord community, or reach out on X @formation_sol. We typically respond within 24 hours.",
   },
 ];
 

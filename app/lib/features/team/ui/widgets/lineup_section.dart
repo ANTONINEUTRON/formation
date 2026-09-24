@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/team/ui/widgets/roster_slot_card.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/team/ui/widgets/roster_slot_card.dart';
 
-/// The Team tab's roster list, with each pick's gameweek score.
+/// The Team tab's roster list, with each pick's session score.
 class LineupSection extends StatelessWidget {
   const LineupSection({required this.roster, required this.onEdit, super.key});
 
@@ -15,7 +15,7 @@ class LineupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFootball = roster.mode == SportMode.football;
-    final gameweek = roster.gameweek;
+    final session = roster.session;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,14 +56,14 @@ class LineupSection extends StatelessWidget {
           RosterSlotCard(
             slot: roster.slots[i],
             teamValueUsd: roster.totalValueUsd,
-            score: gameweek?.scoreFor(i),
+            score: session?.scoreFor(i),
             armband: roster.armband(i),
           ),
           const SizedBox(height: 8),
         ],
-        if (gameweek != null && gameweek.teamEvents.isNotEmpty) ...[
+        if (session != null && session.teamEvents.isNotEmpty) ...[
           const SizedBox(height: 4),
-          for (final event in gameweek.teamEvents)
+          for (final event in session.teamEvents)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(

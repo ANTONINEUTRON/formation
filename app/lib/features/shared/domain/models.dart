@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
 
 /// The three sports. One nav bar tab per mode.
 enum SportMode {
@@ -184,26 +185,23 @@ class SlotScore extends Equatable {
   List<Object?> get props => [slotIndex, mint, total, counted];
 }
 
-/// The scoring window a team is locked into.
-class Gameweek extends Equatable {
-  const Gameweek({
-    required this.id,
-    required this.number,
+/// The current session of the always-running general league. Points bank on
+/// every tick, so there is no window to wait for.
+class Session extends Equatable {
+  const Session({
     required this.startsAt,
     required this.endsAt,
-    required this.status,
     required this.entered,
     required this.points,
     required this.slots,
     required this.teamEvents,
+    required this.substitutionsUsed,
+    required this.freeSubstitutionsLeft,
   });
 
-  factory Gameweek.fromJson(Map<String, dynamic> json) => Gameweek(
-        id: json['id'] as String,
-        number: json['number'] as int,
+  factory Session.fromJson(Map<String, dynamic> json) => Session(
         startsAt: DateTime.parse(json['startsAt'] as String),
         endsAt: DateTime.parse(json['endsAt'] as String),
-        status: json['status'] as String,
         entered: json['entered'] as bool,
         points: _double(json['points']),
         slots: [
@@ -214,28 +212,59 @@ class Gameweek extends Equatable {
           for (final e in json['teamEvents'] as List)
             ScoreEvent.fromJson(e as Map<String, dynamic>),
         ],
+        substitutionsUsed: json['substitutionsUsed'] as int? ?? 0,
+        freeSubstitutionsLeft: json['freeSubstitutionsLeft'] as int? ?? 0,
       );
 
-  final String id;
-  final int number;
   final DateTime startsAt;
   final DateTime endsAt;
-  final String status;
 
-  /// True once this team's lineup is locked into the gameweek.
+  /// True once the team is complete and being scored.
   final bool entered;
+
+  /// Points banked since this session opened.
   final double points;
   final List<SlotScore> slots;
   final List<ScoreEvent> teamEvents;
+  final int substitutionsUsed;
+  final int freeSubstitutionsLeft;
 
-  bool get isLive => status == 'live';
   Duration get remaining => endsAt.difference(DateTime.now());
 
   SlotScore? scoreFor(int slotIndex) =>
       slots.where((s) => s.slotIndex == slotIndex).firstOrNull;
 
   @override
-  List<Object?> get props => [id, status, points, slots, entered];
+  List<Object?> get props =>
+      [startsAt, points, slots, entered, substitutionsUsed];
+}
+
+/// A held xStock that isn't in the starting lineup, and can be subbed in.
+class BenchSlot extends Equatable {
+  const BenchSlot({
+    required this.stock,
+    required this.balance,
+    required this.eligibleSlots,
+  });
+
+  factory BenchSlot.fromJson(Map<String, dynamic> json) => BenchSlot(
+        stock: XStock.fromJson(json['stock'] as Map<String, dynamic>),
+        balance: _double(json['balance']),
+        eligibleSlots: [
+          for (final i in json['eligibleSlots'] as List) i as int,
+        ],
+      );
+
+  final XStock stock;
+  final double balance;
+
+  /// Slot indexes this stock's tier allows it to play in.
+  final List<int> eligibleSlots;
+
+  double get valueUsd => balance * stock.priceUsd;
+
+  @override
+  List<Object?> get props => [stock, balance, eligibleSlots];
 }
 
 /// A user's team for one sport mode.
@@ -248,8 +277,8 @@ class Roster extends Equatable {
     this.viceCaptainSlot,
     this.classicPoints = 0,
     this.classicRank,
-    this.gameweek,
-    this.pendingChanges = false,
+    this.session,
+    this.bench = const [],
   });
 
   factory Roster.fromJson(
@@ -273,10 +302,13 @@ class Roster extends Equatable {
         ],
         classicPoints: _double(json['classicPoints']),
         classicRank: json['classicRank'] as int?,
-        gameweek: json['gameweek'] == null
+        session: json['session'] == null
             ? null
-            : Gameweek.fromJson(json['gameweek'] as Map<String, dynamic>),
-        pendingChanges: json['pendingChanges'] as bool? ?? false,
+            : Session.fromJson(json['session'] as Map<String, dynamic>),
+        bench: [
+          for (final b in (json['bench'] as List? ?? const []))
+            BenchSlot.fromJson(b as Map<String, dynamic>),
+        ],
       );
 
   final SportMode mode;
@@ -287,13 +319,13 @@ class Roster extends Equatable {
   final int? captainSlot;
   final int? viceCaptainSlot;
 
-  /// Season total from finished gameweeks, plus the live one.
+  /// Running general-league total, banked on every tick.
   final double classicPoints;
   final int? classicRank;
-  final Gameweek? gameweek;
+  final Session? session;
 
-  /// True when the team has changed since the gameweek locked.
-  final bool pendingChanges;
+  /// Squad members not in the starting lineup.
+  final List<BenchSlot> bench;
 
   bool get isComplete => slots.every((s) => s.isFilled);
   bool get isEmpty => slots.every((s) => !s.isFilled);
@@ -318,8 +350,8 @@ class Roster extends Equatable {
     int? viceCaptainSlot,
     double? classicPoints,
     int? classicRank,
-    Gameweek? gameweek,
-    bool? pendingChanges,
+    Session? session,
+    List<BenchSlot>? bench,
   }) =>
       Roster(
         mode: mode,
@@ -329,8 +361,8 @@ class Roster extends Equatable {
         viceCaptainSlot: viceCaptainSlot ?? this.viceCaptainSlot,
         classicPoints: classicPoints ?? this.classicPoints,
         classicRank: classicRank ?? this.classicRank,
-        gameweek: gameweek ?? this.gameweek,
-        pendingChanges: pendingChanges ?? this.pendingChanges,
+        session: session ?? this.session,
+        bench: bench ?? this.bench,
       );
 
   @override
@@ -342,8 +374,8 @@ class Roster extends Equatable {
         viceCaptainSlot,
         classicPoints,
         classicRank,
-        gameweek,
-        pendingChanges,
+        session,
+        bench,
       ];
 }
 
@@ -355,7 +387,7 @@ class LeaderboardEntry extends Equatable {
     required this.username,
     required this.walletAddress,
     required this.points,
-    this.gameweekPoints = 0,
+    this.todayPoints = 0,
     this.streak = 0,
     this.isCurrentUser = false,
   });
@@ -367,7 +399,7 @@ class LeaderboardEntry extends Equatable {
         username: json['username'] as String,
         walletAddress: json['walletAddress'] as String,
         points: _double(json['points']),
-        gameweekPoints: _double(json['gameweekPoints']),
+        todayPoints: _double(json['todayPoints']),
         streak: json['streak'] as int? ?? 0,
         isCurrentUser: json['isCurrentUser'] as bool? ?? false,
       );
@@ -377,197 +409,287 @@ class LeaderboardEntry extends Equatable {
   final String username;
   final String walletAddress;
   final double points;
-  final double gameweekPoints;
+  final double todayPoints;
   final int streak;
   final bool isCurrentUser;
 
   @override
   List<Object?> get props =>
-      [rank, userId, username, walletAddress, points, gameweekPoints, streak, isCurrentUser];
+      [rank, userId, username, walletAddress, points, todayPoints, streak, isCurrentUser];
 }
 
-enum DuelStatus { pending, active, settled, declined }
+/// Which slice of league history a leaderboard covers.
+enum LeaguePeriodKind {
+  allTime('all_time', 'All time'),
+  monthly('monthly', 'Month'),
+  weekly('weekly', 'Week'),
+  custom('custom', 'Custom');
 
-/// Preset duel durations. 1h exists so a duel can resolve during a demo.
-const duelDurations = [
-  Duration(hours: 1),
-  Duration(hours: 6),
-  Duration(hours: 24),
-  Duration(days: 3),
-  Duration(days: 7),
-];
+  const LeaguePeriodKind(this.apiValue, this.label);
 
-String formatDuelDuration(Duration d) =>
-    d.inHours < 24 ? '${d.inHours}h' : '${d.inDays}d';
+  final String apiValue;
+  final String label;
+}
 
-/// One head-to-head category in a basketball duel; higher always wins.
-class DuelCategory extends Equatable {
-  const DuelCategory({
-    required this.code,
-    required this.name,
-    required this.challenger,
-    required this.opponent,
-    required this.winner,
-  });
+/// A leaderboard range. The backend derives the bounds for the named periods;
+/// only [custom] carries explicit dates.
+class LeaguePeriod extends Equatable {
+  const LeaguePeriod(this.kind, {this.from, this.to});
 
-  factory DuelCategory.fromJson(Map<String, dynamic> json) => DuelCategory(
-        code: json['code'] as String,
-        name: json['name'] as String,
-        challenger: _double(json['challenger']),
-        opponent: _double(json['opponent']),
-        winner: json['winner'] as String,
-      );
+  const LeaguePeriod.allTime() : this(LeaguePeriodKind.allTime);
 
-  final String code;
-  final String name;
-  final double challenger;
-  final double opponent;
+  /// A closed range. [to] may be null to run through to now.
+  const LeaguePeriod.custom({required DateTime from, DateTime? to})
+      : this(LeaguePeriodKind.custom, from: from, to: to);
 
-  /// 'challenger', 'opponent' or 'tie'.
-  final String winner;
+  final LeaguePeriodKind kind;
+  final DateTime? from;
+  final DateTime? to;
 
-  /// Percentages read better than raw fractions for these two.
-  bool get isPercent => code == 'alpha' || code == 'hitRate' || code == 'bestPick' || code == 'defense';
+  /// Query parameters for `GET /league/:mode`.
+  Map<String, String> get query => {
+        'period': kind.apiValue,
+        if (from != null) 'from': from!.toUtc().toIso8601String(),
+        if (to != null) 'to': to!.toUtc().toIso8601String(),
+      };
+
+  String get label {
+    if (kind != LeaguePeriodKind.custom || from == null) return kind.label;
+    final end = to ?? DateTime.now();
+    return '${formatShortDate(from!)} – ${formatShortDate(end)}';
+  }
 
   @override
-  List<Object?> get props => [code, challenger, opponent, winner];
+  List<Object?> get props => [kind, from, to];
 }
 
-/// A head-to-head challenge between two players in one sport mode.
-class Duel extends Equatable {
-  const Duel({
-    required this.id,
-    required this.challenger,
-    required this.opponent,
+/// Another player's public profile for one sport.
+class Manager extends Equatable {
+  const Manager({
+    required this.userId,
+    required this.username,
+    required this.walletAddress,
     required this.mode,
-    required this.duration,
-    required this.status,
-    this.startTime,
-    this.endTime,
-    this.challengerPoints,
-    this.opponentPoints,
-    this.categories,
-    this.challengerSlots = const [],
-    this.opponentSlots = const [],
-    this.winnerId,
+    required this.points,
+    required this.todayPoints,
+    required this.streak,
+    required this.leaguesWon,
+    required this.leaguesPlayed,
+    required this.lineup,
+    required this.holdings,
+    required this.followers,
+    required this.following,
+    required this.isCurrentUser,
+    this.rank,
   });
 
-  factory Duel.fromJson(Map<String, dynamic> json) => Duel(
-        id: json['id'] as String,
-        challenger: LeaderboardEntry.fromJson(
-            json['challenger'] as Map<String, dynamic>),
-        opponent:
-            LeaderboardEntry.fromJson(json['opponent'] as Map<String, dynamic>),
+  factory Manager.fromJson(Map<String, dynamic> json, List<PositionSlot> shape) => Manager(
+        userId: json['userId'] as String,
+        username: json['username'] as String,
+        walletAddress: json['walletAddress'] as String,
         mode: SportMode.fromApi(json['mode'] as String),
-        duration: Duration(hours: json['durationHours'] as int),
-        status: DuelStatus.values.byName(json['status'] as String),
-        startTime: _date(json['startTime']),
-        endTime: _date(json['endTime']),
-        challengerPoints: _nullableDouble(json['challengerPoints']),
-        opponentPoints: _nullableDouble(json['opponentPoints']),
-        categories: json['categories'] == null
-            ? null
-            : [
-                for (final c in json['categories'] as List)
-                  DuelCategory.fromJson(c as Map<String, dynamic>),
-              ],
-        challengerSlots: _slots(json['challengerBreakdown']),
-        opponentSlots: _slots(json['opponentBreakdown']),
-        winnerId: json['winnerId'] as String?,
+        rank: json['rank'] as int?,
+        points: _double(json['points']),
+        todayPoints: _double(json['todayPoints']),
+        streak: json['streak'] as int? ?? 0,
+        leaguesWon: json['leaguesWon'] as int? ?? 0,
+        leaguesPlayed: json['leaguesPlayed'] as int? ?? 0,
+        lineup: [
+          for (final s in (json['lineup'] as List? ?? const []).cast<Map<String, dynamic>>())
+            RosterSlot(
+              position: shape[s['slotIndex'] as int],
+              stock: s['stock'] == null
+                  ? null
+                  : XStock.fromJson(s['stock'] as Map<String, dynamic>),
+            ),
+        ],
+        holdings: [
+          for (final h in (json['holdings'] as List? ?? const []))
+            ManagerHolding.fromJson(h as Map<String, dynamic>),
+        ],
+        followers: json['followers'] as int? ?? 0,
+        following: json['following'] as bool? ?? false,
+        isCurrentUser: json['isCurrentUser'] as bool? ?? false,
       );
 
-  final String id;
-  final LeaderboardEntry challenger;
-  final LeaderboardEntry opponent;
+  final String userId;
+  final String username;
+  final String walletAddress;
   final SportMode mode;
-  final Duration duration;
-  final DuelStatus status;
-  final DateTime? startTime;
-  final DateTime? endTime;
-  final double? challengerPoints;
-  final double? opponentPoints;
+  final int? rank;
+  final double points;
+  final double todayPoints;
+  final int streak;
+  final int leaguesWon;
+  final int leaguesPlayed;
+  final List<RosterSlot> lineup;
 
-  /// Basketball duels are decided on categories.
-  final List<DuelCategory>? categories;
-  final List<SlotScore> challengerSlots;
-  final List<SlotScore> opponentSlots;
-  final String? winnerId;
+  /// Everything eligible in their wallet — the adopt sheet's contents.
+  final List<ManagerHolding> holdings;
+  final int followers;
+  final bool following;
+  final bool isCurrentUser;
 
-  bool get involvesCurrentUser =>
-      challenger.isCurrentUser || opponent.isCurrentUser;
-
-  /// The current user's side of the duel.
-  LeaderboardEntry get me => challenger.isCurrentUser ? challenger : opponent;
-  LeaderboardEntry get rival => challenger.isCurrentUser ? opponent : challenger;
-  double get myPoints =>
-      (challenger.isCurrentUser ? challengerPoints : opponentPoints) ?? 0;
-  double get rivalPoints =>
-      (challenger.isCurrentUser ? opponentPoints : challengerPoints) ?? 0;
-  List<SlotScore> get mySlots =>
-      challenger.isCurrentUser ? challengerSlots : opponentSlots;
-
-  /// True when the current user received this invite and must respond.
-  bool get awaitingMyResponse =>
-      status == DuelStatus.pending && opponent.isCurrentUser;
-
-  bool get iWon => winnerId != null && winnerId == me.userId;
-
-  Duel copyWith({DuelStatus? status}) => Duel(
-        id: id,
-        challenger: challenger,
-        opponent: opponent,
+  Manager copyWith({bool? following, int? followers}) => Manager(
+        userId: userId,
+        username: username,
+        walletAddress: walletAddress,
         mode: mode,
-        duration: duration,
-        status: status ?? this.status,
-        startTime: startTime,
-        endTime: endTime,
-        challengerPoints: challengerPoints,
-        opponentPoints: opponentPoints,
-        categories: categories,
-        challengerSlots: challengerSlots,
-        opponentSlots: opponentSlots,
-        winnerId: winnerId,
+        rank: rank,
+        points: points,
+        todayPoints: todayPoints,
+        streak: streak,
+        leaguesWon: leaguesWon,
+        leaguesPlayed: leaguesPlayed,
+        lineup: lineup,
+        holdings: holdings,
+        followers: followers ?? this.followers,
+        following: following ?? this.following,
+        isCurrentUser: isCurrentUser,
       );
 
   @override
-  List<Object?> get props => [
-        id,
-        status,
-        startTime,
-        endTime,
-        challengerPoints,
-        opponentPoints,
-        categories,
-        winnerId,
-      ];
+  List<Object?> get props => [userId, mode, points, following, followers];
 }
 
-/// A win record, anchored on-chain by a transaction signature.
-class Trophy extends Equatable {
-  const Trophy({
-    required this.id,
-    required this.title,
-    required this.mode,
-    required this.awardedAt,
-    this.txSignature,
+/// One xStock in a manager's wallet.
+class ManagerHolding extends Equatable {
+  const ManagerHolding({
+    required this.stock,
+    required this.balance,
+    required this.valueUsd,
+    required this.starting,
   });
 
-  factory Trophy.fromJson(Map<String, dynamic> json) => Trophy(
+  factory ManagerHolding.fromJson(Map<String, dynamic> json) => ManagerHolding(
+        stock: XStock.fromJson(json['stock'] as Map<String, dynamic>),
+        balance: _double(json['balance']),
+        valueUsd: _double(json['valueUsd']),
+        starting: json['starting'] as bool? ?? false,
+      );
+
+  final XStock stock;
+  final double balance;
+  final double valueUsd;
+
+  /// True when it's in their starting lineup, not just their wallet.
+  final bool starting;
+
+  @override
+  List<Object?> get props => [stock, balance, starting];
+}
+
+/// A custom league. A PvP duel is the same object with two members.
+class League extends Equatable {
+  const League({
+    required this.id,
+    required this.name,
+    required this.mode,
+    required this.visibility,
+    required this.joinCode,
+    required this.startsAt,
+    required this.endsAt,
+    required this.status,
+    required this.memberCount,
+    required this.createdBy,
+    required this.joined,
+    required this.joinable,
+    this.maxMembers,
+    this.standings = const [],
+  });
+
+  factory League.fromJson(Map<String, dynamic> json) => League(
         id: json['id'] as String,
-        title: json['title'] as String,
+        name: json['name'] as String,
         mode: SportMode.fromApi(json['mode'] as String),
-        awardedAt: DateTime.parse(json['awardedAt'] as String),
-        txSignature: json['txSignature'] as String?,
+        visibility: json['visibility'] as String,
+        joinCode: json['joinCode'] as String,
+        startsAt: DateTime.parse(json['startsAt'] as String),
+        endsAt: DateTime.parse(json['endsAt'] as String),
+        status: _leagueStatus(json['status'] as String),
+        maxMembers: json['maxMembers'] as int?,
+        memberCount: json['memberCount'] as int,
+        createdBy: json['createdBy'] as String,
+        joined: json['joined'] as bool,
+        joinable: json['joinable'] as bool,
+        standings: [
+          for (final s in (json['standings'] as List? ?? const []))
+            LeagueStanding.fromJson(s as Map<String, dynamic>),
+        ],
       );
 
   final String id;
-  final String title;
+  final String name;
   final SportMode mode;
-  final DateTime awardedAt;
-  final String? txSignature;
+  final String visibility;
+  final String joinCode;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final LeagueStatus status;
+  final int? maxMembers;
+  final int memberCount;
+  final String createdBy;
+  final bool joined;
+  final bool joinable;
+  final List<LeagueStanding> standings;
+
+  bool get isPrivate => visibility == 'private';
+
+  /// Two-member private leagues are how a PvP challenge is modelled.
+  bool get isDuel => maxMembers == 2;
+
+  Duration get startsIn => startsAt.difference(DateTime.now());
+  Duration get endsIn => endsAt.difference(DateTime.now());
 
   @override
-  List<Object?> get props => [id, txSignature];
+  List<Object?> get props => [id, status, memberCount, joined, standings];
+}
+
+/// The wire value is 'final', which Dart reserves, so the case is named [fin].
+enum LeagueStatus { scheduled, live, fin }
+
+LeagueStatus _leagueStatus(String value) => switch (value) {
+      'live' => LeagueStatus.live,
+      'final' => LeagueStatus.fin,
+      _ => LeagueStatus.scheduled,
+    };
+
+extension LeagueStatusApi on LeagueStatus {
+  String get label => switch (this) {
+        LeagueStatus.scheduled => 'Starts soon',
+        LeagueStatus.live => 'Live',
+        LeagueStatus.fin => 'Finished',
+      };
+}
+
+class LeagueStanding extends Equatable {
+  const LeagueStanding({
+    required this.rank,
+    required this.userId,
+    required this.username,
+    required this.walletAddress,
+    required this.points,
+    required this.isCurrentUser,
+  });
+
+  factory LeagueStanding.fromJson(Map<String, dynamic> json) => LeagueStanding(
+        rank: json['rank'] as int,
+        userId: json['userId'] as String,
+        username: json['username'] as String,
+        walletAddress: json['walletAddress'] as String,
+        points: _double(json['points']),
+        isCurrentUser: json['isCurrentUser'] as bool,
+      );
+
+  final int rank;
+  final String userId;
+  final String username;
+  final String walletAddress;
+  final double points;
+  final bool isCurrentUser;
+
+  @override
+  List<Object?> get props => [rank, userId, points, isCurrentUser];
 }
 
 /// A Jupiter quote for buying an xStock with USDC.
@@ -615,17 +737,3 @@ class FormationChange {
 }
 
 double _double(Object? value) => (value as num?)?.toDouble() ?? 0;
-
-double? _nullableDouble(Object? value) => (value as num?)?.toDouble();
-
-DateTime? _date(Object? value) =>
-    value == null ? null : DateTime.parse(value as String);
-
-List<SlotScore> _slots(Object? breakdown) {
-  if (breakdown == null) return const [];
-  final slots = (breakdown as Map<String, dynamic>)['slots'] as List?;
-  return [
-    for (final s in slots ?? const [])
-      SlotScore.fromJson(s as Map<String, dynamic>),
-  ];
-}

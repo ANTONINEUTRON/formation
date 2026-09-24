@@ -136,96 +136,231 @@ describe('Formation flow (e2e)', () => {
       .expect(200);
     expect(captained.body.captainSlot).toBe(9);
 
-    // 4. Open the gameweek and let prices move.
+    // 4. Prices move and points bank on the tick itself.
     await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
     h.clock.advance(30);
     h.prices.move('mint-TSLA', 1.06);
     await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
 
     const live = await http.get('/roster/football').set(auth).expect(200);
-    expect(live.body.gameweek.entered).toBe(true);
-    expect(live.body.gameweek.points).toBeGreaterThan(0);
-    expect(live.body.gameweek.slots.length).toBeGreaterThan(0);
+    expect(live.body.session.entered).toBe(true);
+    expect(live.body.session.points).toBeGreaterThan(0);
+    expect(live.body.session.freeSubstitutionsLeft).toBe(3);
+    expect(live.body.bench.length).toBeGreaterThan(0);
     sample('roster-football', live.body);
 
-    const current = await http.get('/gameweeks/football/current').set(auth).expect(200);
-    expect(current.body.id).toBe(live.body.gameweek.id);
-    sample('gameweek-current', current.body);
-
-    // 5. Close the gameweek: points land on the leaderboard.
-    await http
-      .post('/admin/gameweeks/football/advance')
-      .set('x-admin-key', adminKey)
-      .expect(201);
+    // 5. No window has to close: the leaderboard already has the points.
     const league = await http.get('/league/football').set(auth).expect(200);
     const mine = league.body.find((e: { isCurrentUser: boolean }) => e.isCurrentUser);
     expect(mine.points).toBeGreaterThan(0);
     expect(mine.rank).toBe(1);
     sample('league-football', league.body);
 
-    // 6. Duel a second wallet and settle it.
+    // Weekly and custom views read the same ledger.
+    const weekly = await http.get('/league/football?period=weekly').set(auth).expect(200);
+    expect(weekly.body.find((e: { isCurrentUser: boolean }) => e.isCurrentUser).points)
+      .toBeGreaterThan(0);
+
+    // 6. Substituting a bench stock in: the first three a day are free.
+    const benchPick = live.body.bench[0] as {
+      stock: { mint: string };
+      eligibleSlots: number[];
+    };
+    await http
+      .put(`/roster/football/slots/${benchPick.eligibleSlots[0]}`)
+      .set(auth)
+      .send({ mint: benchPick.stock.mint })
+      .expect(200);
+    const afterSub = await http.get('/roster/football').set(auth).expect(200);
+    expect(afterSub.body.session.substitutionsUsed).toBe(1);
+    expect(afterSub.body.session.freeSubstitutionsLeft).toBe(2);
+
+    // 7. A PvP duel is a two-player private league.
     const bob = await signIn();
     await draft(bob.token, 'football');
     const created = await http
-      .post('/duels')
+      .post('/leagues')
       .set(auth)
-      .send({ mode: 'football', opponent: bob.wallet, durationHours: 1 })
+      .send({
+        name: 'Alice vs Bob',
+        mode: 'football',
+        visibility: 'private',
+        startsAt: new Date(h.clock.now() + 60_000).toISOString(),
+        durationHours: 1,
+        maxMembers: 2,
+        opponent: bob.wallet,
+      })
       .expect(201);
-    await http
-      .post(`/duels/${created.body.id}/accept`)
-      .set('authorization', `Bearer ${bob.token}`)
-      .expect(201);
+    expect(created.body.memberCount).toBe(2);
+    expect(created.body.status).toBe('scheduled');
+    sample('league-created', created.body);
 
     h.clock.advance(30);
     h.prices.move('mint-TSLA', 1.08);
     await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
-    h.balances.set(bob.wallet, 'mint-TSLA', 0); // Bob sells his forward
-    h.clock.advance(31);
 
-    const settled = await http
-      .post(`/admin/duels/${created.body.id}/settle`)
+    await http
+      .post(`/admin/leagues/${created.body.id}/settle`)
       .set('x-admin-key', adminKey)
       .expect(201);
-    expect(settled.body.status).toBe('settled');
-    expect(settled.body.winnerId).not.toBeNull();
 
-    const duels = await http.get('/duels?mode=football').set(auth).expect(200);
-    expect(duels.body[0].status).toBe('settled');
-    sample('duels-football', duels.body);
-
-    const trophies = await http.get('/trophies').set(auth).expect(200);
-    sample('trophies', trophies.body);
+    const settled = await http.get(`/leagues/${created.body.id}`).set(auth).expect(200);
+    expect(settled.body.status).toBe('final');
+    expect(settled.body.standings).toHaveLength(2);
+    expect(settled.body.standings[0].rank).toBe(1);
+    sample('league-settled', settled.body);
   });
 
-  it('decides a basketball duel on categories', async () => {
+  it('shows a manager profile, follows them, and notifies both sides', async () => {
+    await h.reset();
+    const alice = await signIn();
+    const bob = await signIn();
+    await draft(alice.token, 'football');
+    await draft(bob.token, 'football');
+    await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
+
+    const bobId = (
+      await http
+        .get('/league/football')
+        .set('authorization', `Bearer ${bob.token}`)
+        .expect(200)
+    ).body.find((e: { isCurrentUser: boolean }) => e.isCurrentUser).userId as string;
+
+    // Alice can read Bob's public wallet and lineup.
+    const profile = await http
+      .get(`/managers/${bobId}?mode=football`)
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(200);
+    expect(profile.body.username).toBeTruthy();
+    expect(profile.body.holdings.length).toBeGreaterThan(0);
+    expect(profile.body.lineup.length).toBeGreaterThan(0);
+    expect(profile.body.holdings.some((h: { starting: boolean }) => h.starting)).toBe(true);
+    expect(profile.body.following).toBe(false);
+    expect(profile.body.isCurrentUser).toBe(false);
+    sample('manager-profile', profile.body);
+
+    // Following is idempotent and reflected on the next read.
+    await http
+      .post(`/managers/${bobId}/follow`)
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(201);
+    await http
+      .post(`/managers/${bobId}/follow`)
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(201);
+
+    const followed = await http
+      .get(`/managers/${bobId}?mode=football`)
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(200);
+    expect(followed.body.following).toBe(true);
+    expect(followed.body.followers).toBe(1);
+
+    // Bob was told once, not twice.
+    const bobInbox = await http
+      .get('/notifications')
+      .set('authorization', `Bearer ${bob.token}`)
+      .expect(200);
+    const followNotes = bobInbox.body.filter(
+      (n: { kind: string }) => n.kind === 'new_follower',
+    );
+    expect(followNotes).toHaveLength(1);
+    sample('notifications', bobInbox.body);
+
+    // Bob substitutes: his follower hears about it.
+    const bobRoster = await http
+      .get('/roster/football')
+      .set('authorization', `Bearer ${bob.token}`)
+      .expect(200);
+    const bench = bobRoster.body.bench as {
+      stock: { mint: string };
+      eligibleSlots: number[];
+    }[];
+    expect(bench.length).toBeGreaterThan(0);
+    await http
+      .put(`/roster/football/slots/${bench[0].eligibleSlots[0]}`)
+      .set('authorization', `Bearer ${bob.token}`)
+      .send({ mint: bench[0].stock.mint })
+      .expect(200);
+
+    const aliceInbox = await http
+      .get('/notifications')
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(200);
+    expect(
+      aliceInbox.body.some((n: { kind: string }) => n.kind === 'manager_move'),
+    ).toBe(true);
+
+    // Unread count drops to zero once she reads them.
+    const before = await http
+      .get('/notifications/unread-count')
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(200);
+    expect(before.body.count).toBeGreaterThan(0);
+    await http
+      .post('/notifications/read-all')
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(201);
+    const after = await http
+      .get('/notifications/unread-count')
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(200);
+    expect(after.body.count).toBe(0);
+
+    // You cannot follow yourself.
+    const aliceId = (
+      await http
+        .get('/league/football')
+        .set('authorization', `Bearer ${alice.token}`)
+        .expect(200)
+    ).body.find((e: { isCurrentUser: boolean }) => e.isCurrentUser).userId as string;
+    await http
+      .post(`/managers/${aliceId}/follow`)
+      .set('authorization', `Bearer ${alice.token}`)
+      .expect(400);
+  });
+
+  it('lists public leagues and lets another player join by code', async () => {
     await h.reset();
     const alice = await signIn();
     const bob = await signIn();
     await draft(alice.token, 'basketball');
     await draft(bob.token, 'basketball');
-    await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
 
-    const duel = await http
-      .post('/duels')
+    const created = await http
+      .post('/leagues')
       .set('authorization', `Bearer ${alice.token}`)
-      .send({ mode: 'basketball', opponent: bob.wallet, durationHours: 1 })
+      .send({
+        name: 'Open Hoops',
+        mode: 'basketball',
+        visibility: 'public',
+        startsAt: new Date(h.clock.now() + 3_600_000).toISOString(),
+        durationHours: 24,
+      })
       .expect(201);
-    await http
-      .post(`/duels/${duel.body.id}/accept`)
+    expect(created.body.joinable).toBe(false); // the creator is already in
+
+    const browse = await http
+      .get('/leagues?mode=basketball')
       .set('authorization', `Bearer ${bob.token}`)
-      .expect(201);
+      .expect(200);
+    expect(browse.body.map((l: { id: string }) => l.id)).toContain(created.body.id);
+    expect(browse.body[0].joinable).toBe(true);
+    sample('leagues-browse', browse.body);
 
-    h.clock.advance(30);
-    h.prices.move('mint-NVDA', 1.05);
-    await http.post('/admin/tick').set('x-admin-key', adminKey).expect(201);
-    h.balances.set(bob.wallet, 'mint-NVDA', 0);
-    h.clock.advance(31);
-
-    const settled = await http
-      .post(`/admin/duels/${duel.body.id}/settle`)
-      .set('x-admin-key', adminKey)
+    const joined = await http
+      .post('/leagues/join')
+      .set('authorization', `Bearer ${bob.token}`)
+      .send({ code: created.body.joinCode })
       .expect(201);
-    expect(settled.body.categories).toHaveLength(5);
-    sample('duel-basketball-settled', settled.body);
+    expect(joined.body.memberCount).toBe(2);
+    expect(joined.body.joined).toBe(true);
+
+    // Joining twice is harmless, and a started league is closed to newcomers.
+    await http
+      .post('/leagues/join')
+      .set('authorization', `Bearer ${bob.token}`)
+      .send({ code: created.body.joinCode })
+      .expect(201);
   });
 });

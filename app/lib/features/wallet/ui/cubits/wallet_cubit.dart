@@ -7,10 +7,11 @@ import 'package:solana/dto.dart';
 import 'package:solana/solana.dart';
 import 'package:solana_mobile_client/solana_mobile_client.dart';
 
-import 'package:symbians/core/constants/app_constants.dart';
-import 'package:symbians/features/shared/data/api_repository.dart';
-import 'package:symbians/features/wallet/domain/entities/wallet_balance.dart';
-import 'package:symbians/features/wallet/ui/cubits/wallet_state.dart';
+import 'package:formation/core/constants/app_constants.dart';
+import 'package:formation/core/errors/app_exception.dart';
+import 'package:formation/features/shared/data/api_repository.dart';
+import 'package:formation/features/wallet/domain/entities/wallet_balance.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
 
 /// Manages Solana wallet connection via Mobile Wallet Adapter (MWA).
 ///
@@ -231,14 +232,14 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
           addresses: [Uint8List.fromList(base58decode(walletAddress))],
         );
         final signatures = result.signedMessages.firstOrNull?.signatures ?? const [];
-        if (signatures.isEmpty) throw StateError('Sign-in was rejected in your wallet');
+        if (signatures.isEmpty) throw const WalletException(message: 'Sign-in was rejected in your wallet');
         return signatures.first;
       });
 
   @override
   Future<String> signAndSendTransaction(Uint8List transaction) => _withWallet((client) async {
         final result = await client.signAndSendTransactions(transactions: [transaction]);
-        if (result.signatures.isEmpty) throw StateError('Transaction was rejected in your wallet');
+        if (result.signatures.isEmpty) throw const WalletException(message: 'Transaction was rejected in your wallet');
         return base58encode(result.signatures.first);
       });
 
@@ -262,7 +263,7 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
               identityName: 'Formation',
               authToken: token,
             );
-      if (auth == null) throw StateError('Wallet authorization was cancelled');
+      if (auth == null) throw const WalletException(message: 'Wallet authorization was cancelled');
       emit(state.copyWith(authToken: auth.authToken));
       return await action(client);
     } finally {

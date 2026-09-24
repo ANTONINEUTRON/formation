@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 const _medalColors = [Color(0xFFFACC15), Color(0xFFCBD5E1), Color(0xFFD97706)];
 
@@ -81,11 +81,11 @@ class LeaderboardRow extends StatelessWidget {
               SizedBox(
                 width: 54,
                 child: Text(
-                  formatSignedPoints(entry.gameweekPoints),
+                  formatSignedPoints(entry.todayPoints),
                   textAlign: TextAlign.right,
                   style: AppTextStyles.mono(
                     fontSize: 12,
-                    color: pnlColor(entry.gameweekPoints),
+                    color: pnlColor(entry.todayPoints),
                   ),
                 ),
               ),

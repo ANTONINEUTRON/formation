@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:symbians/flavors/flavor_config.dart';
+import 'package:formation/flavors/flavor_config.dart';
 
 /// Widget that conditionally renders based on app flavor or feature flags.
 ///

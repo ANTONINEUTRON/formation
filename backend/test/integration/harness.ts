@@ -9,12 +9,11 @@ import { BALANCE_SOURCE, PRICE_SOURCE } from '../../src/core/sources.js';
 import type { AuthUser } from '../../src/domain/dto.js';
 import { rosterShape } from '../../src/domain/sport.js';
 import type { SportMode } from '../../src/domain/sport.js';
-import { DuelService } from '../../src/duel/duel.service.js';
-import { GameweekService } from '../../src/gameweek/gameweek.service.js';
 import { LeagueService } from '../../src/league/league.service.js';
+import { LeaguesService } from '../../src/leagues/leagues.service.js';
+import { GeneralScoringService } from '../../src/scoring/general-scoring.service.js';
 import { RosterService } from '../../src/roster/roster.service.js';
 import { PriceTickService } from '../../src/scoring/price-tick.service.js';
-import { TrophyService } from '../../src/trophy/trophy.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { XStocksService } from '../../src/xstocks/xstocks.service.js';
 import { migrate } from '../../src/scripts/migrate.js';
@@ -65,11 +64,10 @@ export interface Harness {
   prices: FakePriceSource;
   balances: FakeBalanceSource;
   rosters: RosterService;
-  gameweeks: GameweekService;
-  duels: DuelService;
+  general: GeneralScoringService;
+  leagues: LeaguesService;
   league: LeagueService;
   users: UsersService;
-  trophies: TrophyService;
   priceTicks: PriceTickService;
   reset(): Promise<void>;
   close(): Promise<void>;
@@ -134,11 +132,10 @@ export async function createHarness(): Promise<Harness> {
     prices,
     balances,
     rosters,
-    gameweeks: app.get(GameweekService),
-    duels: app.get(DuelService),
+    general: app.get(GeneralScoringService),
+    leagues: app.get(LeaguesService),
     league: app.get(LeagueService),
     users,
-    trophies: app.get(TrophyService),
     priceTicks: app.get(PriceTickService),
 
     async reset() {

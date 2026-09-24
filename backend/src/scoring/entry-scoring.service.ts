@@ -7,12 +7,15 @@ import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
 import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
+import { priceAt } from './engine/metrics.js';
 import { scoreEntry } from './engine/score-entry.js';
 import type {
   EntryBreakdown,
   LineupSnapshot,
   PriceBook,
+  ScoreParts,
   ScoreWindow,
+  SlotExits,
   SnapshotSlot,
 } from './engine/types.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
@@ -114,29 +117,74 @@ export class EntryScoringService {
     return book;
   }
 
-  /** Scores a locked lineup using balances read now. */
+  /**
+   * Scores a locked lineup using balances read now.
+   *
+   * Picks that have gone to zero since the window opened are recorded as exits
+   * and scored up to the last price seen while held. Callers persist the
+   * returned [exits] so a sale stays pinned to when it was first observed
+   * rather than drifting with later ticks.
+   */
   async score(
     snapshot: LineupSnapshot,
     wallet: string,
     window: ScoreWindow,
-    { fresh = false } = {},
-  ): Promise<{ breakdown: EntryBreakdown; endBalances: Record<string, number> }> {
+    {
+      fresh = false,
+      exits = {},
+      parts,
+      at = Date.now(),
+    }: { fresh?: boolean; exits?: SlotExits; parts?: ScoreParts; at?: number } = {},
+  ): Promise<{
+    breakdown: EntryBreakdown;
+    endBalances: Record<string, number>;
+    exits: SlotExits;
+  }> {
     const mints = snapshot.slots.map((s) => s.mint);
     const [balances, prices] = await Promise.all([
       this.balances.getBalances(wallet, { fresh }),
       this.priceBook(mints, window),
     ]);
     const endBalances = Object.fromEntries(mints.map((m) => [m, balances.get(m) ?? 0]));
+    const observedAt = Math.min(Math.max(at, window.start), window.end);
+    const nextExits = this.withExits(snapshot, endBalances, prices, exits, observedAt);
 
     return {
       endBalances,
+      exits: nextExits,
       breakdown: scoreEntry({
         snapshot,
         endBalances,
         prices,
         benchmarkMint: this.config.benchmarkMint,
         window,
+        exits: nextExits,
+        parts,
       }),
     };
+  }
+
+  /**
+   * Records an exit for any pick whose balance has reached zero and that isn't
+   * already recorded. A partial sale isn't an exit: the remaining shares keep
+   * scoring to the end of the window.
+   */
+  private withExits(
+    snapshot: LineupSnapshot,
+    endBalances: Record<string, number>,
+    prices: PriceBook,
+    exits: SlotExits,
+    at: number,
+  ): SlotExits {
+    const next: SlotExits = { ...exits };
+    for (const slot of snapshot.slots) {
+      if (next[slot.mint] || slot.startBalance <= 0) continue;
+      if ((endBalances[slot.mint] ?? 0) > 0) continue;
+      next[slot.mint] = {
+        at,
+        price: priceAt(prices.get(slot.mint) ?? [], at, slot.startPrice),
+      };
+    }
+    return next;
   }
 }

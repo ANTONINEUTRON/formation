@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:symbians/core/extensions/context_extensions.dart';
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/core/utils/format.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_cubit.dart';
-import 'package:symbians/features/draft/ui/cubits/draft_state.dart';
-import 'package:symbians/features/draft/ui/widgets/buy_stock_sheet.dart';
-import 'package:symbians/features/shared/domain/models.dart';
+import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
+import 'package:formation/features/draft/ui/cubits/draft_state.dart';
+import 'package:formation/features/draft/ui/widgets/buy_stock_sheet.dart';
+import 'package:formation/features/shared/domain/models.dart';
 
 /// Searchable, tier-filtered list of xStocks for one roster slot.
 class StockPickerSheet extends StatefulWidget {

@@ -1,6 +1,6 @@
-# Symbians — Landing Page
+# Formation — Landing Page
 
-> Next.js marketing site and developer documentation for the Symbians platform.
+> Next.js marketing site and developer documentation for the Formation platform.
 
 ---
 

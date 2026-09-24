@@ -1,6 +1,6 @@
 {
-    "name": "symbians",
-    "short_name": "symbians",
+    "name": "Formation",
+    "short_name": "Formation",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

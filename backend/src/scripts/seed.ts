@@ -75,7 +75,6 @@ const scores = SPORT_MODES.flatMap((mode) =>
       user_id: user.id,
       sport_mode: mode,
       total_points: 420 - i * 11 + (noise[0] % 19),
-      last_gameweek_points: (noise[1] % 70) - 25,
       streak: noise[2] % 5,
     };
   }),
@@ -87,7 +86,6 @@ await db
   .onConflict((oc) =>
     oc.columns(['user_id', 'sport_mode']).doUpdateSet((eb) => ({
       total_points: eb.ref('excluded.total_points'),
-      last_gameweek_points: eb.ref('excluded.last_gameweek_points'),
       streak: eb.ref('excluded.streak'),
     })),
   )

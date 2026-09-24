@@ -42,6 +42,16 @@ export interface ScoreWindow {
   sessionMinutes: number;
 }
 
+/** When a pick was sold, and the last price observed while it was still held. */
+export interface SlotExit {
+  /** Epoch milliseconds of the tick that first saw the balance fall. */
+  at: number;
+  price: number;
+}
+
+/** Sold picks keyed by mint. */
+export type SlotExits = Record<string, SlotExit>;
+
 export interface ScoreInput {
   snapshot: LineupSnapshot;
   /** Balances read at the end of the window, keyed by mint. */
@@ -49,6 +59,19 @@ export interface ScoreInput {
   prices: PriceBook;
   benchmarkMint: string;
   window: ScoreWindow;
+  /** Picks sold during the window; they score up to the sale. */
+  exits?: SlotExits;
+  /**
+   * Which halves of the score to compute. Base alpha is banked on every tick;
+   * role events need a session-length window to mean anything (a "goal" is a
+   * 3% move), so they are rolled up once a day. Defaults to both.
+   */
+  parts?: ScoreParts;
+}
+
+export interface ScoreParts {
+  base: boolean;
+  events: boolean;
 }
 
 export interface ScoreEvent {
@@ -62,8 +85,10 @@ export interface SlotScore {
   role: string;
   mint: string;
   symbol: string;
-  /** False when the pick wasn't held for the whole window: it scores nothing. */
+  /** False only when the pick was never really held: it scores nothing. */
   counted: boolean;
+  /** True when the pick was sold in-window and scored up to the sale price. */
+  substituted: boolean;
   ownReturn: number;
   alpha: number;
   base: number;

@@ -1,4 +1,4 @@
-import 'package:symbians/features/auth/domain/entities/app_user.dart';
+import 'package:formation/features/auth/domain/entities/app_user.dart';
 
 /// Repository interface for authentication operations.
 abstract class AuthRepository {

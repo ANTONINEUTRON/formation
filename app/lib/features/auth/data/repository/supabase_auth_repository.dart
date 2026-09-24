@@ -1,5 +1,5 @@
-import 'package:symbians/features/auth/domain/entities/app_user.dart';
-import 'package:symbians/features/auth/domain/repositories/auth_repository.dart';
+import 'package:formation/features/auth/domain/entities/app_user.dart';
+import 'package:formation/features/auth/domain/repositories/auth_repository.dart';
 
 /// Supabase implementation of [AuthRepository].
 ///

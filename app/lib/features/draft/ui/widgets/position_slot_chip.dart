@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/ui/widgets/armband_badge.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
 
 /// A tappable roster position on the formation board or bench.
 class PositionSlotChip extends StatelessWidget {

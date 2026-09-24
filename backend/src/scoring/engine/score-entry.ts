@@ -13,6 +13,7 @@ import { footballRules } from './rules/football.js';
 import type {
   EntryBreakdown,
   ScoreInput,
+  ScoreParts,
   SlotContext,
   SlotScore,
   SportRules,
@@ -20,6 +21,17 @@ import type {
 
 /** Base scoring: 1 point per 0.1% a pick beats the benchmark. */
 const POINTS_PER_ALPHA = 1_000;
+
+/**
+ * Substitutions per day that cost nothing. Substituting is free for the player
+ * and earns the app nothing, so the allowance lives here; transfers (buying and
+ * selling) are unlimited and free, because those are the revenue event.
+ */
+export const FREE_SUBSTITUTIONS_PER_DAY = 3;
+/** Points charged for each substitution beyond the daily allowance. */
+export const SUBSTITUTION_COST = 4;
+
+const BOTH: ScoreParts = { base: true, events: true };
 
 export function rulesFor(mode: SportMode): SportRules {
   switch (mode) {
@@ -38,13 +50,23 @@ export function rulesFor(mode: SportMode): SportRules {
  * - Base points come from alpha against the benchmark, so market direction
  *   doesn't decide the league.
  * - Role events reward what the stock itself did.
- * - A pick not held for the whole window (`min(start, end)` balance is zero)
- *   scores nothing at all.
+ * - Selling a pick in-window substitutes it off: it scores what it earned up
+ *   to the sale price and keeps those points. Only a pick that was never held
+ *   scores nothing. The replacement starts scoring next window.
+ * - Transfers past the free allowance are charged against the total.
  * - The captain's multiplier applies after events; if the captain isn't
  *   counted, football's vice-captain takes it.
  */
 export function scoreEntry(input: ScoreInput): EntryBreakdown {
-  const { snapshot, endBalances, prices, benchmarkMint, window } = input;
+  const {
+    snapshot,
+    endBalances,
+    prices,
+    benchmarkMint,
+    window,
+    exits = {},
+    parts = BOTH,
+  } = input;
   const rules = rulesFor(snapshot.mode);
   const captaincy = captaincyRules(snapshot.mode);
 
@@ -59,7 +81,11 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
   const slots: SlotScore[] = snapshot.slots.map((slot) => {
     const ticks = prices.get(slot.mint) ?? [];
     const endBalance = endBalances[slot.mint] ?? 0;
-    const counted = Math.min(slot.startBalance, endBalance) > 0 && slot.startPrice > 0;
+    const exit = exits[slot.mint];
+    // A sold pick still counts: it is scored up to its exit price. Only a slot
+    // that was never funded (no starting balance or no price) scores nothing.
+    const held = slot.startBalance > 0 && slot.startPrice > 0;
+    const counted = held && (endBalance > 0 || exit !== undefined);
 
     const base: SlotScore = {
       slotIndex: slot.slotIndex,
@@ -67,6 +93,7 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
       mint: slot.mint,
       symbol: slot.symbol,
       counted,
+      substituted: counted && exit !== undefined,
       ownReturn: 0,
       alpha: 0,
       base: 0,
@@ -76,21 +103,25 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
     };
     if (!counted) return base;
 
-    const close = priceAt(ticks, window.end, slot.startPrice);
+    // Substituted picks stop at the sale; the rest run to the window end.
+    const close = exit ? exit.price : priceAt(ticks, window.end, slot.startPrice);
     const ownReturn = changeBetween(slot.startPrice, close);
+    // Events only see the part of the window the pick was actually held for,
+    // so a stock's moves after it was sold can't score for its old owner.
+    const heldWindow = exit ? { ...window, end: Math.min(exit.at, window.end) } : window;
     const context: SlotContext = {
       role: slot.role,
       ownReturn,
       alpha: ownReturn - benchmarkReturn,
       startPrice: slot.startPrice,
-      lowestRelative: lowestRelative(ticks, window, slot.startPrice),
-      sessions: sessionReturns(ticks, window, slot.startPrice),
+      lowestRelative: lowestRelative(ticks, heldWindow, slot.startPrice),
+      sessions: sessionReturns(ticks, heldWindow, slot.startPrice),
       benchmarkSessions,
     };
     contexts.push(context);
 
-    const events = rules.slotEvents(context);
-    const basePoints = round1(context.alpha * POINTS_PER_ALPHA);
+    const events = parts.events ? rules.slotEvents(context) : [];
+    const basePoints = parts.base ? round1(context.alpha * POINTS_PER_ALPHA) : 0;
     const multiplier = slot.slotIndex === captainSlot ? captaincy.multiplier : 1;
     const eventPoints = events.reduce((sum, e) => sum + e.points, 0);
 
@@ -105,13 +136,21 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
     };
   });
 
-  const teamEvents = contexts.length > 0 ? (rules.teamEvents?.(contexts) ?? []) : [];
+  const teamEvents =
+    parts.events && contexts.length > 0 ? (rules.teamEvents?.(contexts) ?? []) : [];
   const total = round1(
     slots.reduce((sum, s) => sum + s.total, 0) +
       teamEvents.reduce((sum, e) => sum + e.points, 0),
   );
 
   return { total, slots, teamEvents };
+}
+
+/** Points charged for [count] substitutions in a day, as a negative number. */
+export function substitutionCost(count: number): number {
+  const paid = Math.max(0, count - FREE_SUBSTITUTIONS_PER_DAY);
+  // Guard against -0, which reads badly in the breakdown and in JSON.
+  return paid === 0 ? 0 : -paid * SUBSTITUTION_COST;
 }
 
 /** The captain, or the vice-captain when the captain isn't counted. */

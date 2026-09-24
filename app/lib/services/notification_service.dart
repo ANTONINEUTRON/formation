@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart' as styled_toast;
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 /// Types of notifications.
 enum NotificationType { success, error, info, warning }

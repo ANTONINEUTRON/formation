@@ -1,4 +1,4 @@
-name: symbians
+name: formation
 description: "Formation - fantasy sports for real tokenized stocks on Solana"
 publish_to: 'none'
 
@@ -107,11 +107,11 @@ flutter_gen:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/brand/symbians_white.png"
+  image_path: "assets/brand/formation_white.png"
 
 flutter_native_splash:
   color: "#000000"
-  image: assets/brand/symbians_black.png
+  image: assets/brand/formation_black.png
   android_12:
     color: "#000000"
-    image: assets/brand/symbians_black.png
+    image: assets/brand/formation_black.png

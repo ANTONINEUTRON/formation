@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:symbians/core/theme/theme.dart';
+import 'package:formation/core/theme/theme.dart';
 
 /// Small labelled stat, e.g. "RANK / #12".
 class StatPill extends StatelessWidget {

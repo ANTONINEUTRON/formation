@@ -13,45 +13,45 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://symbians.app"),
+  metadataBase: new URL("https://formation.app"),
   title: {
-    default: "Symbians — Your AI Co-Pilot for Solana Trading",
-    template: "%s | Symbians",
+    default: "Formation — Your AI Co-Pilot for Solana Trading",
+    template: "%s | Formation",
   },
   description:
     "Give your AI agent a strategy in plain English. Auto-execute swaps, limits, and perps on Solana.",
   keywords: ["Solana", "AI trading", "trading bot", "Jupiter", "perps", "DeFi", "crypto trading"],
-  authors: [{ name: "Symbians" }],
+  authors: [{ name: "Formation" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://symbians.app",
-    siteName: "Symbians",
-    title: "Symbians — AI Trading Agent for Solana",
+    url: "https://formation.app",
+    siteName: "Formation",
+    title: "Formation — AI Trading Agent for Solana",
     description: "Give it a strategy. Watch it trade.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Symbians - AI Trading on Solana",
+        alt: "Formation - AI Trading on Solana",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Symbians — Your AI Co-Pilot for Solana Trading",
+    title: "Formation — Your AI Co-Pilot for Solana Trading",
     description: "Give it a strategy. Watch it trade.",
     images: ["/og-image.png"],
-    creator: "@symbians_sol",
+    creator: "@formation_sol",
   },
   robots: {
     index: true,
     follow: true,
   },
   icons: {
-    icon: "/brand/symbians_logo_nobg.png",
-    apple: "/brand/symbians_logo_nobg.png",
+    icon: "/brand/formation_logo_nobg.png",
+    apple: "/brand/formation_logo_nobg.png",
   },
 };
 

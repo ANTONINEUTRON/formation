@@ -1,32 +1,38 @@
 
-import 'package:flutter/material.dart' hide Notification;
-import 'package:symbians/core/theme/theme.dart';
-import 'package:symbians/domain/entity/notification.dart';
+import 'package:flutter/material.dart';
+import 'package:formation/core/theme/theme.dart';
+import 'package:formation/domain/entity/notification.dart';
 
 class NotificationTile extends StatelessWidget {
-  const NotificationTile({required this.notification, required this.onTap});
+  const NotificationTile({
+    required this.notification,
+    required this.onTap,
+    super.key,
+  });
 
-  final Notification notification;
+  final AppNotification notification;
   final VoidCallback onTap;
 
   IconData get _icon {
-    return switch (notification.type) {
-      NotificationType.trade => Icons.swap_horiz_rounded,
-      NotificationType.alert => Icons.notifications_active_outlined,
-      NotificationType.system => Icons.info_outline_rounded,
+    return switch (notification.kind) {
+      NotificationKind.points => Icons.trending_up_rounded,
+      NotificationKind.leagueStarted => Icons.play_circle_outline,
+      NotificationKind.leagueSettled => Icons.emoji_events_outlined,
+      NotificationKind.leagueJoined => Icons.person_add_alt_1_outlined,
     };
   }
 
   Color get _iconColor {
-    return switch (notification.type) {
-      NotificationType.trade => AppColors.primary,
-      NotificationType.alert => AppColors.warning,
-      NotificationType.system => AppColors.textSecondary,
+    return switch (notification.kind) {
+      NotificationKind.points => AppColors.primary,
+      NotificationKind.leagueStarted => AppColors.info,
+      NotificationKind.leagueSettled => AppColors.warning,
+      NotificationKind.leagueJoined => AppColors.textSecondary,
     };
   }
 
   String _timeLabel() {
-    final diff = DateTime.now().difference(notification.time);
+    final diff = DateTime.now().difference(notification.createdAt);
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
@@ -34,7 +40,7 @@ class NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUnread = !notification.isRead;
+    final isUnread = !notification.read;
 
     return GestureDetector(
       onTap: onTap,

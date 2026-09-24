@@ -14,28 +14,28 @@ import 'package:flutter/widgets.dart';
 class $AssetsBrandGen {
   const $AssetsBrandGen();
 
-  /// File path: assets/brand/symbians_black.png
-  AssetGenImage get symbiansBlack =>
-      const AssetGenImage('assets/brand/symbians_black.png');
+  /// File path: assets/brand/formation_black.png
+  AssetGenImage get formationBlack =>
+      const AssetGenImage('assets/brand/formation_black.png');
 
-  /// File path: assets/brand/symbians_logo_1024.png
-  AssetGenImage get symbiansLogo1024 =>
-      const AssetGenImage('assets/brand/symbians_logo_1024.png');
+  /// File path: assets/brand/formation_logo_1024.png
+  AssetGenImage get formationLogo1024 =>
+      const AssetGenImage('assets/brand/formation_logo_1024.png');
 
-  /// File path: assets/brand/symbians_logo_nobg.png
-  AssetGenImage get symbiansLogoNobg =>
-      const AssetGenImage('assets/brand/symbians_logo_nobg.png');
+  /// File path: assets/brand/formation_logo_nobg.png
+  AssetGenImage get formationLogoNobg =>
+      const AssetGenImage('assets/brand/formation_logo_nobg.png');
 
-  /// File path: assets/brand/symbians_white.png
-  AssetGenImage get symbiansWhite =>
-      const AssetGenImage('assets/brand/symbians_white.png');
+  /// File path: assets/brand/formation_white.png
+  AssetGenImage get formationWhite =>
+      const AssetGenImage('assets/brand/formation_white.png');
 
   /// List of all assets
   List<AssetGenImage> get values => [
-    symbiansBlack,
-    symbiansLogo1024,
-    symbiansLogoNobg,
-    symbiansWhite,
+    formationBlack,
+    formationLogo1024,
+    formationLogoNobg,
+    formationWhite,
   ];
 }
 

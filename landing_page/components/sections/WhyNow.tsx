@@ -39,7 +39,7 @@ export function WhyNow() {
             Your Keys, Your Crypto, Your Control
           </h2>
           <p className="mt-4 text-text-secondary max-w-2xl mx-auto">
-            Symbians is fully non-custodial. Your agent orchestrates trades — you approve them.
+            Formation is fully non-custodial. Your agent orchestrates trades — you approve them.
           </p>
         </div>
 

@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'package:symbians/features/draft/ui/widgets/position_slot_chip.dart';
-import 'package:symbians/features/shared/domain/models.dart';
-import 'package:symbians/features/shared/domain/roster_shapes.dart';
+import 'package:formation/features/draft/ui/widgets/position_slot_chip.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/roster_shapes.dart';
 
 /// The court / pitch / field with each on-board slot placed on it.
 ///

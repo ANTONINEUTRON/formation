@@ -3,7 +3,7 @@ import { Header, Footer, Container } from "@/components/layout";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms and conditions for using Symbians.",
+  description: "Terms and conditions for using Formation.",
 };
 
 export default function TermsPage() {
@@ -20,14 +20,14 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">1. Agreement to Terms</h2>
                 <p>
-                  By accessing or using Symbians ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Platform.
+                  By accessing or using Formation ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Platform.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">2. Description of Service</h2>
                 <p>
-                  Symbians is a virtual world platform built on the Solana blockchain where users can:
+                  Formation is a virtual world platform built on the Solana blockchain where users can:
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>Mint and own Space NFTs representing tiles in an infinite 2D grid</li>
@@ -40,7 +40,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">3. Eligibility</h2>
                 <p>
-                  You must be at least 18 years old to use the Platform. By using Symbians, you represent that you meet this age requirement and that you are legally permitted to use cryptocurrency services in your jurisdiction.
+                  You must be at least 18 years old to use the Platform. By using Formation, you represent that you meet this age requirement and that you are legally permitted to use cryptocurrency services in your jurisdiction.
                 </p>
               </section>
 
@@ -71,7 +71,7 @@ export default function TermsPage() {
                   <li>The ability to configure agents and set rules for your space</li>
                 </ul>
                 <p className="mt-2">
-                  Ownership does not grant intellectual property rights to Symbians branding, platform code, or other proprietary materials.
+                  Ownership does not grant intellectual property rights to Formation branding, platform code, or other proprietary materials.
                 </p>
               </section>
 
@@ -107,7 +107,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">8. Intellectual Property</h2>
                 <p>
-                  The Symbians name, logo, platform design, and code are owned by us and protected by intellectual property laws. You may not copy, modify, or distribute our proprietary materials without permission.
+                  The Formation name, logo, platform design, and code are owned by us and protected by intellectual property laws. You may not copy, modify, or distribute our proprietary materials without permission.
                 </p>
               </section>
 
@@ -127,7 +127,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-text mb-4">10. Limitation of Liability</h2>
                 <p>
-                  To the maximum extent permitted by law, Symbians and its team shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Platform, including but not limited to:
+                  To the maximum extent permitted by law, Formation and its team shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Platform, including but not limited to:
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>Loss of cryptocurrency or NFTs</li>
@@ -162,8 +162,8 @@ export default function TermsPage() {
                 <h2 className="text-2xl font-semibold text-text mb-4">14. Contact</h2>
                 <p>
                   For questions about these terms, please contact us at{" "}
-                  <a href="mailto:legal@symbians.app" className="text-primary hover:underline">
-                    legal@symbians.app
+                  <a href="mailto:legal@formation.app" className="text-primary hover:underline">
+                    legal@formation.app
                   </a>
                   .
                 </p>

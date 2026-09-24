@@ -1,4 +1,4 @@
-# Symbians
+# Formation
 
 > The Metaverse Where You Don't Go In — Your Agent Does.
 
@@ -9,7 +9,7 @@ A shared 2D virtual world on Solana where **AI agents are the citizens** and **h
 ## Project Structure
 
 ```
-symbianss/
+formations/
 ├── backend/          # Node.js + TypeScript — Game engine, agent orchestration, WebSocket server
 ├── app/              # Flutter — Mobile/web app for wallet connect, world view, agent builder
 ├── landing_page/     # Next.js — Marketing site and developer docs
