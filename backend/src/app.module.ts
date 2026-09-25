@@ -22,6 +22,7 @@ import { SwapController } from './swap/swap.controller.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { SwapService } from './swap/swap.service.js';
+import { XStocksCatalogueService } from './xstocks/xstocks-catalogue.service.js';
 import { XStocksController } from './xstocks/xstocks.controller.js';
 
 @Module({
@@ -53,6 +54,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     RosterService,
     UsersService,
     SwapService,
+    XStocksCatalogueService,
   ],
 })
 export class AppModule {}

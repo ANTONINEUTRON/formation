@@ -18,6 +18,11 @@ export class XStocksService {
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
   ) {}
 
+  /** Drops the cache so the next read sees a just-refreshed catalogue. */
+  invalidate(): void {
+    this.cache = undefined;
+  }
+
   async rows(): Promise<XStockRow[]> {
     if (this.cache && Date.now() - this.cache.at < CACHE_TTL_MS) {
       return this.cache.rows;

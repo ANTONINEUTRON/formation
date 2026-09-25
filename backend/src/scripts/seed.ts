@@ -1,6 +1,17 @@
 /**
- * Seeds supported xStocks and demo leaderboard players.
- * Run with `npm run seed` after `npm run db:migrate`.
+ * Seeds the hand-curated xStocks, and optionally demo leaderboard players.
+ *
+ * This is no longer the main way the catalogue is filled. The server populates
+ * it from Jupiter at boot when the table is empty and refreshes it on a timer
+ * (`XStocksCatalogueService`), which is what gets you the full ~100 xStocks.
+ * This script remains useful for two reasons: it works with Jupiter
+ * unreachable, and it is what establishes the hand-assigned risk tiers for the
+ * original thirty, which the refresh then preserves rather than overwriting.
+ *
+ * Demo leaderboard players are NOT seeded by default. They are invented users
+ * with invented point totals, and on a live deployment they sit on the ladder
+ * looking like real competitors. Pass `--demo-players` to add them, which is
+ * worth doing for a screenshot or a walkthrough and not otherwise.
  */
 import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
@@ -50,6 +61,15 @@ await db
   )
   .execute();
 
+if (!process.argv.includes('--demo-players')) {
+  console.log(
+    `Seeded ${XSTOCKS_SEED.length} xStocks. ` +
+      'No demo players (pass --demo-players to add them).',
+  );
+  await db.destroy();
+  process.exit(0);
+}
+
 // Deterministic, well-formed but keyless addresses so re-running is idempotent.
 const digest = (text: string) => createHash('sha256').update(text).digest();
 
@@ -92,6 +112,7 @@ await db
   .execute();
 
 console.log(
-  `Seeded ${XSTOCKS_SEED.length} xStocks and ${users.length} demo players across ${SPORT_MODES.length} leagues.`,
+  `Seeded ${XSTOCKS_SEED.length} xStocks and ${users.length} DEMO players ` +
+    `across ${SPORT_MODES.length} leagues.`,
 );
 await db.destroy();

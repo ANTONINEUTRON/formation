@@ -30,6 +30,21 @@ export interface AppConfig {
   sessionAnchor: Date;
   /** Benchmark every pick is scored against (SPYx). */
   benchmarkMint: string;
+
+  // ── Catalogue ──────────────────────────────────────────────────────────────
+  /** Hours between refreshes of the xStocks catalogue. 0 disables it. */
+  catalogueRefreshHours: number;
+  /**
+   * Minimum pool liquidity, in USD, for a stock to be listed. 0 lists every
+   * xStock Jupiter returns.
+   *
+   * Worth understanding before changing: a stock's points come from its price
+   * move against the benchmark, multiplied by POINTS_PER_ALPHA. A pool of a few
+   * dollars can be moved a long way for a few dollars more, so a thin stock is
+   * a cheap way to manufacture a large score. Raising this is the lever that
+   * closes that off.
+   */
+  catalogueMinLiquidityUsd: number;
 }
 
 export const CONFIG = Symbol('CONFIG');
@@ -61,5 +76,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionAnchor: new Date(env.SESSION_ANCHOR ?? '2026-01-05T00:00:00.000Z'),
     // SPYx
     benchmarkMint: env.BENCHMARK_MINT ?? 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
+
+    catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
+    catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),
   };
 }
