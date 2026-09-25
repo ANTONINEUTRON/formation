@@ -200,11 +200,14 @@ All of the above is working software, not slides.
 
   - Flutter app on Android, wallet connect via Mobile Wallet Adapter
   - NestJS + Postgres backend, continuous scoring engine, price ticks
+  - 100 tokenized stocks, refreshed from Jupiter automatically
   - Live xStock prices and real on-chain balance reads
-  - Real Jupiter swaps with the platform fee wired in
+  - Real Jupiter swaps with the platform fee wired in, payable in USDC, SOL
+    or SKR
   - Leaderboard with period filters, custom leagues, PvP, manager profiles,
     adopt-wallet, following, and notifications
-  - 54 unit, 15 integration and 5 end-to-end backend tests, 30 app tests
+  - 74 unit, 15 integration and 6 end-to-end backend tests, 33 app tests
+  - Backend deployed and live at api.formation.titalabs.xyz
 
 Known gaps, stated plainly: the app is Android-first, the sport modes beyond
 football are lightly tuned, and the event thresholds were originally calibrated

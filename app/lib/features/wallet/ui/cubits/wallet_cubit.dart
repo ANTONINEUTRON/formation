@@ -48,7 +48,7 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
       final client = await session.start();
       final result = await client.authorize(
-        identityUri: Uri.parse('https://api.formation.titalabs.xyz'),
+        identityUri: Uri.parse('https://titalabs.xyz'),
         iconUri: Uri.parse('favicon.png'),
         identityName: 'Formation',
         cluster: 'mainnet-beta',

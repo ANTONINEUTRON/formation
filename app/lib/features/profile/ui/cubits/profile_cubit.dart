@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/profile/ui/cubits/profile_state.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
@@ -16,20 +17,49 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   Future<void> load() async {
     emit(const ProfileState(status: LoadStatus.loading));
+
+    // The record and the profile are independent, and they used to be joined
+    // with `(a, b).wait` — which throws a ParallelWaitError the moment either
+    // side fails, discarding whichever one succeeded. So a single unavailable
+    // endpoint took down the whole page and, because the edit button is
+    // disabled while `profile` is null, also left the player unable to set
+    // their name. Each is fetched on its own now, still concurrently.
+    final recordsFuture = _recordsOrNull();
+    final profileFuture = _profileOrNull();
+    final records = await recordsFuture;
+    final profile = await profileFuture;
+
+    if (isClosed) return;
+
+    // The record IS the page; the profile only fills in the card, which falls
+    // back to the wallet address. So only a missing record is a failed page.
+    if (records == null) {
+      emit(ProfileState(status: LoadStatus.failure, profile: profile, error: _recordError));
+      return;
+    }
+    emit(ProfileState(status: LoadStatus.success, profile: profile, records: records));
+  }
+
+  String? _recordError;
+
+  Future<Map<SportMode, SportRecord>?> _recordsOrNull() async {
     try {
-      final (perMode, profile) = await (
-        Future.wait(SportMode.values.map(_record)),
-        _repository.getProfile(),
-      ).wait;
-      if (isClosed) return;
-      emit(ProfileState(
-        status: LoadStatus.success,
-        profile: profile,
-        records: Map.fromIterables(SportMode.values, perMode),
-      ));
+      final perMode = await Future.wait(SportMode.values.map(_record));
+      return Map.fromIterables(SportMode.values, perMode);
+    } catch (e, stackTrace) {
+      _recordError = errorText(e, stackTrace);
+      return null;
+    }
+  }
+
+  Future<Profile?> _profileOrNull() async {
+    try {
+      return await _repository.getProfile();
     } catch (e) {
-      if (isClosed) return;
-      emit(ProfileState(status: LoadStatus.failure, error: errorText(e)));
+      // Logged rather than surfaced: the card degrades to the wallet address
+      // on its own, and nothing else on the page depends on this.
+      AppLog.warn('Profile unavailable, falling back to wallet address', e);
+      return null;
     }
   }
 

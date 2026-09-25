@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/loading_indicator.dart';
@@ -43,17 +44,26 @@ class ProfilePage extends StatelessWidget {
                 walletAddress:
                     context.select<WalletCubit, String>((c) => c.state.walletAddress ?? ''),
                 profile: state.profile,
-                onEdit: state.profile == null
-                    ? null
-                    : () async {
-                        final cubit = context.read<ProfileCubit>();
-                        final updated = await EditProfileSheet.show(
-                          context,
-                          profile: state.profile!,
-                          repository: context.read<FormationRepository>(),
-                        );
-                        if (updated != null) cubit.setProfile(updated);
-                      },
+                // Always offered. Hiding it while the profile is still loading
+                // or briefly unreachable reads as "this app cannot do that",
+                // when the truth is "not yet" — so the control stays and says
+                // which it is.
+                onEdit: () async {
+                  final profile = state.profile;
+                  if (profile == null) {
+                    context.showErrorToast(
+                      message: 'Your profile is still loading. Pull down to retry.',
+                    );
+                    return;
+                  }
+                  final cubit = context.read<ProfileCubit>();
+                  final updated = await EditProfileSheet.show(
+                    context,
+                    profile: profile,
+                    repository: context.read<FormationRepository>(),
+                  );
+                  if (updated != null) cubit.setProfile(updated);
+                },
               ),
             ),
             const SizedBox(height: 24),

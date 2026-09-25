@@ -1,0 +1,1234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>Formation — fantasy sports for the stocks in your wallet</title>
+  <meta name="description" content="Fantasy sports where your squad is the tokenized stocks in your wallet. Score for beating the market, not for going up — and keep every share.">
+  <link rel="canonical" href="https://formation.titalabs.xyz/">
+
+  <!-- Dark chrome on mobile, matching the page's own ground. -->
+  <meta name="theme-color" content="#0A1410">
+
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="favicon.png">
+
+  <!-- Link previews. Add an og-image.png (1200x630) here when you have one;
+       without it, shares fall back to a text-only card. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formation">
+  <meta property="og:title" content="The stocks in your wallet are your team">
+  <meta property="og:description" content="Fantasy sports where your squad is the tokenized stocks in your wallet. Score for beating the market, not for going up — and keep every share.">
+  <meta property="og:url" content="https://formation.titalabs.xyz/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="The stocks in your wallet are your team">
+  <meta name="twitter:description" content="Fantasy sports where your squad is the tokenized stocks in your wallet. Score for beating the market, not for going up — and keep every share.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+  <style>
+    :root {
+      color-scheme: dark;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    img { max-width: 100%; }
+    [hidden] { display: none !important; }
+  </style>
+  <style>
+  /* A floodlit night pitch. Single committed theme — the page paints its own
+     ground and every colour explicitly, so it holds on any host background. */
+  :root {
+    color-scheme: dark;
+
+    --pitch:      #0A1410;
+    --pitch-deep: #060D0A;
+    --turf:       #123122;
+    --turf-lit:   #18402C;
+    --line:       #24503A;
+    --chalk:      #EDF2EC;
+    --chalk-dim:  #9DB3A5;
+    --chalk-faint:#6B8577;
+    --lime:        #B8FF3C;
+    --lime-deep:   #8FD617;
+    --amber:       #FFB43C;
+    --down:        #FF5C5C;
+
+    --display: 'Anton', 'Arial Narrow', Impact, sans-serif;
+    --body: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --gutter: 20px;
+    --maxw: 1140px;
+    --r: 4px;
+  }
+
+  body {
+    margin: 0;
+    background: var(--pitch);
+    color: var(--chalk);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+  }
+
+  h1, h2, h3 { margin: 0; font-weight: 400; text-wrap: balance; }
+  p { margin: 0; }
+  a { color: inherit; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--lime);
+    margin: 0;
+  }
+  .eyebrow--dim { color: var(--chalk-faint); }
+
+  /* ── Floodlight: one ambient gradient, no animation ─────────────────── */
+  .glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 80% at 78% -10%, rgba(184,255,60,0.12), transparent 60%),
+      radial-gradient(90% 70% at 8% 0%, rgba(255,180,60,0.07), transparent 55%);
+    pointer-events: none;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────────────── */
+  .nav {
+    position: relative;
+    z-index: 2;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav__in {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-family: var(--display);
+    font-size: 21px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .brand__dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--lime);
+    flex: none;
+    transform: translateY(-3px);
+  }
+  .nav__links { display: flex; gap: 22px; align-items: center; }
+  .nav__links a {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--chalk-dim);
+    text-decoration: none;
+  }
+  .nav__links a:hover { color: var(--chalk); }
+  @media (max-width: 720px) { .nav__links a:not(.btn) { display: none; } }
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 19px;
+    border-radius: var(--r);
+    font-family: var(--body);
+    font-size: 14.5px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    transition: background-color .15s, border-color .15s, color .15s;
+  }
+  .btn--go {
+    background: var(--lime);
+    color: #0A1410;
+  }
+  .btn--go:hover { background: #CBFF63; }
+  .btn--ghost {
+    border-color: var(--line);
+    color: var(--chalk);
+  }
+  .btn--ghost:hover { border-color: var(--chalk-faint); background: rgba(237,242,236,0.04); }
+  .btn--lg { padding: 14px 26px; font-size: 16px; }
+  .btn:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+  a:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+
+  /* ── Hero ────────────────────────────────────────────────────────────── */
+  .hero { position: relative; overflow: hidden; }
+  .hero__in {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+    padding-block: 64px 72px;
+  }
+  @media (max-width: 900px) {
+    .hero__in { grid-template-columns: 1fr; gap: 44px; padding-block: 44px 52px; }
+  }
+
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(42px, 7.4vw, 78px);
+    line-height: 0.94;
+    letter-spacing: -0.005em;
+    text-transform: uppercase;
+    margin-block: 18px 22px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--lime);
+  }
+  .hero__sub {
+    font-size: clamp(16.5px, 2vw, 19px);
+    color: var(--chalk-dim);
+    max-width: 30em;
+  }
+  .hero__sub strong { color: var(--chalk); font-weight: 600; }
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+  .hero__note {
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--chalk-faint);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Team sheet: the hero object ──────────────────────────────────────── */
+  .sheet {
+    background: linear-gradient(170deg, var(--turf-lit), var(--turf) 55%, #0E2619);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px -30px rgba(0,0,0,0.85);
+  }
+  .sheet__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(6,13,10,0.45);
+  }
+  .sheet__label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
+  }
+  .sheet__pts {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lime);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Pitch markings drawn with gradients rather than images. */
+  .pitch {
+    position: relative;
+    padding: 22px 14px 18px;
+    background-image:
+      linear-gradient(to right, rgba(237,242,236,0.075) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(237,242,236,0.055) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 25%;
+  }
+  .pitch::before {
+    content: "";
+    position: absolute;
+    left: 50%; bottom: -1px;
+    width: 116px; height: 34px;
+    transform: translateX(-50%);
+    border: 1px solid rgba(237,242,236,0.13);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+  }
+
+  /* Three formations share one box and cross-fade. The box is sized by the
+     tallest (football's four rows) so switching never reflows the hero. */
+  .forms {
+    position: relative;
+    min-height: 292px;
+  }
+  .form {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.985);
+    transition: opacity .55s ease, transform .55s ease, visibility .55s;
+  }
+  /* Football is the resting state, so the first still frame is never blank. */
+  .form.is-on {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  @media (max-width: 380px) { .forms { min-height: 320px; } }
+
+  .row {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: 11px;
+  }
+  .row:last-child { margin-bottom: 0; }
+
+  /* Sport switcher: real buttons, because they are operable. */
+  .switch {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .switch__b {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
+    cursor: pointer;
+    transition: color .2s, border-color .2s, background-color .2s;
+  }
+  .switch__b:hover { color: var(--chalk-dim); border-color: var(--chalk-faint); }
+  .switch__b[aria-pressed="true"] {
+    color: #0A1410;
+    background: var(--lime);
+    border-color: var(--lime);
+  }
+  .switch__b:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+
+  .slot {
+    flex: 1 1 0;
+    min-width: 0;
+    background: rgba(6,13,10,0.62);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 7px 5px 6px;
+    text-align: center;
+  }
+  .slot__pos {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--chalk-faint);
+  }
+  .slot__tkr {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slot__d {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+  }
+  .up { color: var(--lime); }
+  .dn { color: var(--down); }
+  .flat { color: var(--chalk-faint); }
+  /* Tier tints: the legend below the pitch refers to these. */
+  .slot--bc { border-color: rgba(127,216,255,0.45); }
+  .slot--bc .slot__pos { color: #7FD8FF; }
+  .slot--st { border-color: rgba(157,179,165,0.45); }
+  .slot--st .slot__pos { color: #9DB3A5; }
+  .slot--ba { border-color: rgba(201,180,255,0.45); }
+  .slot--ba .slot__pos { color: #C9B4FF; }
+  .slot--gr { border-color: rgba(184,255,60,0.4); }
+  .slot--gr .slot__pos { color: var(--lime); }
+  /* FLEX takes any tier, so it reads as dashed rather than tinted. */
+  .slot--fx { border-style: dashed; border-color: var(--chalk-faint); }
+  .slot--mo { border-color: rgba(255,180,60,0.5); }
+  .slot--mo .slot__pos { color: var(--amber); }
+  /* Captain is a role, not a tier, so it reads as a ring rather than a tint. */
+  .slot--c { box-shadow: inset 0 0 0 1px var(--amber); }
+  .slot--c .slot__tkr::after { content: " C"; color: var(--amber); font-size: 9px; vertical-align: super; }
+
+  .sheet__foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding: 11px 15px 13px;
+    border-top: 1px solid var(--line);
+    background: rgba(6,13,10,0.45);
+  }
+  .key {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
+  }
+  .key i {
+    width: 7px; height: 7px; border-radius: 1px;
+    background: currentColor;
+    flex: none;
+  }
+  .key--bc { color: #7FD8FF; }
+  .key--st { color: #9DB3A5; }
+  .key--ba { color: #C9B4FF; }
+  .key--gr { color: var(--lime); }
+  .key--mo { color: var(--amber); }
+
+  /* ── Section furniture ───────────────────────────────────────────────── */
+  .sec { padding-block: 72px; border-top: 1px solid var(--line); }
+  @media (max-width: 720px) { .sec { padding-block: 52px; } }
+  .sec__head { max-width: 40rem; }
+  .sec h2 {
+    font-family: var(--display);
+    font-size: clamp(28px, 4.2vw, 44px);
+    line-height: 1.02;
+    letter-spacing: 0.002em;
+    text-transform: uppercase;
+    margin-block: 14px 16px;
+  }
+  .sec__lede { color: var(--chalk-dim); font-size: 17px; max-width: 34em; }
+
+  /* ── The aha: alpha, not return ──────────────────────────────────────── */
+  .versus {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 38px;
+  }
+  @media (max-width: 760px) {
+    .versus { grid-template-columns: 1fr; gap: 12px; }
+  }
+  .tile {
+    background: var(--pitch-deep);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px 20px;
+  }
+  .tile__lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
+  }
+  .tile__big {
+    font-family: var(--display);
+    font-size: clamp(38px, 6vw, 54px);
+    line-height: 1;
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile__cap { font-size: 14px; color: var(--chalk-dim); margin-top: 8px; }
+  .versus__op {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 26px;
+    color: var(--chalk-faint);
+  }
+  .verdict {
+    margin-top: 18px;
+    background: var(--turf);
+    border: 1px solid var(--lime-deep);
+    border-radius: 6px;
+    padding: 20px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+  }
+  .verdict__n {
+    font-family: var(--display);
+    font-size: clamp(34px, 5vw, 46px);
+    line-height: 1;
+    color: var(--lime);
+    font-variant-numeric: tabular-nums;
+  }
+  .verdict__t { font-size: 16px; color: var(--chalk); max-width: 42em; }
+
+  /* ── Steps: a real sequence, so numbered ─────────────────────────────── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    margin-top: 40px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  @media (max-width: 880px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .steps { grid-template-columns: 1fr; } }
+  .step { background: var(--pitch); padding: 24px 20px 26px; }
+  .step__n {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--lime);
+  }
+  .step h3 {
+    font-family: var(--body);
+    font-size: 16.5px;
+    font-weight: 700;
+    margin-block: 9px 7px;
+  }
+  .step p { font-size: 14.5px; color: var(--chalk-dim); }
+
+  /* ── Two-up feature blocks ───────────────────────────────────────────── */
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 40px;
+  }
+  @media (max-width: 800px) { .duo { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--pitch-deep);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 26px 24px 28px;
+  }
+  .card h3 {
+    font-family: var(--display);
+    font-size: 23px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-block: 12px 10px;
+  }
+  .card p { color: var(--chalk-dim); font-size: 15px; }
+
+  /* A notification, rendered as one. */
+  .ping {
+    margin-top: 18px;
+    background: var(--turf);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--lime);
+    border-radius: var(--r);
+    padding: 12px 14px;
+  }
+  .ping__who {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--chalk-faint);
+  }
+  .ping__what { font-size: 14.5px; margin-top: 3px; }
+
+  .basket { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .basket__r {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--turf);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 9px 12px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .basket__tick {
+    width: 14px; height: 14px; flex: none;
+    border-radius: 2px;
+    border: 1px solid var(--lime-deep);
+    background: var(--lime);
+    position: relative;
+  }
+  .basket__tick::after {
+    content: "";
+    position: absolute;
+    left: 3.5px; top: 1.5px;
+    width: 4px; height: 7px;
+    border: solid #0A1410;
+    border-width: 0 1.6px 1.6px 0;
+    transform: rotate(42deg);
+  }
+  .basket__tick--off { background: transparent; border-color: var(--chalk-faint); }
+  .basket__tick--off::after { display: none; }
+  .basket__sym { font-weight: 600; }
+  .basket__nm { color: var(--chalk-faint); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basket__amt { color: var(--chalk-dim); }
+
+  /* ── Trust strip ─────────────────────────────────────────────────────── */
+  .trust {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 40px;
+  }
+  @media (max-width: 760px) { .trust { grid-template-columns: 1fr; } }
+  .trust__c { background: var(--pitch); padding: 24px 22px 26px; }
+  .trust__c h3 {
+    font-family: var(--body);
+    font-size: 16px;
+    font-weight: 700;
+    margin-block: 0 8px;
+  }
+  .trust__c p { font-size: 14.5px; color: var(--chalk-dim); }
+
+  /* ── Proof: real figures only ────────────────────────────────────────── */
+  .figs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-top: 38px;
+  }
+  @media (max-width: 880px) { .figs { grid-template-columns: repeat(2, 1fr); } }
+  .fig {
+    border-top: 2px solid var(--lime);
+    padding-top: 14px;
+  }
+  .fig__n {
+    font-family: var(--display);
+    font-size: clamp(30px, 4.4vw, 40px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .fig__l {
+    font-size: 13.5px;
+    color: var(--chalk-dim);
+    margin-top: 7px;
+  }
+
+  .built {
+    margin-top: 38px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 26px;
+  }
+  @media (max-width: 720px) { .built { grid-template-columns: 1fr; } }
+  .built li {
+    list-style: none;
+    display: flex;
+    gap: 10px;
+    font-size: 14.5px;
+    color: var(--chalk-dim);
+  }
+  .built li::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--lime);
+    flex: none;
+    margin-top: 8px;
+  }
+  .built { padding: 0; margin-inline: 0; }
+
+  .gaps {
+    margin-top: 30px;
+    border-left: 2px solid var(--chalk-faint);
+    padding: 2px 0 2px 16px;
+    font-size: 14.5px;
+    color: var(--chalk-faint);
+    max-width: 44em;
+  }
+
+  /* ── Close ───────────────────────────────────────────────────────────── */
+  .close { position: relative; overflow: hidden; border-top: 1px solid var(--line); }
+  .close__in {
+    position: relative;
+    z-index: 1;
+    padding-block: 84px 90px;
+    text-align: center;
+  }
+  @media (max-width: 720px) { .close__in { padding-block: 58px 64px; } }
+  .close h2 {
+    font-family: var(--display);
+    font-size: clamp(34px, 6.4vw, 66px);
+    line-height: 0.98;
+    text-transform: uppercase;
+    margin-block: 16px 18px;
+  }
+  .close p {
+    color: var(--chalk-dim);
+    font-size: 17.5px;
+    max-width: 30em;
+    margin-inline: auto;
+  }
+  .close__cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 30px; }
+
+  .foot {
+    border-top: 1px solid var(--line);
+    padding-block: 26px 32px;
+  }
+  .foot__in {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 28px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .foot__t {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--chalk-faint);
+    letter-spacing: 0.03em;
+  }
+  .foot__l { display: flex; flex-wrap: wrap; gap: 20px; }
+  .foot__l a {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+    color: var(--chalk-dim);
+    text-decoration: none;
+  }
+  .foot__l a:hover { color: var(--lime); }
+
+  .rs {
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--chalk-faint);
+    max-width: 58em;
+    line-height: 1.55;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap nav__in">
+    <span class="brand"><span class="brand__dot"></span>Formation</span>
+    <nav class="nav__links">
+      <a href="#scoring">Scoring</a>
+      <a href="#copy">Copy a manager</a>
+      <a href="#built">What's built</a>
+      <a class="btn btn--go" href="https://github.com/ANTONINEUTRON/formation">Get the app</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="glow"></div>
+  <div class="wrap hero__in">
+    <div>
+      <p class="eyebrow">Football · Basketball · American Football</p>
+      <h1>The stocks in your<br>wallet are your <em>team</em></h1>
+      <p class="hero__sub">
+        Whatever you already hold is your squad. Field it as a football XI, a
+        basketball five or an American Football nine — every position demands a
+        different risk tier. You score for <strong>beating the market</strong>,
+        not for going up, and <strong>you keep every share.</strong>
+      </p>
+      <div class="hero__cta">
+        <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation">Get the Android app</a>
+        <a class="btn btn--ghost btn--lg" href="#scoring">How scoring works</a>
+      </div>
+      <p class="hero__note">No prize pool · No pooled funds · Non-custodial · Android</p>
+    </div>
+
+    <div class="sheet">
+      <div class="sheet__top">
+        <div class="switch" role="group" aria-label="Choose a sport">
+          <button class="switch__b" type="button" data-sport="football" aria-pressed="true">Football</button>
+          <button class="switch__b" type="button" data-sport="basketball" aria-pressed="false">Basketball</button>
+          <button class="switch__b" type="button" data-sport="amfootball" aria-pressed="false">Am. Football</button>
+        </div>
+        <span class="sheet__pts" id="pts">287.4 pts</span>
+      </div>
+
+      <div class="pitch">
+        <div class="forms">
+          <div class="form is-on" data-sport="football" aria-label="Football, 4-4-2">
+          <div class="row">
+            <div class="slot slot--mo">
+              <div class="slot__pos">FWD</div>
+              <div class="slot__tkr">TSLAx</div>
+              <div class="slot__d up">+2.1α</div>
+            </div>
+            <div class="slot slot--mo slot--c">
+              <div class="slot__pos">FWD</div>
+              <div class="slot__tkr">GMEx</div>
+              <div class="slot__d up">+4.8α</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="slot slot--ba">
+              <div class="slot__pos">MID</div>
+              <div class="slot__tkr">JPMx</div>
+              <div class="slot__d up">+0.6α</div>
+            </div>
+            <div class="slot slot--ba">
+              <div class="slot__pos">MID</div>
+              <div class="slot__tkr">Vx</div>
+              <div class="slot__d flat">0.0α</div>
+            </div>
+            <div class="slot slot--ba">
+              <div class="slot__pos">MID</div>
+              <div class="slot__tkr">ORCLx</div>
+              <div class="slot__d up">+1.9α</div>
+            </div>
+            <div class="slot slot--ba">
+              <div class="slot__pos">MID</div>
+              <div class="slot__tkr">LLYx</div>
+              <div class="slot__d dn">−0.8α</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="slot slot--st">
+              <div class="slot__pos">DEF</div>
+              <div class="slot__tkr">KOx</div>
+              <div class="slot__d up">+0.3α</div>
+            </div>
+            <div class="slot slot--st">
+              <div class="slot__pos">DEF</div>
+              <div class="slot__tkr">MCDx</div>
+              <div class="slot__d up">+0.9α</div>
+            </div>
+            <div class="slot slot--st">
+              <div class="slot__pos">DEF</div>
+              <div class="slot__tkr">WMTx</div>
+              <div class="slot__d flat">0.0α</div>
+            </div>
+            <div class="slot slot--st">
+              <div class="slot__pos">DEF</div>
+              <div class="slot__tkr">XOMx</div>
+              <div class="slot__d dn">−1.2α</div>
+            </div>
+          </div>
+          <div class="row" style="padding-inline:33%">
+            <div class="slot slot--bc">
+              <div class="slot__pos">GK</div>
+              <div class="slot__tkr">AAPLx</div>
+              <div class="slot__d up">+0.4α</div>
+            </div>
+          </div>
+          </div>
+          <div class="form" data-sport="basketball" aria-label="Basketball, five slots">
+          <div class="row" style="padding-inline:14%">
+            <div class="slot slot--gr">
+              <div class="slot__pos">PG</div>
+              <div class="slot__tkr">NVDAx</div>
+              <div class="slot__d up">+3.4α</div>
+            </div>
+            <div class="slot slot--gr slot--c">
+              <div class="slot__pos">SG</div>
+              <div class="slot__tkr">METAx</div>
+              <div class="slot__d up">+1.1α</div>
+            </div>
+          </div>
+          <div class="row" style="padding-inline:14%">
+            <div class="slot slot--ba">
+              <div class="slot__pos">SF</div>
+              <div class="slot__tkr">JPMx</div>
+              <div class="slot__d up">+0.6α</div>
+            </div>
+            <div class="slot slot--ba">
+              <div class="slot__pos">PF</div>
+              <div class="slot__tkr">ORCLx</div>
+              <div class="slot__d up">+1.9α</div>
+            </div>
+          </div>
+          <div class="row" style="padding-inline:33%">
+            <div class="slot slot--bc">
+              <div class="slot__pos">C</div>
+              <div class="slot__tkr">AAPLx</div>
+              <div class="slot__d up">+0.4α</div>
+            </div>
+          </div>
+          </div>
+          <div class="form" data-sport="amfootball" aria-label="American Football, nine slots">
+          <div class="row">
+            <div class="slot slot--mo">
+              <div class="slot__pos">WR</div>
+              <div class="slot__tkr">TSLAx</div>
+              <div class="slot__d up">+2.1α</div>
+            </div>
+            <div class="slot slot--gr">
+              <div class="slot__pos">WR</div>
+              <div class="slot__tkr">AMDx</div>
+              <div class="slot__d dn">−0.5α</div>
+            </div>
+            <div class="slot slot--mo">
+              <div class="slot__pos">WR</div>
+              <div class="slot__tkr">COINx</div>
+              <div class="slot__d up">+3.8α</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="slot slot--st">
+              <div class="slot__pos">TE</div>
+              <div class="slot__tkr">KOx</div>
+              <div class="slot__d up">+0.3α</div>
+            </div>
+            <div class="slot slot--gr">
+              <div class="slot__pos">RB</div>
+              <div class="slot__tkr">AVGOx</div>
+              <div class="slot__d up">+1.4α</div>
+            </div>
+            <div class="slot slot--ba">
+              <div class="slot__pos">RB</div>
+              <div class="slot__tkr">LLYx</div>
+              <div class="slot__d dn">−0.8α</div>
+            </div>
+          </div>
+          <div class="row" style="padding-inline:33%">
+            <div class="slot slot--bc">
+              <div class="slot__pos">QB</div>
+              <div class="slot__tkr">MSFTx</div>
+              <div class="slot__d up">+0.7α</div>
+            </div>
+          </div>
+          <div class="row" style="padding-inline:22%">
+            <div class="slot slot--fx">
+              <div class="slot__pos">FLEX</div>
+              <div class="slot__tkr">GLDx</div>
+              <div class="slot__d up">+1.6α</div>
+            </div>
+            <div class="slot slot--st">
+              <div class="slot__pos">K</div>
+              <div class="slot__tkr">PGx</div>
+              <div class="slot__d up">+0.1α</div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet__foot">
+        <span class="sheet__label" style="width:100%">Risk tiers — each slot admits one</span>
+        <span class="key key--bc"><i></i>Blue chip</span>
+        <span class="key key--st"><i></i>Stable</span>
+        <span class="key key--ba"><i></i>Balanced</span>
+        <span class="key key--gr"><i></i>Growth</span>
+        <span class="key key--mo"><i></i>Momentum</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="scoring">
+  <div class="wrap">
+    <div class="sec__head">
+      <p class="eyebrow">The mechanic</p>
+      <h2>Points are alpha,<br>not return</h2>
+      <p class="sec__lede">
+        A pick scores on how far it beat SPYx, the S&amp;P 500 tracker, over the
+        same window — one point per 0.1% of outperformance. Which means a rising
+        market hands nobody anything.
+      </p>
+    </div>
+
+    <div class="versus">
+      <div class="tile">
+        <p class="tile__lbl">Your pick</p>
+        <p class="tile__big up">+2.0%</p>
+        <p class="tile__cap">A good day, on its own terms.</p>
+      </div>
+      <div class="versus__op">vs</div>
+      <div class="tile">
+        <p class="tile__lbl">SPYx · the market</p>
+        <p class="tile__big">+2.0%</p>
+        <p class="tile__cap">Everything went up together.</p>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <span class="verdict__n">0</span>
+      <span class="verdict__t">
+        points. You didn't pick a stock, you caught a tide. This one decision is
+        the difference between a game of skill and a bull-market lottery — and
+        it's why a flat market is still a competitive one.
+      </span>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <p class="step__n">01</p>
+        <h3>Connect a wallet</h3>
+        <p>Mobile Wallet Adapter. We read balances from the chain — we never hold them.</p>
+      </div>
+      <div class="step">
+        <p class="step__n">02</p>
+        <h3>Fill the positions</h3>
+        <p>Each slot demands a risk tier. That constraint is the game: no stacking five hot tickers.</p>
+      </div>
+      <div class="step">
+        <p class="step__n">03</p>
+        <h3>Buy what you're missing</h3>
+        <p>Routed through Jupiter, signed in your wallet. The share lands in your wallet, not ours.</p>
+      </div>
+      <div class="step">
+        <p class="step__n">04</p>
+        <h3>Watch it bank</h3>
+        <p>Points land on every price tick. No weekly window, no checking back Sunday.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="copy">
+  <div class="wrap">
+    <div class="sec__head">
+      <p class="eyebrow">The part that compounds</p>
+      <h2>Beat them, or just<br>copy their homework</h2>
+      <p class="sec__lede">
+        A Solana wallet is public. So every manager on the leaderboard has a
+        record you can inspect — and a lineup you can take.
+      </p>
+    </div>
+
+    <div class="duo">
+      <div class="card">
+        <p class="eyebrow eyebrow--dim">Follow</p>
+        <h3>Know the moment they move</h3>
+        <p>
+          Follow a manager and you're told when their lineup changes — before the
+          points show up in the table.
+        </p>
+        <div class="ping">
+          <p class="ping__who">marcusalpha · 2 min ago</p>
+          <p class="ping__what">Subbed <strong>TSLAx</strong> off, <strong>PLTRx</strong> on.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow eyebrow--dim">Adopt their wallet</p>
+        <h3>One budget, their whole hand</h3>
+        <p>
+          Every stock they hold, pre-ticked. Untick what you don't want, set one
+          budget, buy the rest. It copies their picks — not their position sizes.
+        </p>
+        <div class="basket">
+          <div class="basket__r">
+            <span class="basket__tick"></span>
+            <span class="basket__sym">NVDAx</span>
+            <span class="basket__nm">NVIDIA</span>
+            <span class="basket__amt">$25.00</span>
+          </div>
+          <div class="basket__r">
+            <span class="basket__tick"></span>
+            <span class="basket__sym">GLDx</span>
+            <span class="basket__nm">Gold</span>
+            <span class="basket__amt">$25.00</span>
+          </div>
+          <div class="basket__r">
+            <span class="basket__tick basket__tick--off"></span>
+            <span class="basket__sym" style="color:var(--chalk-faint)">GMEx</span>
+            <span class="basket__nm">Gamestop</span>
+            <span class="basket__amt" style="color:var(--chalk-faint)">—</span>
+          </div>
+          <div class="basket__r">
+            <span class="basket__tick"></span>
+            <span class="basket__sym">MSTRx</span>
+            <span class="basket__nm">MicroStrategy</span>
+            <span class="basket__amt">$25.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust">
+      <div class="trust__c">
+        <h3>Nothing is ever pooled</h3>
+        <p>No prize fund, no entry fee, no pot. Your money never leaves your wallet and never meets anyone else's.</p>
+      </div>
+      <div class="trust__c">
+        <h3>You sign every trade</h3>
+        <p>Swaps route through Jupiter and are signed by you. We are not in the flow of funds at any point.</p>
+      </div>
+      <div class="trust__c">
+        <h3>Winning gets you standing</h3>
+        <p>Not a payout. The stake was always just what you already own — and keep owning.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="built">
+  <div class="wrap">
+    <div class="sec__head">
+      <p class="eyebrow">Working software</p>
+      <h2>Already running</h2>
+      <p class="sec__lede">
+        Live prices, real on-chain balances, real swaps with the fee wired in.
+        Not a mockup with a waitlist.
+      </p>
+    </div>
+
+    <div class="figs">
+      <div class="fig">
+        <p class="fig__n">100</p>
+        <p class="fig__l">Tokenized stocks, auto-refreshed from Jupiter</p>
+      </div>
+      <div class="fig">
+        <p class="fig__n">24/7</p>
+        <p class="fig__l">Markets never close, so scoring never stops</p>
+      </div>
+      <div class="fig">
+        <p class="fig__n">128</p>
+        <p class="fig__l">Automated tests across backend and app</p>
+      </div>
+      <div class="fig">
+        <p class="fig__n">0</p>
+        <p class="fig__l">Custom smart contracts, so no custody risk</p>
+      </div>
+    </div>
+
+    <ul class="built">
+      <li>Flutter Android app, wallet connect via Mobile Wallet Adapter</li>
+      <li>NestJS and Postgres backend, continuous scoring engine, live price ticks</li>
+      <li>Real Jupiter swaps — pay with USDC, SOL or SKR</li>
+      <li>Leaderboards with all-time, monthly, weekly and custom ranges</li>
+      <li>Public and private leagues, head-to-head, manager profiles</li>
+      <li>Follow, adopt-wallet and lineup-change notifications</li>
+    </ul>
+
+    <p class="gaps">
+      Known gaps, stated plainly: the app is Android-first, and the event
+      thresholds were originally calibrated for crypto volatility rather than
+      equities, so they're still being tuned.
+    </p>
+  </div>
+</section>
+
+<section class="close">
+  <div class="glow"></div>
+  <div class="wrap close__in">
+    <p class="eyebrow">Publish your formation</p>
+    <h2>Let the world<br>field it</h2>
+    <p>
+      Everyone has an opinion about stocks. Almost nobody has a record.
+      Start building one.
+    </p>
+    <div class="close__cta">
+      <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation">Get the Android app</a>
+      <a class="btn btn--ghost btn--lg" href="https://api.formation.titalabs.xyz/xstocks">See the live API</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__in">
+      <span class="foot__t">Formation · Fantasy sports for tokenized equities</span>
+      <nav class="foot__l">
+        <a href="https://github.com/ANTONINEUTRON/formation">Source</a>
+        <a href="https://api.formation.titalabs.xyz/xstocks">API</a>
+        <a href="#scoring">Scoring</a>
+        <a href="#built">What's built</a>
+      </nav>
+    </div>
+    <p class="rs">
+      Formation is a game of skill. There is no prize pool, no entry fee and no
+      pooled funds; winnings are standing on a leaderboard, not money. Tokenized
+      equities (xStocks) are issued under Regulation S and are not available to
+      US, Canadian, UK or Australian persons. Formation is not a broker, dealer
+      or investment adviser, takes no custody of assets, and does not trade on
+      anyone's behalf. Nothing here is investment advice, and the value of any
+      holding can fall.
+    </p>
+  </div>
+</footer>
+<script>
+  (function () {
+    var sheet = document.querySelector('.sheet');
+    var forms = Array.prototype.slice.call(document.querySelectorAll('.form'));
+    var btns  = Array.prototype.slice.call(document.querySelectorAll('.switch__b'));
+    var pts   = document.getElementById('pts');
+    if (!sheet || forms.length === 0) return;
+
+    // Each sport banks its own total, so the header follows the formation.
+    var TOTALS = { football: '287.4 pts', basketball: '152.0 pts', amfootball: '96.2 pts' };
+    var order = forms.map(function (f) { return f.dataset.sport; });
+    var at = 0;
+    var timer = null;
+
+    function show(sport) {
+      at = Math.max(0, order.indexOf(sport));
+      forms.forEach(function (f) { f.classList.toggle('is-on', f.dataset.sport === sport); });
+      btns.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.sport === sport));
+      });
+      if (pts && TOTALS[sport]) pts.textContent = TOTALS[sport];
+    }
+
+    function advance() { show(order[(at + 1) % order.length]); }
+
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    // Choosing a sport is a deliberate act, so it ends the carousel for good
+    // rather than yanking the view away a few seconds later.
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { stop(); show(b.dataset.sport); });
+    });
+
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (still && still.matches) return;   // football stays; the buttons still work
+
+    function start() { stop(); timer = setInterval(advance, 3800); }
+    start();
+
+    // Don't rotate under someone who is reading or hovering the sheet.
+    sheet.addEventListener('mouseenter', stop);
+    sheet.addEventListener('mouseleave', function () { if (!timer) start(); });
+    sheet.addEventListener('focusin', stop);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { stop(); } else if (!timer) { start(); }
+    });
+  })();
+</script>
+</body>
+</html>

@@ -35,6 +35,7 @@ class PeriodSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 36,
+      width: double.infinity,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),

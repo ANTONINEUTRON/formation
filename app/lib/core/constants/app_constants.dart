@@ -9,7 +9,7 @@ class AppConstants {
 
   /// NestJS backend base URL. Empty means fixture mode (in-memory data).
   /// Set with `flutter run --dart-define=API_URL=https://...`.
-  static const String apiUrl = String.fromEnvironment('API_URL');
+  static const String apiUrl = 'https://api.formation.titalabs.xyz';
 
   // Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
@@ -23,7 +23,7 @@ class AppConstants {
       'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
   /// Marker value — replace with the real SKR mint address when known.
-  static const String skrMintPlaceholder = 'PLACEHOLDER';
+  static const String skrMintPlaceholder = 'SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3';
 
   /// Seeker Token SPL mint address on mainnet-beta.
   /// Update this constant once the mint is deployed.
