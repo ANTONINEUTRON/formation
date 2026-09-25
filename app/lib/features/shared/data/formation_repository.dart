@@ -36,7 +36,15 @@ abstract class FormationRepository {
     LeaguePeriod period = const LeaguePeriod.allTime(),
   });
 
-  Future<SwapQuote> getSwapQuote(XStock stock, double usdcAmount);
+  /// Tokens this server accepts as payment, for the amount field's picker.
+  Future<List<PayToken>> getPayTokens();
+
+  /// Quotes buying [stock] by spending [amount] of [payWith].
+  Future<SwapQuote> getSwapQuote(
+    XStock stock,
+    double amount, {
+    PayToken payWith = PayToken.usdc,
+  });
 
   /// Buys the quoted stock. Returns the number of shares received.
   Future<double> executeSwap(SwapQuote quote);

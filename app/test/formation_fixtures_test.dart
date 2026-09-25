@@ -126,11 +126,32 @@ void main() {
       final repo = FixtureRepository(walletAddress: _wallet);
       final amd = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
       final quote = await repo.getSwapQuote(amd, 10);
-      expect(quote.platformFeeUsdc, closeTo(0.03, 1e-9));
+      expect(quote.payWith, 'USDC');
+      expect(quote.platformFee, closeTo(0.03, 1e-9));
 
       await repo.executeSwap(quote);
       final roster = await repo.fillSlot(SportMode.basketball, 0, amd);
       expect(roster.slots.first.balance, closeTo(quote.estimatedShares, 1e-9));
+    });
+
+    test('paying in SOL quotes in SOL, not dollars', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final amd = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
+
+      final tokens = await repo.getPayTokens();
+      final sol = tokens.firstWhere((t) => t.symbol == 'SOL');
+      // SOL has 9 decimals against USDC's 6 — the difference the backend
+      // scales the swap amount by.
+      expect(sol.decimals, 9);
+      expect(sol.iconAsset, 'assets/icons/solana.png');
+
+      final inUsdc = await repo.getSwapQuote(amd, 10);
+      final inSol = await repo.getSwapQuote(amd, 10, payWith: sol);
+
+      expect(inSol.payWith, 'SOL');
+      expect(inSol.inputAmount, 10);
+      // Ten SOL buys far more than ten dollars' worth.
+      expect(inSol.estimatedShares, greaterThan(inUsdc.estimatedShares));
     });
 
     test('changing formation drops the picks that no longer fit', () async {

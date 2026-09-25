@@ -55,67 +55,78 @@ suites only and does not belong on the server.
 
 ---
 
-## 1. Project, region, static IP
+Everything up to §5 is done in the GCP Console in a browser. From §5 onward you
+are on the VM over SSH, and every block is something you paste into that shell.
 
-`e2-micro` is in the GCP free tier only in `us-west1`, `us-central1` and
-`us-east1`.
+## 1. Enable Compute Engine
 
-```bash
-gcloud config set project <PROJECT_ID>
-gcloud services enable compute.googleapis.com     # not enabled by default
-gcloud config set compute/region us-central1
-gcloud config set compute/zone us-central1-a
+The API is off by default on a new project — this is the error you get if you
+skip it.
 
-gcloud compute addresses create formation-api --region us-central1
-gcloud compute addresses describe formation-api --region us-central1 \
-  --format='value(address)'
-```
+> **Console → APIs & Services → Library**
+> Search **Compute Engine API** → **Enable**
 
-Reserve the address **before** creating the VM. An ephemeral IP changes on every
-stop/start, and the app compiles `API_URL` in at build time, so a changed
-address means rebuilding the APK.
+It takes a couple of minutes to propagate. Make sure the project picker at the
+top of the console is on the project you intend to use before you click.
 
 ## 2. Create the VM
 
-```bash
-gcloud compute instances create formation-api \
-  --machine-type=e2-micro \
-  --image-family=debian-12 --image-project=debian-cloud \
-  --boot-disk-size=30GB --boot-disk-type=pd-standard \
-  --address=$(gcloud compute addresses describe formation-api \
-    --region us-central1 --format='value(address)') \
-  --tags=http-server,https-server
-```
+> **Console → Compute Engine → VM instances → Create instance**
 
-30GB `pd-standard` is the free-tier disk ceiling.
+| Field | Value |
+|---|---|
+| Name | `formation-api` |
+| Region / Zone | `us-central1` / `us-central1-a` |
+| Machine configuration | Series **E2**, machine type **e2-micro** |
+| Boot disk → Change | **Debian GNU/Linux 12 (bookworm)**, size **30 GB**, type **Balanced** → change to **Standard persistent disk** |
+| Firewall | tick **Allow HTTP traffic** and **Allow HTTPS traffic** |
 
-## 3. Firewall
+Then **Create**.
 
-Open only 80 and 443. Caddy terminates TLS and proxies to Node on localhost, so
-port 3000 must never be reachable from the internet — the only thing guarding
-`/admin/*` is a header.
+Two things that decide whether this is free: `e2-micro` is only in the free tier
+in `us-west1`, `us-central1` and `us-east1`, and the free disk allowance is
+**30 GB of standard** persistent disk. The console defaults the disk to Balanced,
+which is not covered — change it.
 
-```bash
-gcloud compute firewall-rules create allow-http-https \
-  --allow=tcp:80,tcp:443 --target-tags=http-server,https-server
-```
+Ticking the two firewall boxes creates the `http-server` / `https-server` rules
+and tags for you, so there is no separate firewall step. Port 3000 stays closed
+to the internet, which is what you want: Caddy reaches Node over localhost, and
+the only thing guarding `/admin/*` is a header.
+
+## 3. Make the IP static
+
+The VM is created with an ephemeral address that changes on every stop/start.
+The app compiles `API_URL` in at build time, so a changed address means
+rebuilding the APK — pin it now.
+
+> **Console → VPC network → IP addresses → External IP addresses**
+> Find the row for `formation-api` → set **Type** from *Ephemeral* to **Static**
+> → give it a name → **Reserve**
+
+Copy the address; you need it in the next step.
 
 ## 4. DNS
 
-Point an A record at the static IP and **wait for it to resolve** before
-installing Caddy. Certificate issuance fails if the name doesn't resolve yet.
+At your domain registrar, point a subdomain at that address:
 
 ```
 api.<your-domain>.   A   <STATIC_IP>
 ```
 
-Verify it from your own machine: `dig +short api.<your-domain>`
+**Wait for it to resolve before you install Caddy in §10.** Certificate issuance
+fails if the name doesn't resolve yet, and a failed attempt can rate-limit you.
+Check from your own machine:
+
+```bash
+nslookup api.<your-domain>
+```
 
 ## 5. Base setup on the VM
 
-```bash
-gcloud compute ssh formation-api
-```
+> **Console → Compute Engine → VM instances → SSH**
+
+That button opens a browser terminal on the box. Everything from here down is
+pasted into it.
 
 ```bash
 # Swap first. e2-micro has 1GB of RAM and you are about to run a TypeScript

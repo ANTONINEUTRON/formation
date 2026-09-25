@@ -22,22 +22,31 @@ describe('migrations', () => {
       const { rows } = await sql<{ table_name: string }>`
         select table_name from information_schema.tables where table_schema = 'public'
       `.execute(db);
-      const tables = rows.map((r) => r.table_name);
-      expect(tables).toEqual(
-        expect.arrayContaining([
-          'users',
-          'xstocks',
-          'rosters',
-          'roster_slots',
-          'price_ticks',
-          'gameweeks',
-          'score_entries',
-          'classic_scores',
-          'duels',
-          'trophies',
-          'schema_migrations',
-        ]),
-      );
+      const tables = rows.map((r) => r.table_name).sort();
+      expect(tables).toEqual([
+        'classic_scores',
+        'daily_substitutions',
+        'follows',
+        'general_entries',
+        'league_members',
+        'leagues',
+        'notifications',
+        'points_ledger',
+        'price_ticks',
+        'roster_slots',
+        'rosters',
+        'schema_migrations',
+        'score_entries',
+        'users',
+        'xstocks',
+      ]);
+
+      // 008 drops what gameweeks, duels and trophies left behind. An exact
+      // match above already proves it, but naming them makes the failure
+      // obvious if that migration is ever skipped.
+      expect(tables).not.toContain('gameweeks');
+      expect(tables).not.toContain('duels');
+      expect(tables).not.toContain('trophies');
     } finally {
       await db.destroy();
     }

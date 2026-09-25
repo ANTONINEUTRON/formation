@@ -1,0 +1,14 @@
+# Copy to android/key.properties and fill in. That file is gitignored, and so
+# is the .jks itself — never commit either.
+#
+# Create the keystore once, and keep it somewhere you will not lose it. If you
+# lose it you cannot ship an update to an app already on the Play Store; a new
+# key means a new listing.
+#
+#   keytool -genkey -v -keystore ~/formation-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias formation
+#
+storeFile=C:/Users/antoni/formation-release.jks
+storePassword=
+keyAlias=formation
+keyPassword=

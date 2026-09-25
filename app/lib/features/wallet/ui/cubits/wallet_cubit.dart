@@ -48,7 +48,7 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
       final client = await session.start();
       final result = await client.authorize(
-        identityUri: Uri.parse('https://symbians.titalabs.xyz'),
+        identityUri: Uri.parse('https://api.formation.titalabs.xyz'),
         iconUri: Uri.parse('favicon.png'),
         identityName: 'Formation',
         cluster: 'mainnet-beta',
@@ -252,13 +252,13 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
       final token = state.authToken;
       final auth = token == null
           ? await client.authorize(
-              identityUri: Uri.parse('https://symbians.titalabs.xyz'),
+              identityUri: Uri.parse('https://api.formation.titalabs.xyz'),
               iconUri: Uri.parse('favicon.png'),
               identityName: 'Formation',
               cluster: 'mainnet-beta',
             )
           : await client.reauthorize(
-              identityUri: Uri.parse('https://symbians.titalabs.xyz'),
+              identityUri: Uri.parse('https://api.formation.titalabs.xyz'),
               iconUri: Uri.parse('favicon.png'),
               identityName: 'Formation',
               authToken: token,

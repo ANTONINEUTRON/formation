@@ -736,14 +736,53 @@ class LeagueStanding extends Equatable {
 }
 
 /// A Jupiter quote for buying an xStock with USDC.
+/// A token a player can spend to buy an xStock.
+///
+/// The server decides which are on offer — SKR only appears once its mint is
+/// configured — so this list is fetched rather than hardcoded.
+class PayToken extends Equatable {
+  const PayToken({
+    required this.symbol,
+    required this.mint,
+    required this.decimals,
+  });
+
+  factory PayToken.fromJson(Map<String, dynamic> json) => PayToken(
+        symbol: json['symbol'] as String,
+        mint: json['mint'] as String,
+        decimals: json['decimals'] as int,
+      );
+
+  static const usdc = PayToken(
+    symbol: 'USDC',
+    mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    decimals: 6,
+  );
+
+  final String symbol;
+  final String mint;
+  final int decimals;
+
+  /// Asset path for this token's icon in `assets/icons/`.
+  String get iconAsset => switch (symbol) {
+        'SOL' => 'assets/icons/solana.png',
+        'SKR' => 'assets/icons/seeker.png',
+        _ => 'assets/icons/usdc.png',
+      };
+
+  @override
+  List<Object?> get props => [symbol, mint, decimals];
+}
+
 class SwapQuote extends Equatable {
   const SwapQuote({
     required this.stock,
-    required this.inputUsdc,
+    required this.payWith,
+    required this.inputAmount,
     required this.estimatedShares,
     required this.priceImpactPct,
     required this.platformFeeBps,
-    required this.platformFeeUsdc,
+    required this.platformFee,
     this.quoteId,
   });
 
@@ -751,24 +790,32 @@ class SwapQuote extends Equatable {
       SwapQuote(
         quoteId: json['quoteId'] as String?,
         stock: stock,
-        inputUsdc: _double(json['inputUsdc']),
+        payWith: json['payWith'] as String? ?? 'USDC',
+        inputAmount: _double(json['inputAmount']),
         estimatedShares: _double(json['estimatedShares']),
         priceImpactPct: _double(json['priceImpactPct']),
         platformFeeBps: json['platformFeeBps'] as int,
-        platformFeeUsdc: _double(json['platformFeeUsdc']),
+        platformFee: _double(json['platformFee']),
       );
 
   /// Backend handle for building the swap transaction. Null in fixture mode.
   final String? quoteId;
   final XStock stock;
-  final double inputUsdc;
+
+  /// Symbol of the token being spent.
+  final String payWith;
+
+  /// Amount of [payWith] being spent, in that token's own units.
+  final double inputAmount;
   final double estimatedShares;
   final double priceImpactPct;
   final int platformFeeBps;
-  final double platformFeeUsdc;
+
+  /// The platform fee, in [payWith].
+  final double platformFee;
 
   @override
-  List<Object?> get props => [stock, inputUsdc, estimatedShares];
+  List<Object?> get props => [stock, payWith, inputAmount, estimatedShares];
 }
 
 /// What a formation change did: the new team, and who dropped out.

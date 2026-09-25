@@ -44,15 +44,20 @@ export const TEST_STOCKS = [
   { mint: 'mint-PLTR', symbol: 'PLTRx', company_name: 'Palantir', tier: 'momentum' as const },
 ];
 
+/** Wiped between tests. Order is irrelevant — the truncate cascades. */
 const TABLES = [
   'score_entries',
+  'general_entries',
+  'points_ledger',
+  'daily_substitutions',
   'price_ticks',
   'roster_slots',
   'rosters',
   'classic_scores',
-  'trophies',
-  'duels',
-  'gameweeks',
+  'league_members',
+  'leagues',
+  'notifications',
+  'follows',
   'users',
   'xstocks',
 ];

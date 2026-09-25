@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
-import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 /// Pinned above the leaderboard so the user's standing is always visible.

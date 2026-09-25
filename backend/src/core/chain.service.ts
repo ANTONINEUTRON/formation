@@ -95,7 +95,7 @@ export class ChainService {
       // the batch and let callers fall back to the last known prices.
       let res: Response;
       try {
-        res = await fetch(url);
+        res = await fetch(url, { headers: this.config.jupiterHeaders });
       } catch (e) {
         this.logger.warn(`Price request failed: ${String(e)}`);
         continue;

@@ -1,4 +1,5 @@
-import type { EntryBreakdown, ScoreEvent, SlotScore } from '../scoring/engine/types.js';
+import type { ScoreEvent, SlotScore } from '../scoring/engine/types.js';
+import type { PaySymbol } from './pay-tokens.js';
 import type { RiskTier, SportMode } from './sport.js';
 
 /** The signed-in player, set on the request by AuthGuard. */
@@ -26,20 +27,6 @@ export interface RosterSlotDto {
   positionLabel: string;
   stock: XStockDto | null;
   balance: number;
-}
-
-export interface GameweekDto {
-  id: string;
-  number: number;
-  startsAt: string;
-  endsAt: string;
-  status: 'live' | 'final';
-  /** True once this player's lineup is locked into the gameweek. */
-  entered: boolean;
-  /** Points so far (live) or final points once settled. */
-  points: number;
-  slots: SlotScore[];
-  teamEvents: ScoreEvent[];
 }
 
 /**
@@ -103,47 +90,25 @@ export interface LeaderboardEntryDto {
   isCurrentUser: boolean;
 }
 
-export interface DuelCategoryDto {
-  code: string;
-  name: string;
-  challenger: number;
-  opponent: number;
-  winner: 'challenger' | 'opponent' | 'tie';
-}
-
-export interface DuelDto {
-  id: string;
-  challenger: LeaderboardEntryDto;
-  opponent: LeaderboardEntryDto;
-  mode: SportMode;
-  durationHours: number;
-  status: 'pending' | 'active' | 'settled' | 'declined';
-  startTime: string | null;
-  endTime: string | null;
-  challengerPoints: number | null;
-  opponentPoints: number | null;
-  /** Basketball duels are decided on categories. */
-  categories: DuelCategoryDto[] | null;
-  challengerBreakdown: EntryBreakdown | null;
-  opponentBreakdown: EntryBreakdown | null;
-  winnerId: string | null;
-}
-
-export interface TrophyDto {
-  id: string;
-  title: string;
-  mode: SportMode;
-  awardedAt: string;
-  txSignature: string | null;
-}
-
 export interface SwapQuoteDto {
   quoteId: string;
-  inputUsdc: number;
+  /** Which token the player is spending. */
+  payWith: PaySymbol;
+  /** Amount of that token, in its own units. */
+  inputAmount: number;
   estimatedShares: number;
   priceImpactPct: number;
+  /** 0 when the paying token has no fee account configured. */
   platformFeeBps: number;
-  platformFeeUsdc: number;
+  /** The fee, in the paying token. */
+  platformFee: number;
+}
+
+/** A token the server will accept as payment, for the app's picker. */
+export interface PayTokenDto {
+  symbol: PaySymbol;
+  mint: string;
+  decimals: number;
 }
 
 /**

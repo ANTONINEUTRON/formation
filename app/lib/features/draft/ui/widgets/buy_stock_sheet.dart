@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/app_log.dart';
+import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -44,9 +46,34 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
   bool _buying = false;
   int _quoteRequest = 0;
 
+  /// What the server accepts. Starts with USDC alone so the field is usable
+  /// before the list arrives.
+  List<PayToken> _payTokens = const [PayToken.usdc];
+  PayToken _payWith = PayToken.usdc;
+
   @override
   void initState() {
     super.initState();
+    _loadPayTokens();
+    _fetchQuote();
+  }
+
+  Future<void> _loadPayTokens() async {
+    try {
+      final tokens = await context.read<DraftCubit>().payTokens();
+      if (mounted && tokens.isNotEmpty) setState(() => _payTokens = tokens);
+    } catch (e) {
+      // Paying in USDC still works, so this is not worth interrupting for.
+      AppLog.warn('Could not load pay tokens', e);
+    }
+  }
+
+  void _setPayWith(PayToken token) {
+    if (token == _payWith) return;
+    setState(() {
+      _payWith = token;
+      _quote = null;
+    });
     _fetchQuote();
   }
 
@@ -84,7 +111,8 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     final request = ++_quoteRequest;
     setState(() => _quote = null);
     try {
-      final quote = await context.read<DraftCubit>().quote(widget.stock, _amount);
+      final quote =
+          await context.read<DraftCubit>().quote(widget.stock, _amount, payWith: _payWith);
       if (mounted && request == _quoteRequest) setState(() => _quote = quote);
     } catch (e) {
       if (mounted) context.showErrorToast(message: errorText(e));
@@ -135,9 +163,15 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
               style: AppTextStyles.mono(fontSize: 22, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 labelText: 'Amount',
-                prefixText: r'$ ',
-                suffixText: 'USDC',
                 errorText: _controller.text.isEmpty ? null : _amountError,
+                // The picker sits inside the field, so the amount and the
+                // token it is denominated in read as one control.
+                suffixIcon: PayTokenPicker(
+                  tokens: _payTokens,
+                  selected: _payWith,
+                  onChanged: _buying ? null : _setPayWith,
+                ),
+                suffixIconConstraints: const BoxConstraints(minWidth: 108),
               ),
               onChanged: _onAmountChanged,
               onSubmitted: (_) => _fetchQuote(),
@@ -153,7 +187,10 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
                   ? const SizedBox(height: 110, child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
                   : Column(
                       children: [
-                        _QuoteRow('You pay', '${formatUsd(quote.inputUsdc)} USDC'),
+                        _QuoteRow(
+                          'You pay',
+                          '${formatAmount(quote.inputAmount)} ${quote.payWith}',
+                        ),
                         _QuoteRow('You receive (est.)', '${formatShares(quote.estimatedShares)} ${widget.stock.symbol}'),
                         _QuoteRow('Price impact', formatPct(quote.priceImpactPct, signed: false)),
                         

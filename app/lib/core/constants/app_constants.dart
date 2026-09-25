@@ -11,12 +11,6 @@ class AppConstants {
   /// Set with `flutter run --dart-define=API_URL=https://...`.
   static const String apiUrl = String.fromEnvironment('API_URL');
 
-  // URLs - Update these with actual values
-  static const String webAppUrl = 'https://symbians.app';
-
-  // Pagination
-  static const int defaultPageSize = 20;
-
   // Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
 

@@ -33,6 +33,14 @@ String formatPct(double fraction, {bool signed = true, int decimals = 2}) {
 
 String formatUsd(double amount) => _usd.format(amount);
 
+/// A token amount, which is not necessarily dollars. SOL and SKR need more
+/// precision than USDC, so small values keep more decimals.
+String formatAmount(double amount) => amount == 0
+    ? '0'
+    : amount.abs() < 1
+        ? amount.toStringAsFixed(4)
+        : _points.format(double.parse(amount.toStringAsFixed(2)));
+
 String formatShares(double shares) =>
     shares.toStringAsFixed(shares < 1 ? 4 : 2);
 

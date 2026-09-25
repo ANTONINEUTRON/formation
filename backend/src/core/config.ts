@@ -1,13 +1,23 @@
+import { loadPayTokens } from '../domain/pay-tokens.js';
+import type { PayToken } from '../domain/pay-tokens.js';
 
 export interface AppConfig {
   /** Postgres connection string. PORT is read directly by main.ts. */
   databaseUrl: string;
   rpcUrl: string;
   jupiterApiUrl: string;
-  /** Platform fee charged on every draft swap, in basis points. */
+  /**
+   * Headers for every Jupiter request: the API key, when there is one.
+   *
+   * Derived once here so the header name lives in a single place — a typo in it
+   * does not fail loudly, it just silently drops you back to the keyless rate
+   * limit, which only shows up later as intermittent 429s under load.
+   */
+  jupiterHeaders: Record<string, string>;
+  /** Platform fee charged on every swap, in basis points. */
   platformFeeBps: number;
-  /** Token account that receives the platform fee. Fees are off when empty. */
-  jupiterFeeAccount: string;
+  /** Tokens a player can spend, each with its own fee account. */
+  payTokens: PayToken[];
   adminKey: string;
   authSecret: string;
 
@@ -30,12 +40,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const number = (value: string | undefined, fallback: number) =>
     value === undefined || value === '' ? fallback : Number(value);
 
+  // A key is only honoured on api.jup.ag; lite-api.jup.ag is the keyless host
+  // and would ignore it, leaving you paying for headroom you never get. So the
+  // default host follows the key rather than being set independently of it.
+  const jupiterApiKey = env.JUPITER_API_KEY?.trim() ?? '';
+  const defaultJupiterUrl = jupiterApiKey ? 'https://api.jup.ag' : 'https://lite-api.jup.ag';
+
   return {
     databaseUrl: env.DATABASE_URL ?? '',
     rpcUrl: env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com',
-    jupiterApiUrl: env.JUPITER_API_URL ?? 'https://lite-api.jup.ag',
+    jupiterApiUrl: env.JUPITER_API_URL ?? defaultJupiterUrl,
+    jupiterHeaders: jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {},
     platformFeeBps: number(env.PLATFORM_FEE_BPS, 30),
-    jupiterFeeAccount: env.JUPITER_FEE_ACCOUNT ?? '',
+    payTokens: loadPayTokens(env),
     adminKey: env.ADMIN_KEY ?? '',
     authSecret: env.AUTH_SECRET ?? '',
 

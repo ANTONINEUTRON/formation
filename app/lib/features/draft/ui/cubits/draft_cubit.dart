@@ -55,8 +55,15 @@ class DraftCubit extends Cubit<DraftState> {
     if (!isClosed) emit(state.copyWith(roster: roster));
   }
 
-  Future<SwapQuote> quote(XStock stock, double usdcAmount) =>
-      _repository.getSwapQuote(stock, usdcAmount);
+  /// Tokens the server accepts as payment.
+  Future<List<PayToken>> payTokens() => _repository.getPayTokens();
+
+  Future<SwapQuote> quote(
+    XStock stock,
+    double amount, {
+    PayToken payWith = PayToken.usdc,
+  }) =>
+      _repository.getSwapQuote(stock, amount, payWith: payWith);
 
   /// Buys via the quoted swap, then fills the slot with the new holding.
   Future<double> buyAndFill(int slotIndex, SwapQuote quote) async {

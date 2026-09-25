@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/utils/app_log.dart';
+import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -52,6 +54,25 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
   bool _buying = false;
   String? _failure;
 
+  List<PayToken> _payTokens = const [PayToken.usdc];
+  PayToken _payWith = PayToken.usdc;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayTokens();
+  }
+
+  Future<void> _loadPayTokens() async {
+    try {
+      final tokens = await widget.repository.getPayTokens();
+      if (mounted && tokens.isNotEmpty) setState(() => _payTokens = tokens);
+    } catch (e) {
+      // USDC still works; not worth interrupting the sheet for.
+      AppLog.warn('Could not load pay tokens', e);
+    }
+  }
+
   @override
   void dispose() {
     _budget.dispose();
@@ -87,7 +108,11 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
     // Sequential on purpose: each swap is signed separately in the wallet.
     for (final holding in _picked) {
       try {
-        final quote = await widget.repository.getSwapQuote(holding.stock, _perStock);
+        final quote = await widget.repository.getSwapQuote(
+          holding.stock,
+          _perStock,
+          payWith: _payWith,
+        );
         await widget.repository.executeSwap(quote);
         if (!mounted) return;
         setState(() => _boughtCount++);
@@ -144,10 +169,16 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
               style: AppTextStyles.mono(fontSize: 18, fontWeight: FontWeight.bold),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Total budget',
-                prefixText: r'$ ',
-                suffixText: 'USDC',
+                suffixIcon: PayTokenPicker(
+                  tokens: _payTokens,
+                  selected: _payWith,
+                  onChanged: _buying
+                      ? null
+                      : (t) => setState(() => _payWith = t),
+                ),
+                suffixIconConstraints: const BoxConstraints(minWidth: 108),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -190,7 +221,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                     ),
                     secondary: on && _perStock > 0
                         ? Text(
-                            formatUsd(_perStock),
+                            '${formatAmount(_perStock)} ${_payWith.symbol}',
                             style: AppTextStyles.mono(fontSize: 12),
                           )
                         : null,
@@ -211,7 +242,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
               _buying
                   ? 'Bought $_boughtCount of ${_picked.length} — approve each in your wallet'
                   : '${_picked.length} stock${_picked.length == 1 ? '' : 's'} · '
-                      '${formatUsd(_perStock)} each',
+                      '${formatAmount(_perStock)} ${_payWith.symbol} each',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),

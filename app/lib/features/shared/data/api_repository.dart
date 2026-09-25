@@ -229,9 +229,22 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
-  Future<SwapQuote> getSwapQuote(XStock stock, double usdcAmount) async {
-    final json = await _request('POST', '/swap/quote',
-        body: {'mint': stock.mint, 'usdcAmount': usdcAmount});
+  Future<List<PayToken>> getPayTokens() async {
+    final list = await _request('GET', '/swap/tokens') as List;
+    return list.cast<Map<String, dynamic>>().map(PayToken.fromJson).toList();
+  }
+
+  @override
+  Future<SwapQuote> getSwapQuote(
+    XStock stock,
+    double amount, {
+    PayToken payWith = PayToken.usdc,
+  }) async {
+    final json = await _request('POST', '/swap/quote', body: {
+      'mint': stock.mint,
+      'amount': amount,
+      'payWith': payWith.symbol,
+    });
     return SwapQuote.fromJson(stock, json as Map<String, dynamic>);
   }
 

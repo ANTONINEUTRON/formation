@@ -529,16 +529,37 @@ class FixtureRepository implements FormationRepository {
 
   // ── Swaps ──────────────────────────────────────────────────────────────────
 
+  /// Fixtures offer all three so the picker can be exercised offline.
   @override
-  Future<SwapQuote> getSwapQuote(XStock stock, double usdcAmount) => _delay(() {
-        final fee = usdcAmount * _platformFeeBps / 10000;
+  Future<List<PayToken>> getPayTokens() => _delay(() => const [
+        PayToken.usdc,
+        PayToken(
+          symbol: 'SOL',
+          mint: 'So11111111111111111111111111111111111111112',
+          decimals: 9,
+        ),
+        PayToken(symbol: 'SKR', mint: 'SKRfixture', decimals: 9),
+      ]);
+
+  @override
+  Future<SwapQuote> getSwapQuote(
+    XStock stock,
+    double amount, {
+    PayToken payWith = PayToken.usdc,
+  }) =>
+      _delay(() {
+        final fee = amount * _platformFeeBps / 10000;
+        // Fixtures price everything in dollars, so non-USDC tokens need a
+        // notional rate to turn an amount into shares.
+        final rate = switch (payWith.symbol) { 'SOL' => 150.0, 'SKR' => 0.5, _ => 1.0 };
         return SwapQuote(
           stock: stock,
-          inputUsdc: usdcAmount,
-          estimatedShares: (usdcAmount - fee) / stock.priceUsd,
-          priceImpactPct: 0.0008 + usdcAmount / 2e6,
+          payWith: payWith.symbol,
+          inputAmount: amount,
+          estimatedShares: ((amount - fee) * rate) / stock.priceUsd,
+          priceImpactPct: 0.0008 + amount / 2e6,
           platformFeeBps: _platformFeeBps,
-          platformFeeUsdc: fee,
+          platformFee: fee,
         );
       });
 
