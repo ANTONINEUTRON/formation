@@ -8,6 +8,10 @@ export interface UsersTable {
   id: Generated<string>;
   wallet_address: string;
   username: string;
+  /** Short public blurb shown on the player's profile. */
+  bio: string | null;
+  /** Private. Never exposed through ManagerDto or any public endpoint. */
+  email: string | null;
   is_seed: Generated<boolean>;
   created_at: Timestamp;
 }

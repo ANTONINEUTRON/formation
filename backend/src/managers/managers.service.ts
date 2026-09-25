@@ -32,7 +32,7 @@ export class ManagersService {
   async profile(viewer: AuthUser, userId: string, mode: SportMode): Promise<ManagerDto> {
     const user = await this.db
       .selectFrom('users')
-      .select(['id', 'username', 'wallet_address'])
+      .select(['id', 'username', 'bio', 'wallet_address'])
       .where('id', '=', userId)
       .executeTakeFirst();
     if (!user) throw new NotFoundException('No such player');
@@ -49,6 +49,7 @@ export class ManagersService {
     return {
       userId: user.id,
       username: user.username,
+      bio: user.bio,
       walletAddress: user.wallet_address,
       mode,
       rank: standing?.rank ?? null,

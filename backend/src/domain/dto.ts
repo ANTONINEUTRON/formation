@@ -207,6 +207,7 @@ export interface NotificationDto {
 export interface ManagerDto {
   userId: string;
   username: string;
+  bio: string | null;
   walletAddress: string;
   mode: SportMode;
   rank: number | null;
@@ -232,4 +233,21 @@ export interface ManagerHoldingDto {
   valueUsd: number;
   /** True when this holding is in their starting lineup. */
   starting: boolean;
+}
+
+/**
+ * The signed-in player's own profile, the only one they can edit.
+ *
+ * This is the only shape that carries [email]. ManagerDto deliberately has no
+ * email field, so another player's profile cannot leak one even by accident.
+ */
+export interface ProfileDto {
+  userId: string;
+  username: string;
+  bio: string | null;
+  /** Private to this player. */
+  email: string | null;
+  walletAddress: string;
+  followers: number;
+  following: number;
 }

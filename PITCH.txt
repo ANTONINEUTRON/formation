@@ -1,0 +1,244 @@
+================================================================================
+FORMATION
+Fantasy football, but the players are real stocks and the squad is your wallet.
+================================================================================
+
+
+THE ONE LINE
+------------
+
+You draft a starting eleven of tokenized stocks, your points come from beating
+the market, and anyone who likes your lineup can buy it for themselves in one
+tap. You own every share the whole time.
+
+
+THE PROBLEM
+-----------
+
+Everybody has opinions about stocks. Nobody has a record.
+
+You tell your group chat you're long Nvidia. Six months later there is no proof
+you called it, no ranking, no rematch, and no way for anyone who believed you to
+follow you into it. Meanwhile tens of millions of people already know exactly
+how to turn that argument into a game: draft a squad, face an opponent, watch
+the scoreboard move, brag when you win.
+
+Nobody has built that for real money you actually keep.
+
+Outside the US the problem is worse. Most retail investors cannot open a US
+brokerage account at all. They can hold tokenized US equities on Solana today,
+but there is nothing to do with them except stare at a number.
+
+
+WHAT IT IS
+----------
+
+A fantasy sports app where the roster is your real portfolio.
+
+  1. Connect a Solana wallet.
+  2. Pick a sport: Football (11 slots), Basketball (5), American Football.
+  3. Fill each position with a tokenized US stock. Position decides risk tier:
+     the goalkeeper must be a blue chip, forwards must be momentum names. That
+     constraint is the game — it stops "just buy the five hottest tickers".
+  4. Don't own it yet? Buy it inline through Jupiter, signed in your own wallet.
+  5. Your points start moving on the next price tick.
+
+Your wallet IS your squad. Anything you hold that isn't in the starting lineup
+sits on the bench, ready to come on. There is no maximum squad size, because
+there is no maximum to what you're allowed to own.
+
+Nobody's money is ever pooled, escrowed, or moved between players. There is no
+prize fund. The stake was always just what you already own, which is what makes
+this a game rather than a gambling product wearing a costume.
+
+
+HOW SCORING WORKS
+-----------------
+
+This is the part most people get wrong, so it's worth being precise.
+
+Base points are ALPHA, not return. A pick scores on how far it beat SPYx, the
+S&P 500 tracker, over the same window — one point per 0.1% of outperformance.
+A stock that rises 2% while the market rises 2% scores nothing.
+
+That single decision means a bull market doesn't hand everyone points. The
+league measures stock picking, not luck with timing.
+
+On top of that, each sport layers its own events, so the three modes actually
+feel different rather than being reskins:
+
+  Football           every +3% is a goal (a defender scoring is worth more than
+                     a forward, exactly like the real game), clean sheets for
+                     holding flat, conceded goals for dropping.
+  Basketball         buckets for guards, blocks for the centre when it holds up
+                     while the market falls, team double-doubles.
+  American Football  touchdowns every +4%, receptions, turnovers, and a clean
+                     pocket for a quarterback that never dipped 2%.
+
+Football and basketball have a captain who scores a multiplier, with a
+vice-captain as backup if the captain's pick doesn't count.
+
+Points bank on EVERY price tick. There is no weekly window to wait out, no
+"check back Sunday". The leaderboard moves while you're looking at it, and it
+filters to all-time, this month, this week, or any custom range you pick.
+
+
+SUBSTITUTIONS AND TRANSFERS
+---------------------------
+
+Two different things, priced differently, and the difference is deliberate.
+
+  A SUBSTITUTION brings a bench stock into your starting eleven. Three free
+  every day, then it costs you points. It's free for you and earns us nothing,
+  so that's where the friction belongs.
+
+  A TRANSFER is buying or selling. Unlimited and never charged in points.
+
+If you sell a pick mid-window it is substituted off, not voided — it keeps every
+point it earned up to the sale price, and a rally after you sold doesn't score
+for you. Wanting out of a falling stock is a legitimate decision, and the game
+shouldn't punish you for making it.
+
+
+THE PART THAT GROWS
+-------------------
+
+Tap any name on the leaderboard and you see that manager: their rank, their
+running points, their league record, their starting lineup, and their wallet.
+A Solana wallet is public — none of this needs their permission.
+
+Then two things you can do about it:
+
+  FOLLOW them, and you're told the moment they change their lineup.
+  "Marcus subbed Tesla off, Palantir on."
+
+  ADOPT THEIR WALLET. A sheet opens with every stock they hold, all ticked.
+  Untick what you don't want, set one budget, and buy the rest — your money,
+  your wallet, each swap signed by you. Nothing transfers between wallets, and
+  the manager isn't involved.
+
+It buys their PICKS, not their position sizes. The budget splits evenly, so
+you're copying what someone thinks, not how rich they are.
+
+This is where the business is. A good manager with five hundred followers
+generates five hundred purchases. Revenue scales with someone's audience rather
+than with our signup count.
+
+
+CUSTOM LEAGUES AND HEAD TO HEAD
+-------------------------------
+
+Create a league, public or private, and share the code. You choose when it
+starts and how long it runs — an hour, a day, a week. Lineups lock when it
+opens, so everyone is judged on the team they committed to, while the global
+league keeps running underneath.
+
+A head-to-head duel is the same object with two players in it. One code path,
+one lifecycle, no special case.
+
+
+HOW IT MAKES MONEY
+------------------
+
+Basis points on every swap, taken through Jupiter's platform fee and collected
+inside the same transaction the user already signs. No separate billing, no
+custody, no extra infrastructure — it's a parameter on a call we were making
+anyway.
+
+Every part of the product creates swaps:
+  - drafting a team
+  - transfers, which we deliberately never charge points for
+  - adopting a manager's wallet, which is a basket of them at once
+
+Secondary, later: subscription for multiple concurrent sport modes and deeper
+analytics, and sponsored placement from tokenized-equity issuers who all want
+distribution.
+
+
+WHY SOLANA, AND WHY NOW
+-----------------------
+
+Tokenized equities on Solana are real and growing fast. Spot DEX volume for
+tokenized stocks hit roughly $5.8B in Q2 2026, up 114% on the previous quarter,
+and xStocks has passed $25B in total transaction volume while accounting for
+about 86% of tokenized equity issuance on the network.
+
+More importantly, they trade around the clock. A stock game on any other rail
+goes dead every night and every weekend. This one never stops ticking, which is
+the only reason continuous scoring is possible at all.
+
+And there is no custom smart contract here. Balances are read from the chain,
+prices come from Jupiter and Pyth, trades route through Jupiter, and the user
+signs everything. That isn't laziness — it's why there's no custody risk to
+defend.
+
+
+WHY THIS SURVIVES WHERE OTHERS DIDN'T
+-------------------------------------
+
+Fantasy stock trading has been tried and killed twice. We designed around both.
+
+  In 2015 the SEC shut down Stock Battle for offering unregistered
+  security-based swaps. The fatal ingredient was a PRIZE whose value depended on
+  how securities performed. Formation has no prize pool, no entry fee, and no
+  pot. Winning gets you standing, not money.
+
+  In June 2024 India's SEBI cut fantasy trading platforms off at the knees by
+  banning exchanges from sharing real-time price data with them. Formation has
+  no exchange data dependency — prices come from on-chain markets. There is no
+  feed for anyone to switch off.
+
+We also never take custody, never pool funds, and never trade on anyone's
+behalf, which keeps us out of the adviser and broker-dealer perimeter that the
+US copy-trading incumbents needed two years and two registrations to enter.
+
+
+WHAT IS ACTUALLY BUILT
+----------------------
+
+All of the above is working software, not slides.
+
+  - Flutter app on Android, wallet connect via Mobile Wallet Adapter
+  - NestJS + Postgres backend, continuous scoring engine, price ticks
+  - Live xStock prices and real on-chain balance reads
+  - Real Jupiter swaps with the platform fee wired in
+  - Leaderboard with period filters, custom leagues, PvP, manager profiles,
+    adopt-wallet, following, and notifications
+  - 54 unit, 15 integration and 5 end-to-end backend tests, 30 app tests
+
+Known gaps, stated plainly: the app is Android-first, the sport modes beyond
+football are lightly tuned, and the event thresholds were originally calibrated
+for crypto volatility rather than equities and are still being adjusted.
+
+
+WHO IT IS FOR
+-------------
+
+Crypto-native retail investors outside the United States. xStocks are issued
+under Reg S and are unavailable to US, Canadian, UK and Australian persons — so
+our market is the roughly 110 countries where they can be held, which is also
+precisely where people cannot easily open a US brokerage account.
+
+That is not a compromise. It is the only market where this product is both legal
+and genuinely needed.
+
+
+THE RISKS WE KNOW ABOUT
+-----------------------
+
+  Regulatory.  No prize means no security-based swap, and that line must hold.
+               The moment a pot or a paid creator programme appears, the
+               analysis changes completely.
+  Market.      This is closer to a vitamin than a painkiller. Nobody is in pain
+               from lacking a stock leaderboard. The social layer — having a
+               public record and an audience — is what has to carry retention.
+  Concentration. Solana's share of tokenized equity volume has fallen from ~97%
+               to around 35% as competitors launched. We benefit from the
+               category growing, not from one chain winning.
+  Execution.   Making a leaderboard feel alive is a tuning problem, and we are
+               still tuning it.
+
+
+================================================================================
+Formation. Publish your formation. Let the world field it.
+================================================================================

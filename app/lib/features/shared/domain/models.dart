@@ -463,11 +463,51 @@ class LeaguePeriod extends Equatable {
   List<Object?> get props => [kind, from, to];
 }
 
+/// The signed-in player's own profile.
+///
+/// The only shape carrying [email], which is private: it is never part of
+/// [Manager], so another player's profile cannot show it.
+class Profile extends Equatable {
+  const Profile({
+    required this.userId,
+    required this.username,
+    required this.walletAddress,
+    required this.followers,
+    required this.following,
+    this.bio,
+    this.email,
+  });
+
+  factory Profile.fromJson(Map<String, dynamic> json) => Profile(
+        userId: json['userId'] as String,
+        username: json['username'] as String,
+        bio: json['bio'] as String?,
+        email: json['email'] as String?,
+        walletAddress: json['walletAddress'] as String,
+        followers: json['followers'] as int? ?? 0,
+        following: json['following'] as int? ?? 0,
+      );
+
+  final String userId;
+  final String username;
+  final String? bio;
+
+  /// Private to this player; shown only on their own profile screen.
+  final String? email;
+  final String walletAddress;
+  final int followers;
+  final int following;
+
+  @override
+  List<Object?> get props => [userId, username, bio, email, followers, following];
+}
+
 /// Another player's public profile for one sport.
 class Manager extends Equatable {
   const Manager({
     required this.userId,
     required this.username,
+    required this.bio,
     required this.walletAddress,
     required this.mode,
     required this.points,
@@ -486,6 +526,7 @@ class Manager extends Equatable {
   factory Manager.fromJson(Map<String, dynamic> json, List<PositionSlot> shape) => Manager(
         userId: json['userId'] as String,
         username: json['username'] as String,
+        bio: json['bio'] as String?,
         walletAddress: json['walletAddress'] as String,
         mode: SportMode.fromApi(json['mode'] as String),
         rank: json['rank'] as int?,
@@ -514,6 +555,7 @@ class Manager extends Equatable {
 
   final String userId;
   final String username;
+  final String? bio;
   final String walletAddress;
   final SportMode mode;
   final int? rank;
@@ -533,6 +575,7 @@ class Manager extends Equatable {
   Manager copyWith({bool? following, int? followers}) => Manager(
         userId: userId,
         username: username,
+        bio: bio,
         walletAddress: walletAddress,
         mode: mode,
         rank: rank,

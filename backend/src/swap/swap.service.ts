@@ -46,8 +46,11 @@ export class SwapService {
   }
 
   async quote(user: AuthUser, mint: string, usdcAmount: number): Promise<SwapQuoteDto> {
-    if (usdcAmount < 1 || usdcAmount > 100_000) {
-      throw new BadRequestException('Amount must be between $1 and $100,000');
+    // No upper limit: it is the player's own money and their own wallet, and
+    // Jupiter already rejects anything it cannot route. Only reject amounts
+    // that aren't a usable number.
+    if (!Number.isFinite(usdcAmount) || usdcAmount <= 0) {
+      throw new BadRequestException('Enter an amount greater than zero');
     }
     const stock = (await this.xstocks.byMint()).get(mint);
     if (!stock) throw new BadRequestException('Unsupported token');

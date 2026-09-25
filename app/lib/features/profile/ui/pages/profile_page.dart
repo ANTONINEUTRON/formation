@@ -8,6 +8,7 @@ import 'package:formation/core/widgets/loading_indicator.dart';
 import 'package:formation/features/profile/ui/cubits/profile_cubit.dart';
 import 'package:formation/features/profile/ui/cubits/profile_state.dart';
 import 'package:formation/features/profile/ui/widgets/action_tile.dart';
+import 'package:formation/features/profile/ui/widgets/edit_profile_sheet.dart';
 import 'package:formation/features/profile/ui/widgets/profile_card.dart';
 import 'package:formation/features/profile/ui/widgets/record_summary.dart';
 import 'package:formation/features/profile/ui/widgets/section_header.dart';
@@ -36,7 +37,25 @@ class ProfilePage extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
-            ProfileCard(walletAddress: context.select<WalletCubit, String>((c) => c.state.walletAddress ?? '')),
+            BlocBuilder<ProfileCubit, ProfileState>(
+              buildWhen: (a, b) => a.profile != b.profile,
+              builder: (context, state) => ProfileCard(
+                walletAddress:
+                    context.select<WalletCubit, String>((c) => c.state.walletAddress ?? ''),
+                profile: state.profile,
+                onEdit: state.profile == null
+                    ? null
+                    : () async {
+                        final cubit = context.read<ProfileCubit>();
+                        final updated = await EditProfileSheet.show(
+                          context,
+                          profile: state.profile!,
+                          repository: context.read<FormationRepository>(),
+                        );
+                        if (updated != null) cubit.setProfile(updated);
+                      },
+              ),
+            ),
             const SizedBox(height: 24),
 
             BlocBuilder<ProfileCubit, ProfileState>(

@@ -19,6 +19,8 @@ import { EntryScoringService } from './scoring/entry-scoring.service.js';
 import { GeneralScoringService } from './scoring/general-scoring.service.js';
 import { PriceTickService } from './scoring/price-tick.service.js';
 import { SwapController } from './swap/swap.controller.js';
+import { UsersController } from './users/users.controller.js';
+import { UsersService } from './users/users.service.js';
 import { SwapService } from './swap/swap.service.js';
 import { XStocksController } from './xstocks/xstocks.controller.js';
 
@@ -35,6 +37,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     WalletController,
     NotificationsController,
     ManagersController,
+    UsersController,
     SwapController,
     AdminController,
   ],
@@ -48,6 +51,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     NotificationsService,
     ManagersService,
     RosterService,
+    UsersService,
     SwapService,
   ],
 })

@@ -16,7 +16,14 @@ import type { Harness } from '../integration/harness.js';
  * Responses are saved to test/contract/*.json so the app's parser tests run
  * against real backend output.
  */
-const CONTRACT_DIR = join(dirname(fileURLToPath(import.meta.url)), '../contract');
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/// Samples are written to both copies: the app's contract tests parse the same
+/// files, and letting the two drift apart silently breaks them.
+const CONTRACT_DIRS = [
+  join(HERE, '../contract'),
+  join(HERE, '../../../app/test/contract'),
+];
 
 describe('Formation flow (e2e)', () => {
   let h: Harness;
@@ -27,14 +34,17 @@ describe('Formation flow (e2e)', () => {
     h = await createHarness();
     adminKey = process.env.ADMIN_KEY!;
     http = request(h.app.getHttpServer());
-    mkdirSync(CONTRACT_DIR, { recursive: true });
+    for (const dir of CONTRACT_DIRS) mkdirSync(dir, { recursive: true });
   });
   afterAll(async () => {
     await h.close();
   });
 
-  const sample = (name: string, body: unknown) =>
-    writeFileSync(join(CONTRACT_DIR, `${name}.json`), JSON.stringify(body, null, 2));
+  const sample = (name: string, body: unknown) => {
+    for (const dir of CONTRACT_DIRS) {
+      writeFileSync(join(dir, `${name}.json`), JSON.stringify(body, null, 2));
+    }
+  };
 
   /** Signs in a fresh wallet the way the app does (MWA message signing). */
   async function signIn(): Promise<{ token: string; wallet: string }> {
@@ -209,6 +219,67 @@ describe('Formation flow (e2e)', () => {
     expect(settled.body.standings).toHaveLength(2);
     expect(settled.body.standings[0].rank).toBe(1);
     sample('league-settled', settled.body);
+  });
+
+  it('lets a player set a name and bio, and keeps their email private', async () => {
+    await h.reset();
+    const alice = await signIn();
+    const bob = await signIn();
+    const auth = { authorization: `Bearer ${alice.token}` };
+
+    // The default username is derived from the wallet and is unreadable.
+    const before = await http.get('/users/me').set(auth).expect(200);
+    expect(before.body.username).toContain('…');
+    expect(before.body.bio).toBeNull();
+    expect(before.body.email).toBeNull();
+
+    const updated = await http
+      .patch('/users/me')
+      .set(auth)
+      .send({ username: 'marcus', bio: 'Long tech, short patience.', email: 'Marcus@Example.com' })
+      .expect(200);
+    expect(updated.body.username).toBe('marcus');
+    expect(updated.body.bio).toBe('Long tech, short patience.');
+    // Stored lower-cased so 'Marcus@' and 'marcus@' are the same address.
+    expect(updated.body.email).toBe('marcus@example.com');
+    sample('profile', updated.body);
+
+    // Each field moves on its own: sending only a bio leaves the name alone.
+    const bioOnly = await http
+      .patch('/users/me')
+      .set(auth)
+      .send({ bio: 'Changed my mind.' })
+      .expect(200);
+    expect(bioOnly.body.username).toBe('marcus');
+    expect(bioOnly.body.email).toBe('marcus@example.com');
+
+    // Null clears, which is different from not sending the field.
+    const cleared = await http.patch('/users/me').set(auth).send({ bio: null }).expect(200);
+    expect(cleared.body.bio).toBeNull();
+
+    // Names are unique regardless of case, and validated.
+    await http
+      .patch('/users/me')
+      .set('authorization', `Bearer ${bob.token}`)
+      .send({ username: 'MARCUS' })
+      .expect(409);
+    await http.patch('/users/me').set(auth).send({ username: 'no' }).expect(400);
+    await http.patch('/users/me').set(auth).send({ username: 'has spaces' }).expect(400);
+    await http.patch('/users/me').set(auth).send({ email: 'not-an-email' }).expect(400);
+    await http.patch('/users/me').set(auth).send({ bio: 'x'.repeat(161) }).expect(400);
+
+    // The whole point: Bob sees Alice's name and bio, never her email.
+    await http.patch('/users/me').set(auth).send({ bio: 'Public blurb.' }).expect(200);
+    const aliceId = updated.body.userId as string;
+    const asSeenByBob = await http
+      .get(`/managers/${aliceId}?mode=football`)
+      .set('authorization', `Bearer ${bob.token}`)
+      .expect(200);
+
+    expect(asSeenByBob.body.username).toBe('marcus');
+    expect(asSeenByBob.body.bio).toBe('Public blurb.');
+    expect(asSeenByBob.body).not.toHaveProperty('email');
+    expect(JSON.stringify(asSeenByBob.body)).not.toContain('marcus@example.com');
   });
 
   it('shows a manager profile, follows them, and notifies both sides', async () => {

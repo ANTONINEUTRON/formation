@@ -17,10 +17,14 @@ class ProfileCubit extends Cubit<ProfileState> {
   Future<void> load() async {
     emit(const ProfileState(status: LoadStatus.loading));
     try {
-      final perMode = await Future.wait(SportMode.values.map(_record));
+      final (perMode, profile) = await (
+        Future.wait(SportMode.values.map(_record)),
+        _repository.getProfile(),
+      ).wait;
       if (isClosed) return;
       emit(ProfileState(
         status: LoadStatus.success,
+        profile: profile,
         records: Map.fromIterables(SportMode.values, perMode),
       ));
     } catch (e) {
@@ -28,6 +32,9 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileState(status: LoadStatus.failure, error: errorText(e)));
     }
   }
+
+  /// Replaces the profile after an edit, without refetching everything else.
+  void setProfile(Profile profile) => emit(state.copyWith(profile: profile));
 
   /// Wins and losses come from settled leagues the player took part in.
   Future<SportRecord> _record(SportMode mode) async {

@@ -64,6 +64,15 @@ abstract class FormationRepository {
 
   Future<void> leaveLeague(String id);
 
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  /// The signed-in player's own profile, including their private email.
+  Future<Profile> getProfile();
+
+  /// Updates name, bio and email. Omit a field to leave it alone; pass an
+  /// empty string to clear the bio or email.
+  Future<Profile> updateProfile({String? username, String? bio, String? email});
+
   // ── Managers ───────────────────────────────────────────────────────────────
 
   /// Another player's profile, lineup and holdings for [mode].

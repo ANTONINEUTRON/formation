@@ -36,10 +36,6 @@ class BuyStockSheet extends StatefulWidget {
 }
 
 class _BuyStockSheetState extends State<BuyStockSheet> {
-  /// Matches the backend's guard in swap.service.ts.
-  static const _minUsdc = 1.0;
-  static const _maxUsdc = 100000.0;
-
   final _controller = TextEditingController(text: '10');
   Timer? _debounce;
 
@@ -62,13 +58,15 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
   }
 
   /// Null while the amount is usable; otherwise why it isn't.
+  ///
+  /// There is no ceiling: it's the player's own wallet, and Jupiter rejects
+  /// anything it cannot route. Only an unusable number is refused here.
   String? get _amountError {
     final raw = _controller.text.trim();
     if (raw.isEmpty) return 'Enter an amount';
     final value = double.tryParse(raw);
     if (value == null) return 'Enter a number';
-    if (value < _minUsdc) return 'Minimum is ${formatUsd(_minUsdc)}';
-    if (value > _maxUsdc) return 'Maximum is ${formatUsd(_maxUsdc)}';
+    if (value <= 0) return 'Enter an amount greater than zero';
     return null;
   }
 

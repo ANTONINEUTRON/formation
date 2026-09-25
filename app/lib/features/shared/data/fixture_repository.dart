@@ -624,6 +624,44 @@ class FixtureRepository implements FormationRepository {
         _notify();
       });
 
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  Profile _profile = const Profile(
+    userId: 'me',
+    username: 'you',
+    walletAddress: '',
+    followers: 0,
+    following: 0,
+  );
+
+  @override
+  Future<Profile> getProfile() => _delay(
+        () => Profile(
+          userId: currentUserId,
+          username: _profile.username == 'you' ? _myUsername : _profile.username,
+          bio: _profile.bio,
+          email: _profile.email,
+          walletAddress: _walletAddress,
+          followers: _profile.followers,
+          following: _following.length,
+        ),
+      );
+
+  @override
+  Future<Profile> updateProfile({String? username, String? bio, String? email}) => _delay(() {
+        _profile = Profile(
+          userId: currentUserId,
+          username: username ?? _profile.username,
+          bio: bio == null ? _profile.bio : (bio.isEmpty ? null : bio),
+          email: email == null ? _profile.email : (email.isEmpty ? null : email),
+          walletAddress: _walletAddress,
+          followers: _profile.followers,
+          following: _following.length,
+        );
+        _notify();
+        return _profile;
+      });
+
   // ── Managers ───────────────────────────────────────────────────────────────
 
   final Set<String> _following = {};
@@ -635,6 +673,7 @@ class FixtureRepository implements FormationRepository {
         return Manager(
           userId: entry.userId,
           username: entry.username,
+          bio: 'Fixture manager.',
           walletAddress: entry.walletAddress,
           mode: mode,
           rank: entry.rank,

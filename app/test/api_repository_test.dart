@@ -50,6 +50,7 @@ void main() {
         '/league/football' => _sample('league-football'),
         '/leagues' => _sample('leagues-browse'),
         '/notifications' => _sample('notifications'),
+        '/users/me' => _sample('profile'),
         _ when path.startsWith('/managers/') => _sample('manager-profile'),
         _ => jsonEncode({'message': 'not stubbed: $path'}),
       };
@@ -162,6 +163,29 @@ void main() {
     expect(manager.holdings, isNotEmpty);
     // At least one holding is in their starting lineup.
     expect(manager.holdings.any((h) => h.starting), isTrue);
+  });
+
+  test('parses the signed-in profile, including the private email', () async {
+    final profile = await repository().getProfile();
+
+    expect(profile.username, isNotEmpty);
+    expect(profile.bio, isNotEmpty);
+    expect(profile.email, isNotEmpty);
+  });
+
+  test("a manager's profile carries a bio but never an email", () async {
+    final manager = await repository().getManager('someone', SportMode.football);
+
+    // Bio is public and optional, so null is valid here — the recorded manager
+    // simply hasn't written one.
+    final raw = jsonDecode(_sample('manager-profile')) as Map<String, dynamic>;
+    expect(raw, contains('bio'));
+    expect(manager.bio, raw['bio']);
+
+    // The guarantee that matters: a public profile has no email field at all,
+    // so a private address cannot ride along on one.
+    expect(raw, isNot(contains('email')));
+    expect(jsonEncode(raw), isNot(contains('@')));
   });
 
   test('parses notifications and their read state', () async {

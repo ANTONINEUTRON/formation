@@ -73,9 +73,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
     if (_picked.isEmpty) return 'Select at least one stock';
     final total = _total;
     if (total == null) return 'Enter a budget';
-    if (_perStock < 1) {
-      return 'That is under \$1 per stock — raise the budget or pick fewer';
-    }
+    if (total <= 0) return 'Enter a budget greater than zero';
     return null;
   }
 

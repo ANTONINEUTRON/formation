@@ -300,6 +300,24 @@ class ApiRepository implements FormationRepository {
     _notify();
   }
 
+  // ── Profile ────────────────────────────────────────────────────────────────
+
+  @override
+  Future<Profile> getProfile() async =>
+      Profile.fromJson(await _request('GET', '/users/me') as Map<String, dynamic>);
+
+  @override
+  Future<Profile> updateProfile({String? username, String? bio, String? email}) async {
+    final json = await _request('PATCH', '/users/me', body: {
+      if (username != null) 'username': username,
+      // An empty string is how the UI says "clear this"; null on the wire.
+      if (bio != null) 'bio': bio.isEmpty ? null : bio,
+      if (email != null) 'email': email.isEmpty ? null : email,
+    });
+    _notify();
+    return Profile.fromJson(json as Map<String, dynamic>);
+  }
+
   // ── Managers ───────────────────────────────────────────────────────────────
 
   @override
