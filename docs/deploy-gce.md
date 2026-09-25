@@ -1,46 +1,74 @@
 # Deploying the backend to GCP Compute Engine
 
-Runbook for putting the NestJS backend on a single `e2-micro` VM with Caddy in
-front for automatic HTTPS. Postgres lives off-box (Neon), so the VM only runs
-Node and Caddy.
+Runbook for running the NestJS backend on a single `e2-micro` VM: source pulled
+from GitHub, built on the box, kept alive by PM2, with Caddy in front for
+automatic HTTPS. Postgres lives off-box (Neon), so the VM only runs Node and
+Caddy.
 
-Why a VM rather than Cloud Run: the price tick and gameweek processing run as
-in-process timers ([`price-tick.service.ts`](../backend/src/scoring/price-tick.service.ts)).
-They need a process that is always alive with CPU. A VM gives that by default;
-Cloud Run needs `--min-instances=1 --no-cpu-throttling` and fails silently
-without both.
+Why a VM rather than Cloud Run: the price tick runs as an in-process timer
+([`price-tick.service.ts`](../backend/src/scoring/price-tick.service.ts)) and
+banks points every time it fires. It needs a process that is always alive with
+CPU. A VM gives that by default; Cloud Run needs `--min-instances=1
+--no-cpu-throttling` and fails silently without both.
 
 ---
 
-## 0. Before you start: fix these secrets
+## ⚠️ The one that will quietly corrupt your data
 
-Do not deploy the current `backend/.env` as-is.
+**PM2 must run exactly one instance.** The scoring loop is a timer inside the
+process, not a job queue. Start two instances and every tick fires twice, so
+every player banks their points twice and the leaderboard is wrong in a way
+nothing will alert you to.
 
-| Variable | Problem | Action |
-|---|---|---|
-| `AUTH_SECRET` | The current value is a rearrangement of the `JUPITER_FEE_ACCOUNT` address, which is public on-chain in every swap. It is guessable, and it signs every bearer token. | Replace with 32+ random bytes: `openssl rand -base64 48` |
-| `ADMIN_KEY` | `dev-admin-key`. `/admin/*` can force gameweek advances and duel settlements. | Replace with `openssl rand -hex 32` |
-| `SOLANA_RPC_URL` | Public `api.mainnet-beta.solana.com` rate-limits, and every tick reads balances per user. | Use a Helius (or similar) key |
-| `PRICE_TICK_MINUTES` | `60` means the leaderboard only moves hourly. | `5` for a lively board without hammering the RPC |
+Never `pm2 start -i 2`, never `-i max`, never cluster mode. Fork mode, one
+instance. §9 does this correctly — just don't "optimise" it later.
 
-`JUPITER_FEE_ACCOUNT` must be a **USDC token account** you control, not a wallet
-address — Jupiter rejects the swap otherwise, and that is where your revenue
-comes from. Verify it before demoing.
+---
+
+## 0. Before you start
+
+**Push the repo to GitHub.** It has no remote yet (`git remote -v` is empty), so
+there is nothing to clone. Create the public repo and push `master`.
+
+Before you push, confirm the environment file is still ignored — it holds your
+database URL and your token-signing secret:
+
+```bash
+git check-ignore backend/.env      # must print the path
+```
+
+If that prints nothing, stop and fix it before pushing anywhere public.
+
+**Fix these values.** You will type them into the server's `.env` in §7, not
+copy the local file up.
+
+| Variable | Why it matters |
+|---|---|
+| `AUTH_SECRET` | Signs every bearer token. 32+ random bytes, never derived from anything public: `node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"` |
+| `ADMIN_KEY` | `/admin/*` can force ticks and settle leagues: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SOLANA_RPC_URL` | The public endpoint rate-limits, and every tick reads balances per player. Use a Helius key. |
+| `JUPITER_FEE_ACCOUNT` | Must be a USDC **token account** you control, not a wallet address. Empty means fees are off — your revenue silently disabled. |
+| `PRICE_TICK_MINUTES` | The heartbeat: prices recorded *and* points banked on it. `5` keeps the board alive; `60` makes it look frozen. |
+
+`backend/.env.example` is the current list. `TEST_DATABASE_URL` is for the test
+suites only and does not belong on the server.
 
 ---
 
 ## 1. Project, region, static IP
 
-Pick one of `us-west1`, `us-central1` or `us-east1` — `e2-micro` is in the GCP
-free tier only in those regions.
+`e2-micro` is in the GCP free tier only in `us-west1`, `us-central1` and
+`us-east1`.
 
 ```bash
 gcloud config set project <PROJECT_ID>
+gcloud services enable compute.googleapis.com     # not enabled by default
 gcloud config set compute/region us-central1
 gcloud config set compute/zone us-central1-a
 
 gcloud compute addresses create formation-api --region us-central1
-gcloud compute addresses describe formation-api --region us-central1 --format='value(address)'
+gcloud compute addresses describe formation-api --region us-central1 \
+  --format='value(address)'
 ```
 
 Reserve the address **before** creating the VM. An ephemeral IP changes on every
@@ -54,7 +82,8 @@ gcloud compute instances create formation-api \
   --machine-type=e2-micro \
   --image-family=debian-12 --image-project=debian-cloud \
   --boot-disk-size=30GB --boot-disk-type=pd-standard \
-  --address=$(gcloud compute addresses describe formation-api --region us-central1 --format='value(address)') \
+  --address=$(gcloud compute addresses describe formation-api \
+    --region us-central1 --format='value(address)') \
   --tags=http-server,https-server
 ```
 
@@ -63,8 +92,8 @@ gcloud compute instances create formation-api \
 ## 3. Firewall
 
 Open only 80 and 443. Caddy terminates TLS and proxies to Node on localhost, so
-port 3000 must never be reachable from the internet — it has no auth in front of
-`/admin/*` other than the header.
+port 3000 must never be reachable from the internet — the only thing guarding
+`/admin/*` is a header.
 
 ```bash
 gcloud compute firewall-rules create allow-http-https \
@@ -73,12 +102,14 @@ gcloud compute firewall-rules create allow-http-https \
 
 ## 4. DNS
 
-Point an A record at the static IP and let it propagate before installing Caddy —
-certificate issuance fails if the name doesn't resolve yet.
+Point an A record at the static IP and **wait for it to resolve** before
+installing Caddy. Certificate issuance fails if the name doesn't resolve yet.
 
 ```
-api.formation.app.   A   <STATIC_IP>
+api.<your-domain>.   A   <STATIC_IP>
 ```
+
+Verify it from your own machine: `dig +short api.<your-domain>`
 
 ## 5. Base setup on the VM
 
@@ -87,105 +118,124 @@ gcloud compute ssh formation-api
 ```
 
 ```bash
-# Swap: e2-micro has 1GB RAM and `npm ci` can OOM without it.
+# Swap first. e2-micro has 1GB of RAM and you are about to run a TypeScript
+# build on it — see the note in §6.
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
 sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h                      # confirm swap is listed
 
-# Node 24 — match your local major version; the backend is ESM.
+# Node 24 — the backend is ESM and expects a modern runtime.
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt-get install -y nodejs
+sudo apt-get install -y nodejs git
+node -v                      # expect v24.x
 
+sudo npm install -g pm2
+```
+
+## 6. Clone and build
+
+```bash
 sudo mkdir -p /opt/formation && sudo chown $USER:$USER /opt/formation
-```
+git clone https://github.com/<you>/<repo>.git /opt/formation
+cd /opt/formation/backend
 
-## 6. Deploy the build
-
-Build on your machine, ship `dist/` plus the manifests, and install runtime
-dependencies **on the VM**.
-
-> Do not copy `node_modules` from Windows. Several dependencies resolve
-> platform-specific binaries; installing on the box avoids silent runtime
-> failures.
-
-```bash
-# local
-cd backend
+# Dev dependencies are required here: `nest build` is one of them.
+npm ci
 npm run build
-tar czf deploy.tgz dist package.json package-lock.json migrations
-gcloud compute scp deploy.tgz formation-api:/opt/formation/
 ```
+
+> **On 1GB of RAM this is the step that fails.** `nest build` is a TypeScript
+> compile and will lean hard on swap. If it gets killed, give the compiler a
+> ceiling so it collects rather than ballooning:
+>
+> ```bash
+> NODE_OPTIONS=--max-old-space-size=768 npm run build
+> ```
+>
+> If it still dies, build once on your own machine and `scp -r dist` up to
+> `/opt/formation/backend/`. Nothing else in this runbook changes.
+
+Once `dist/` exists you can reclaim the build-only packages:
 
 ```bash
-# on the VM
-cd /opt/formation
-tar xzf deploy.tgz && rm deploy.tgz
-npm ci --omit=dev
+npm prune --omit=dev
 ```
 
-## 7. Environment file
+Do that **after** a successful build, never before — and note that `npm ci` on
+the next deploy puts them back.
+
+## 7. The environment file
 
 ```bash
-nano /opt/formation/.env
+nano /opt/formation/backend/.env
 ```
 
-Paste your `.env` with the secrets from §0 replaced. Then lock it down:
+Type in the values from §0. `main.ts` calls `process.loadEnvFile()`, which reads
+`.env` **relative to the working directory** — which is exactly why §9 pins
+PM2's `cwd`. Get that wrong and the app starts with no configuration and cannot
+reach the database.
 
 ```bash
-chmod 600 /opt/formation/.env
+chmod 600 /opt/formation/backend/.env
 ```
-
-`main.ts` calls `process.loadEnvFile()`, which reads `.env` **relative to the
-working directory** — so the systemd unit below must set `WorkingDirectory`, or
-the app will start with no configuration and fail to reach the database.
 
 ## 8. Run migrations
 
-The substitutions/transfers work added `002_substitutions.sql`, so this is
-required, not optional:
+Seven migrations exist, and only `001_init.sql` has ever been applied to the
+production database. Continuous scoring, leagues, notifications, follows and
+profiles all live in `002`–`007`, so this is required, not optional.
 
 ```bash
-cd /opt/formation && node dist/scripts/migrate.js
+cd /opt/formation/backend && node dist/scripts/migrate.js
 ```
 
-It records applied files in `schema_migrations` and is safe to re-run.
+It records what it applied in `schema_migrations` and is safe to re-run.
 
-## 9. systemd service
+## 9. PM2
+
+Use an ecosystem file rather than a long command line: it pins the working
+directory and the instance count, and it is what `pm2 save` writes down.
 
 ```bash
-sudo nano /etc/systemd/system/formation.service
+nano /opt/formation/backend/ecosystem.config.cjs
 ```
 
-```ini
-[Unit]
-Description=Formation API
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=formation
-WorkingDirectory=/opt/formation
-ExecStart=/usr/bin/node dist/main.js
-Restart=always
-RestartSec=5
-Environment=NODE_ENV=production
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
+```js
+// .cjs because the backend is an ESM package and PM2 reads this with require().
+module.exports = {
+  apps: [
+    {
+      name: 'formation',
+      script: 'dist/main.js',
+      cwd: '/opt/formation/backend',   // process.loadEnvFile() depends on this
+      instances: 1,                    // see the warning at the top of this file
+      exec_mode: 'fork',
+      autorestart: true,
+      max_memory_restart: '400M',
+      env: { NODE_ENV: 'production' },
+    },
+  ],
+};
 ```
 
 ```bash
-sudo useradd --system --no-create-home formation
-sudo chown -R formation:formation /opt/formation
-sudo systemctl daemon-reload
-sudo systemctl enable --now formation
-sudo systemctl status formation
+cd /opt/formation/backend
+pm2 start ecosystem.config.cjs
+pm2 save                     # remember this process list across reboots
+pm2 startup                  # prints a sudo command — run exactly what it prints
 ```
 
-Logs: `sudo journalctl -u formation -f`
+`pm2 startup` does not install anything itself; it echoes a command you must run
+with sudo. Skip that and the app will not come back after a reboot.
+
+Day to day:
+
+```bash
+pm2 status
+pm2 logs formation --lines 100
+pm2 monit
+```
 
 ## 10. Caddy
 
@@ -203,7 +253,7 @@ sudo nano /etc/caddy/Caddyfile
 ```
 
 ```caddyfile
-api.formation.app {
+api.<your-domain> {
 	reverse_proxy localhost:3000
 	encode gzip
 
@@ -216,48 +266,68 @@ api.formation.app {
 
 ```bash
 sudo systemctl reload caddy
+sudo journalctl -u caddy -f      # watch the certificate being issued
 ```
 
-Caddy obtains and renews the Let's Encrypt certificate automatically. Nothing
-else to configure.
+Caddy obtains and renews the Let's Encrypt certificate itself. Nothing else to
+configure, no cron to add.
 
 ## 11. Smoke test
 
 ```bash
-curl https://api.formation.app/xstocks | head -c 200          # live prices
-curl https://api.formation.app/league/football | head -c 200  # seeded ladder
-curl "https://api.formation.app/league/football?period=weekly" | head -c 200
+curl https://api.<your-domain>/xstocks | head -c 200          # live prices
+curl https://api.<your-domain>/league/football | head -c 200  # the ladder
+curl "https://api.<your-domain>/league/football?period=weekly" | head -c 200
 
-# Crons: force one tick, then confirm a gameweek row exists.
-curl -X POST https://api.formation.app/admin/tick -H "x-admin-key: <ADMIN_KEY>"
+# Force one tick, then confirm points were banked.
+curl -X POST https://api.<your-domain>/admin/tick \
+  -H "x-admin-key: <ADMIN_KEY>"
 ```
 
-If `/admin/tick` works but the board never moves on its own, the timer isn't
-running — check `journalctl -u formation` for `Price tick failed`.
+Then check the timer runs on its own: wait `PRICE_TICK_MINUTES`, hit
+`/league/football` again, and see whether the numbers moved. If `/admin/tick`
+works but nothing changes unprompted, the interval isn't firing — look in
+`pm2 logs formation` for `Price tick failed`.
 
 ## 12. Point the app at it
 
 ```bash
 cd app
 flutter build apk --release \
-  --dart-define=API_URL=https://api.formation.app \
+  --dart-define=API_URL=https://api.<your-domain> \
   --dart-define=ADMIN_KEY=<ADMIN_KEY>
 ```
 
-Release builds enforce HTTPS-only (the cleartext exemption is debug-only, see
-`android/app/src/debug/AndroidManifest.xml`), which is exactly why Caddy is here.
+Release builds enforce HTTPS-only — the cleartext exemption in
+`android/app/src/debug/AndroidManifest.xml` applies to debug builds only, which
+is exactly why Caddy is here.
+
+---
 
 ## Redeploying
 
 ```bash
-# local
-cd backend && npm run build
-tar czf deploy.tgz dist package.json package-lock.json migrations
-gcloud compute scp deploy.tgz formation-api:/tmp/
-
-# on the VM
-cd /opt/formation && sudo tar xzf /tmp/deploy.tgz
-sudo chown -R formation:formation /opt/formation
-npm ci --omit=dev && node dist/scripts/migrate.js
-sudo systemctl restart formation
+cd /opt/formation
+git pull
+cd backend
+npm ci                     # restores the dev dependencies you pruned
+npm run build
+node dist/scripts/migrate.js
+npm prune --omit=dev
+pm2 reload formation       # waits for the new process before retiring the old
+pm2 logs formation --lines 50
 ```
+
+`pm2 reload` rather than `restart`: reload brings the replacement up first, so
+there is no window where the API is down.
+
+## When something breaks
+
+| Symptom | Where to look |
+|---|---|
+| 502 from Caddy | Node is down. `pm2 status`, then `pm2 logs formation`. |
+| Starts then exits immediately | Almost always `.env` — wrong `cwd`, or `DATABASE_URL` unreachable from the VM. |
+| Certificate never issues | DNS. `dig +short api.<your-domain>` must return your static IP, and 80/443 must be open. |
+| Points banked twice | More than one PM2 instance. `pm2 status` must show exactly one. |
+| Board frozen, `/admin/tick` works | The interval isn't running. Check the logs for `Price tick failed`, and whether the RPC is rate-limiting. |
+| Build killed on the VM | Out of memory. Confirm swap with `free -h`, then use the `NODE_OPTIONS` ceiling in §6. |

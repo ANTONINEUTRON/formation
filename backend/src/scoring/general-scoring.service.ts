@@ -62,7 +62,7 @@ export class GeneralScoringService {
   /** The start of the session containing [at], aligned to the config anchor. */
   private sessionStart(at: number): number {
     const length = Math.max(1, this.config.sessionMinutes) * 60_000;
-    const anchor = this.config.gameweekAnchor.getTime();
+    const anchor = this.config.sessionAnchor.getTime();
     return anchor + Math.floor((at - anchor) / length) * length;
   }
 

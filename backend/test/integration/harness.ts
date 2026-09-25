@@ -92,7 +92,6 @@ export async function createHarness(): Promise<Harness> {
   if (!url) throw new Error('TEST_DATABASE_URL is required to run integration tests');
 
   process.env.DATABASE_URL = url;
-  process.env.GAMEWEEK_MINUTES_FOOTBALL = '60';
   process.env.GAMEWEEK_MINUTES_BASKETBALL = '60';
   process.env.GAMEWEEK_MINUTES_AMERICAN_FOOTBALL = '60';
   process.env.SESSION_MINUTES = '10';

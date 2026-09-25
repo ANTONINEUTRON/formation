@@ -1,15 +1,15 @@
 {
-  "id": "bfc1766c-294b-4c5a-ab71-5ae1c0517c81",
+  "id": "35aa3a94-a710-4825-a414-90d9a972b89b",
   "name": "Alice vs Bob",
   "mode": "football",
   "visibility": "private",
-  "joinCode": "F0AD6C19",
+  "joinCode": "B5ADFF07",
   "startsAt": "2026-01-05T12:31:00.000Z",
   "endsAt": "2026-01-05T13:31:00.000Z",
   "status": "scheduled",
   "maxMembers": 2,
   "memberCount": 2,
-  "createdBy": "DJKU…d4Jk",
+  "createdBy": "4Rkc…XWfm",
   "joined": true,
   "joinable": false,
   "standings": []
