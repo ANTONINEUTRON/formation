@@ -123,18 +123,18 @@
   }
   .brand {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 9px;
     font-family: var(--display);
     font-size: 21px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
-  .brand__dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--lime);
+  .brand__logo {
+    width: 28px; height: 28px;
     flex: none;
-    transform: translateY(-3px);
+    object-fit: contain;
+    display: block;
   }
   .nav__links { display: flex; gap: 22px; align-items: center; }
   .nav__links a {
@@ -748,7 +748,7 @@
 <body>
 <header class="nav">
   <div class="wrap nav__in">
-    <span class="brand"><span class="brand__dot"></span>Formation</span>
+    <span class="brand"><img class="brand__logo" src="formation_logo.png" alt="Formation logo" width="28" height="28">Formation</span>
     <nav class="nav__links">
       <a href="#scoring">Scoring</a>
       <a href="#copy">Copy a manager</a>
@@ -762,13 +762,11 @@
   <div class="glow"></div>
   <div class="wrap hero__in">
     <div>
-      <p class="eyebrow">Football · Basketball · American Football</p>
       <h1>The stocks in your<br>wallet are your <em>team</em></h1>
       <p class="hero__sub">
         Whatever you already hold is your squad. Field it as a football XI, a
         basketball five or an American Football nine — every position demands a
-        different risk tier. You score for <strong>beating the market</strong>,
-        not for going up, and <strong>you keep every share.</strong>
+        different risk tier. You score for <strong>beating the market</strong>, and <strong>you keep every share.</strong>
       </p>
       <div class="hero__cta">
         <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Get the App</a>
