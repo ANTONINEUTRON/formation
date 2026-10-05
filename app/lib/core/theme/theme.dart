@@ -1,43 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Application colors from brand guidelines.
+/// Application colors. A floodlit night pitch with a lime accent, kept in step
+/// with the landing page (landing_page/index.html, `:root`).
 abstract class AppColors {
-  // Primary (Teal)
-  static const primary = Color(0xFF14b8a6);
-  static const primaryDark = Color(0xFF0d9488);
-  static const primaryLight = Color(0xFF2dd4bf);
+  // Primary (Lime)
+  static const primary = Color(0xFFB8FF3C);
+  static const primaryDark = Color(0xFF8FD617);
+  static const primaryLight = Color(0xFFD4FF85);
 
-  // Secondary (Purple)
-  static const secondary = Color(0xFF7c3aed);
-  static const secondaryDark = Color(0xFF6d28d9);
-  static const secondaryLight = Color(0xFF8b5cf6);
+  // Secondary (deep lime)
+  static const secondary = Color(0xFF8FD617);
 
-  // Accent (Pink)
-  static const accent = Color(0xFFec4899);
-  static const accentDark = Color(0xFFdb2777);
-  static const accentLight = Color(0xFFf472b6);
+  // Risk tiers. Their own tokens, not aliases of the brand colours, so
+  // re-theming the app can never change what a tier looks like.
+  static const tierBlueChip = Color(0xFF7FD8FF);
+  static const tierStable = Color(0xFF9DB3A5);
+  static const tierBalanced = Color(0xFFC9B4FF);
+  static const tierGrowth = Color(0xFFB8FF3C);
+  static const tierMomentum = Color(0xFFFFB43C);
 
-  // Background
-  static const background = Color(0xFF09090b);
-  static const surface = Color(0xFF18181b);
-  static const surfaceElevated = Color(0xFF27272a);
+  // Background (night pitch)
+  static const background = Color(0xFF0A1410);
+  static const surface = Color(0xFF0F1F18);
+  static const surfaceElevated = Color(0xFF123122);
 
   // Border
-  static const border = Color(0xFF3f3f46);
-  static const borderLight = Color(0xFF52525b);
+  static const border = Color(0xFF24503A);
+  static const borderLight = Color(0xFF2F6048);
 
-  // Text
-  static const textPrimary = Color(0xFFfafafa);
-  static const textSecondary = Color(0xFFa1a1aa);
-  static const textMuted = Color(0xFF71717a);
-  static const textInverse = Color(0xFF09090b);
+  // Text (chalk)
+  static const textPrimary = Color(0xFFEDF2EC);
+  static const textSecondary = Color(0xFF9DB3A5);
+  static const textMuted = Color(0xFF6B8577);
+  static const textInverse = Color(0xFF0A1410);
 
   // Semantic
-  static const success = Color(0xFF22c55e);
-  static const warning = Color(0xFFf59e0b);
-  static const error = Color(0xFFef4444);
-  static const info = Color(0xFF3b82f6);
+  static const success = Color(0xFFB8FF3C);
+  static const warning = Color(0xFFFFB43C);
+  static const error = Color(0xFFFF5C5C);
+  static const info = Color(0xFF7FD8FF);
 }
 
 /// Application theme configuration.
@@ -54,7 +56,7 @@ class AppTheme {
         primary: AppColors.primary,
         onPrimary: AppColors.textInverse,
         secondary: AppColors.secondary,
-        onSecondary: AppColors.textPrimary,
+        onSecondary: AppColors.textInverse,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
         error: AppColors.error,

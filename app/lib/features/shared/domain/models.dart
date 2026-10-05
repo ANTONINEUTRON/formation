@@ -23,11 +23,11 @@ enum SportMode {
 
 /// Risk category a position slot accepts.
 enum RiskTier {
-  blueChip('blue_chip', 'Blue chip', AppColors.info),
-  stable('stable', 'Stable', AppColors.primary),
-  balanced('balanced', 'Balanced', AppColors.secondaryLight),
-  growth('growth', 'Growth', AppColors.warning),
-  momentum('momentum', 'Momentum', AppColors.accent);
+  blueChip('blue_chip', 'Blue chip', AppColors.tierBlueChip),
+  stable('stable', 'Stable', AppColors.tierStable),
+  balanced('balanced', 'Balanced', AppColors.tierBalanced),
+  growth('growth', 'Growth', AppColors.tierGrowth),
+  momentum('momentum', 'Momentum', AppColors.tierMomentum);
 
   const RiskTier(this.apiValue, this.label, this.color);
 
