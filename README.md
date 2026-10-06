@@ -69,7 +69,7 @@ symbianss/
 ├── app/            # Flutter — wallet connect, draft, team, leagues (Android + web)
 │   └── web_wallet/ # TypeScript Wallet Standard bridge for the web build
 ├── backend/        # NestJS + Postgres — scoring engine, leagues, swap orchestration
-├── functions/      # Cloud Function: injects share previews into shared links
+├── functions/      # Per-page share previews — written, not deployed (see its README)
 ├── scripts/        # deploy-web.ps1
 └── landing_page/   # Static marketing site (index.html)
 ```
@@ -173,7 +173,7 @@ Two things to know when testing:
   sooner than the APK does. Pass your own with
   `--dart-define=SOLANA_RPC_URL=...`.
 
-Deploying (needs the Blaze plan on `formation-cbf24`, for the function):
+Deploying:
 
 ```powershell
 ./scripts/deploy-web.ps1 -RpcUrl "https://mainnet.helius-rpc.com/?api-key=..."
@@ -181,6 +181,13 @@ Deploying (needs the Blaze plan on `formation-cbf24`, for the function):
 
 First time only: `firebase hosting:sites:create formation-app`, then add
 `app.formation.titalabs.xyz` to that site in the Firebase console.
+
+Shared links currently unfurl with one generic card, from the `og:*` tags in
+`app/web/index.html`. Per-page previews need something server-side that can
+rewrite the head before a crawler reads it, since a crawler never runs Flutter;
+`functions/` holds a Cloud Function that does it, deliberately not referenced
+from `firebase.json` or the deploy script so that nothing here needs a billing
+account. `functions/README.md` has the two ways to turn it on.
 
 ### Landing page
 
@@ -219,6 +226,7 @@ where they can be held.
 
 - iOS is unexercised. Web runs from the same codebase but has not been
   through a release cycle.
+- Shared links all unfurl with the same generic preview card.
 - The web app is not geofenced. xStocks are not available to US persons, and a
   public URL is easier to reach from the US than a dApp Store listing, so this
   needs settling before the web app is marketed.

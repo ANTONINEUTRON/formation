@@ -4,20 +4,25 @@
   Builds and deploys the Formation web app to Firebase Hosting.
 
 .DESCRIPTION
-  Four steps, in order, because each depends on the last:
+  Three steps, in order, because each depends on the last:
     1. Bundle the Wallet Standard bridge  -> app/web/wallet_bridge.js
     2. Build the Flutter web app          -> app/build/web
-    3. Compile the Open Graph renderer    -> functions/lib
-    4. Deploy the `app` hosting target and the ogRender function
+    3. Deploy the `app` hosting target
 
   First-time setup, once per project:
     firebase login
     firebase hosting:sites:create formation-app
     # then add app.formation.titalabs.xyz to that site in the Firebase console
-  Cloud Functions need the Blaze plan on formation-cbf24.
 
   The landing page is a separate target and is left alone:
     firebase deploy --only hosting:landing
+
+  Share previews are the generic ones in app/web/index.html, so every shared
+  link unfurls the same card. Per-page previews need something server-side that
+  can rewrite the head before a crawler reads it; functions/ holds a Cloud
+  Function that does exactly that, but it is deliberately not referenced from
+  firebase.json or from this script, so nothing here requires a billing
+  account. See README for the two options when that gets picked up again.
 
 .PARAMETER RpcUrl
   Solana RPC for the web build. The public endpoint rate-limits by origin and a
@@ -69,11 +74,6 @@ Invoke-Step 'Building the Flutter web app' {
   try { flutter build web --release @defines } finally { Pop-Location }
 }
 
-Invoke-Step 'Compiling the Open Graph renderer' {
-  npm --prefix "$repo/functions" install --no-audit --no-fund
-  npm --prefix "$repo/functions" run build
-}
-
 if ($SkipDeploy) {
   Write-Host ""
   Write-Host "Built, not deployed (-SkipDeploy). Output: app/build/web" -ForegroundColor Yellow
@@ -82,7 +82,7 @@ if ($SkipDeploy) {
 
 Invoke-Step 'Deploying to Firebase' {
   Push-Location $repo
-  try { firebase deploy --only "hosting:app,functions:ogRender" } finally { Pop-Location }
+  try { firebase deploy --only "hosting:app" } finally { Pop-Location }
 }
 
 Write-Host ""

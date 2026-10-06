@@ -31,25 +31,10 @@
       ],
       "rewrites": [
         {
-          "source": "/managers/**",
-          "function": "ogRender"
-        },
-        {
-          "source": "/leagues/**",
-          "function": "ogRender"
-        },
-        {
           "source": "**",
           "destination": "/index.html"
         }
       ]
-    }
-  ],
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": ["node_modules", ".git", "*.local"]
     }
   ]
 }
