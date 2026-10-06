@@ -6,7 +6,7 @@
     "formation-cbf24": {
       "hosting": {
         "landing": ["formation-cbf24"],
-        "app": ["formation-app"]
+        "app": ["formation-xstocks"]
       }
     }
   }
