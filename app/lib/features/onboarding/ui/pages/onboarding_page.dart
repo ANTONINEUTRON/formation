@@ -65,8 +65,10 @@ class OnboardingPage extends StatelessWidget {
                   ConnectWalletView(
                     isLoading: walletState.isLoading,
                     error: walletState.error,
-                    onConnect: () =>
-                        context.read<WalletCubit>().connectWallet(),
+                    wallets: walletState.wallets,
+                    onConnect: (name) => context
+                        .read<WalletCubit>()
+                        .connectWallet(walletName: name),
                   ),
 
                   const SizedBox(height: 32),

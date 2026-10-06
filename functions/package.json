@@ -1,0 +1,22 @@
+{
+  "name": "formation-functions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Server-side Open Graph rendering for shared Formation links",
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

@@ -16,7 +16,26 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Fantasy sports for real stocks. Draft xStocks, climb the league, win duels.">
+  <meta name="theme-color" content="#0A1410">
+
+  <!--
+    Share previews. These are the fallbacks: for a manager or league URL,
+    Firebase Hosting rewrites to the `ogRender` function (see functions/), which
+    replaces the four `og:`/`twitter:` tags below with that page's own before
+    the HTML is served. A crawler never runs Flutter, so anything it should
+    read has to already be in this document.
+  -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Formation">
+  <meta property="og:url" content="https://app.formation.titalabs.xyz/">
+  <meta property="og:title" content="Formation — fantasy sports for real stocks">
+  <meta property="og:description" content="Draft a starting XI of stocks you actually own. Score points for beating the market, not for going up.">
+  <meta property="og:image" content="og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Formation — fantasy sports for real stocks">
+  <meta name="twitter:description" content="Draft a starting XI of stocks you actually own. Score points for beating the market, not for going up.">
+  <meta name="twitter:image" content="og-image.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -117,6 +136,13 @@
   
   
   
+  <!--
+    Wallet Standard bridge, built from web_wallet/ (`npm run build`). Loaded
+    before the engine and without `async`, so `window.formationWallet` is in
+    place by the time Dart's WalletCubit asks which wallets are installed.
+  -->
+  <script src="wallet_bridge.js"></script>
+
   <script src="flutter_bootstrap.js" async=""></script>
 
 

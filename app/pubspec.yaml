@@ -11,6 +11,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Web URL strategy (path URLs instead of #/, needed for share previews).
+  # Only imported from lib/core/web/web_entry_web.dart.
+  flutter_web_plugins:
+    sdk: flutter
+
   # Icons
   cupertino_icons: ^1.0.8
 

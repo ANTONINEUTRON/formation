@@ -44,6 +44,10 @@ class NotificationTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      // A pointer has to be told this is clickable; a finger does not.
+      // MouseRegion is inert off the web, so the row is unchanged there.
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14),
@@ -128,6 +132,7 @@ class NotificationTile extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

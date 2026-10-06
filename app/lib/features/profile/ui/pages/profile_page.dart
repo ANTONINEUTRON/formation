@@ -107,7 +107,9 @@ class ProfilePage extends StatelessWidget {
                 return ConnectWalletView(
                   isLoading: walletState.isLoading,
                   error: walletState.error,
-                  onConnect: () => context.read<WalletCubit>().connectWallet(),
+                  wallets: walletState.wallets,
+                  onConnect: (name) =>
+                      context.read<WalletCubit>().connectWallet(walletName: name),
                 );
               },
             ),

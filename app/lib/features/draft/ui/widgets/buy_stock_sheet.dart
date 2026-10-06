@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
@@ -21,11 +22,9 @@ class BuyStockSheet extends StatefulWidget {
 
   static Future<void> show(BuildContext context, {required int slotIndex, required XStock stock}) {
     final cubit = context.read<DraftCubit>();
-    return showModalBottomSheet<void>(
+    return showAdaptiveSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => BlocProvider.value(
         value: cubit,
         child: BuyStockSheet(slotIndex: slotIndex, stock: stock),

@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "formation-cbf24"
+  },
+  "targets": {
+    "formation-cbf24": {
+      "hosting": {
+        "landing": ["formation-cbf24"],
+        "app": ["formation-app"]
+      }
+    }
   }
 }

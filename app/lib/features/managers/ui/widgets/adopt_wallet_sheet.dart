@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
@@ -29,13 +30,9 @@ class AdoptWalletSheet extends StatefulWidget {
     required Manager manager,
     required FormationRepository repository,
   }) =>
-      showModalBottomSheet<void>(
+      showAdaptiveSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
         builder: (_) => AdoptWalletSheet(manager: manager, repository: repository),
       );
 

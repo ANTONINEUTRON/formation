@@ -66,8 +66,11 @@ from Jupiter, and the user signs everything.
 
 ```
 symbianss/
-├── app/            # Flutter (Android-first) — wallet connect, draft, team, leagues
+├── app/            # Flutter — wallet connect, draft, team, leagues (Android + web)
+│   └── web_wallet/ # TypeScript Wallet Standard bridge for the web build
 ├── backend/        # NestJS + Postgres — scoring engine, leagues, swap orchestration
+├── functions/      # Cloud Function: injects share previews into shared links
+├── scripts/        # deploy-web.ps1
 └── landing_page/   # Static marketing site (index.html)
 ```
 
@@ -87,9 +90,23 @@ balances from a Solana RPC.
 
 ### App
 
-Flutter, Android-first, using Mobile Wallet Adapter (`solana_mobile_client`) so
-every transaction is signed in the user's own wallet. `flutter_bloc` for state,
+Flutter, one codebase for Android and web. `flutter_bloc` for state,
 `auto_route` for navigation, feature-first structure under `lib/features/`.
+Every transaction is signed in the user's own wallet, never by us.
+
+Wallet access sits behind `WalletConnector`
+(`lib/features/wallet/data/wallet_connector.dart`), chosen at compile time by a
+conditional export so neither platform compiles the other's transport:
+
+- **Android** — Mobile Wallet Adapter via `solana_mobile_client`, which reaches
+  Seed Vault on a Seeker.
+- **Web** — the Wallet Standard, through the `window.formationWallet` bridge
+  built from `app/web_wallet/`. That covers the desktop extensions (Phantom,
+  Solflare, Backpack) and, in Android Chrome, hands off to MWA on the device.
+
+Layout follows the window rather than the device: `core/layout/breakpoints.dart`
+splits compact / medium / expanded, and at expanded the sport page shows the
+squad and the league table side by side instead of behind tabs.
 
 ---
 
@@ -133,13 +150,43 @@ flutter pub get
 flutter run
 ```
 
-Point the app at your backend via its Envied configuration; it defaults to the
-deployed API.
+Point the app at your backend with `--dart-define=API_URL=...`; it defaults to
+the deployed API, and an empty value switches to in-memory fixtures.
+
+### Web
+
+```bash
+npm --prefix app/web_wallet install   # once
+npm --prefix app/web_wallet run build # rebuild the wallet bridge
+cd app && flutter run -d chrome
+```
+
+The bridge output (`app/web/wallet_bridge.js`) is committed, so a plain
+`flutter run -d chrome` works without the npm step until you change
+`app/web_wallet/src/`.
+
+Two things to know when testing:
+
+- Wallet Standard needs a secure context. `localhost` counts; a LAN IP does not,
+  so MWA will not register over `http://192.168.x.x`.
+- The public Solana RPC rate-limits per origin and a browser reaches that far
+  sooner than the APK does. Pass your own with
+  `--dart-define=SOLANA_RPC_URL=...`.
+
+Deploying (needs the Blaze plan on `formation-cbf24`, for the function):
+
+```powershell
+./scripts/deploy-web.ps1 -RpcUrl "https://mainnet.helius-rpc.com/?api-key=..."
+```
+
+First time only: `firebase hosting:sites:create formation-app`, then add
+`app.formation.titalabs.xyz` to that site in the Firebase console.
 
 ### Landing page
 
 Static — open `landing_page/index.html`, or serve the directory with any static
-file server. Deployed through Firebase Hosting (`firebase.json`).
+file server. Deployed through Firebase Hosting as the `landing` target:
+`firebase deploy --only hosting:landing`.
 
 ---
 
@@ -170,7 +217,11 @@ where they can be held.
 
 ## Known gaps
 
-- Android-first; iOS and web are unexercised.
+- iOS is unexercised. Web runs from the same codebase but has not been
+  through a release cycle.
+- The web app is not geofenced. xStocks are not available to US persons, and a
+  public URL is easier to reach from the US than a dApp Store listing, so this
+  needs settling before the web app is marketed.
 - Role events trigger on a pick's own return rather than its alpha, so a broad
   rally still pays points that the "beat the market" framing says it shouldn't.
 - `classic_scores.streak` is read by the API and rendered in the app, but only

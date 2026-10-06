@@ -13,6 +13,8 @@ import { ManagersController } from './managers/managers.controller.js';
 import { ManagersService } from './managers/managers.service.js';
 import { NotificationsController } from './notifications/notifications.controller.js';
 import { NotificationsService } from './notifications/notifications.service.js';
+import { OgController, OgRateLimitGuard } from './og/og.controller.js';
+import { OgService } from './og/og.service.js';
 import { RosterController, WalletController } from './roster/roster.controller.js';
 import { RosterService } from './roster/roster.service.js';
 import { EntryScoringService } from './scoring/entry-scoring.service.js';
@@ -40,6 +42,8 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     ManagersController,
     UsersController,
     SwapController,
+    // Unauthenticated share previews, read by the ogRender function.
+    OgController,
     AdminController,
   ],
   providers: [
@@ -51,6 +55,8 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     LeaguesService,
     NotificationsService,
     ManagersService,
+    OgService,
+    OgRateLimitGuard,
     RosterService,
     UsersService,
     SwapService,

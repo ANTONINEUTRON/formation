@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:formation/features/wallet/data/wallet_connector.dart';
 import 'package:formation/features/wallet/domain/entities/wallet_balance.dart';
 
 /// State for [WalletCubit].
@@ -12,14 +13,15 @@ class WalletState extends Equatable {
     this.isLoading = false,
     this.isLoadingBalances = false,
     this.walletAddress,
-    this.authToken,
+    this.sessionToken,
     this.balances = const [],
+    this.wallets = const [],
     this.error,
   });
 
   final bool isConnected;
 
-  /// True while MWA authorization or disconnect is in progress.
+  /// True while wallet authorization or disconnect is in progress.
   final bool isLoading;
 
   /// True while Solana RPC balance fetch is in progress.
@@ -28,11 +30,18 @@ class WalletState extends Equatable {
   /// Base58-encoded Solana wallet address, null when disconnected.
   final String? walletAddress;
 
-  /// MWA session auth token, null when disconnected or after restore
-  /// (re-auth is required after a cold start if deauthorize is needed).
-  final String? authToken;
+  /// Opaque connector session handle, null when disconnected or after restore.
+  ///
+  /// MWA stores its auth token here so a signature can reauthorize rather than
+  /// prompt from scratch; the web connector has no equivalent and leaves it
+  /// null.
+  final String? sessionToken;
 
   final List<WalletBalance> balances;
+
+  /// Browser wallets found on this page, for the web connect screen.
+  /// Always empty on Android, where the system picker does the choosing.
+  final List<WalletOption> wallets;
 
   /// Latest error message, null if no error.
   final String? error;
@@ -42,8 +51,9 @@ class WalletState extends Equatable {
     bool? isLoading,
     bool? isLoadingBalances,
     String? walletAddress,
-    String? authToken,
+    String? sessionToken,
     List<WalletBalance>? balances,
+    List<WalletOption>? wallets,
     String? error,
   }) {
     return WalletState(
@@ -51,8 +61,9 @@ class WalletState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isLoadingBalances: isLoadingBalances ?? this.isLoadingBalances,
       walletAddress: walletAddress ?? this.walletAddress,
-      authToken: authToken ?? this.authToken,
+      sessionToken: sessionToken ?? this.sessionToken,
       balances: balances ?? this.balances,
+      wallets: wallets ?? this.wallets,
       error: error,
     );
   }
@@ -63,7 +74,7 @@ class WalletState extends Equatable {
   Map<String, dynamic> toJson() => {
         'isConnected': isConnected,
         'walletAddress': walletAddress,
-        // authToken intentionally omitted; re-auth on fresh session.
+        // sessionToken intentionally omitted; re-auth on a fresh session.
       };
 
   factory WalletState.fromJson(Map<String, dynamic> json) => WalletState(
@@ -77,8 +88,9 @@ class WalletState extends Equatable {
         isLoading,
         isLoadingBalances,
         walletAddress,
-        authToken,
+        sessionToken,
         balances,
+        wallets,
         error,
       ];
 }

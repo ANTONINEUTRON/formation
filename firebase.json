@@ -1,16 +1,55 @@
 {
-  "hosting": {
-    "public": "landing_page",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "target": "landing",
+      "public": "landing_page",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "app",
+      "public": "app/build/web",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "headers": [
+        {
+          "source": "**/*.@(js|wasm|otf|ttf|woff|woff2|png|jpg|svg)",
+          "headers": [
+            { "key": "cache-control", "value": "public, max-age=31536000, immutable" }
+          ]
+        },
+        {
+          "source": "/@(index.html|flutter_service_worker.js|manifest.json)",
+          "headers": [
+            { "key": "cache-control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/managers/**",
+          "function": "ogRender"
+        },
+        {
+          "source": "/leagues/**",
+          "function": "ogRender"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git", "*.local"]
+    }
+  ]
 }

@@ -2,31 +2,39 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
-import 'package:solana/base58.dart';
 import 'package:solana/dto.dart';
 import 'package:solana/solana.dart';
-import 'package:solana_mobile_client/solana_mobile_client.dart';
 
 import 'package:formation/core/constants/app_constants.dart';
-import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
+import 'package:formation/features/shared/data/session_store.dart';
+import 'package:formation/features/wallet/data/wallet_connector.dart';
+import 'package:formation/features/wallet/data/wallet_connector_factory.dart';
 import 'package:formation/features/wallet/domain/entities/wallet_balance.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
 
-/// Manages Solana wallet connection via Mobile Wallet Adapter (MWA).
+/// Manages the Solana wallet connection.
 ///
-/// Uses [HydratedCubit] to persist the connected wallet address across restarts.
-/// Balances are always re-fetched from the Solana RPC on startup.
-/// Also signs sign-in messages and swap transactions for [ApiRepository].
+/// The transport lives behind [WalletConnector] — Mobile Wallet Adapter on
+/// Android, the Wallet Standard bridge on web — so this cubit only deals with
+/// state, balances and signing on behalf of [ApiRepository].
+///
+/// Uses [HydratedCubit] to persist the connected wallet address across
+/// restarts. Balances are always re-fetched from the Solana RPC on startup.
 class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
-  WalletCubit() : super(const WalletState()) {
+  WalletCubit({WalletConnector? connector})
+      : _connector = connector ?? createWalletConnector(),
+        super(const WalletState()) {
     _setupSolanaClient();
     // If we have a persisted address, refresh balances immediately.
     if (state.walletAddress != null) {
       fetchBalances();
+      _restoreSession();
     }
+    loadWallets();
   }
 
+  final WalletConnector _connector;
   late SolanaClient _solanaClient;
 
   void _setupSolanaClient() {
@@ -36,33 +44,53 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     );
   }
 
+  /// True when the connect screen should offer a choice of wallets.
+  bool get hasWalletChoice => state.wallets.length > 1;
+
   // ── Connect ─────────────────────────────────────────────────────────────────
 
-  Future<void> connectWallet() async {
+  /// Loads the pickable wallets, for the web connect screen.
+  Future<void> loadWallets() async {
+    if (!_connector.canRestoreSilently) return; // Android: system picker.
+    try {
+      emit(state.copyWith(wallets: await _connector.availableWallets()));
+    } catch (e) {
+      debugPrint('[WalletCubit] wallet discovery failed: $e');
+    }
+  }
+
+  /// Re-establishes a web session for an address restored from storage.
+  ///
+  /// Without this the address survives a page reload but the wallet does not,
+  /// so the first signature would fail. If the wallet no longer trusts this
+  /// origin we drop the stale connection and show onboarding again.
+  Future<void> _restoreSession() async {
+    if (!_connector.canRestoreSilently) return;
+    try {
+      final restored = await _connector.connect(silent: true);
+      if (restored != null && restored.address == state.walletAddress) {
+        emit(state.copyWith(sessionToken: restored.sessionToken));
+        return;
+      }
+    } catch (e) {
+      debugPrint('[WalletCubit] silent reconnect failed: $e');
+    }
+    emit(WalletState(wallets: state.wallets));
+  }
+
+  Future<void> connectWallet({String? walletName}) async {
     emit(state.copyWith(isLoading: true, error: null));
 
     try {
-      // Open the MWA session — this launches the wallet app on Android.
-      final session = await LocalAssociationScenario.create();
-      session.startActivityForResult(null).ignore();
+      final connection = await _connector.connect(walletName: walletName);
 
-      final client = await session.start();
-      final result = await client.authorize(
-        identityUri: Uri.parse('https://titalabs.xyz'),
-        iconUri: Uri.parse('favicon.png'),
-        identityName: 'Formation',
-        cluster: 'mainnet-beta',
-      );
-
-      if (result != null) {
-        final walletAddress = base58encode(result.publicKey.toList());
-
+      if (connection != null) {
         emit(
           state.copyWith(
             isLoading: false,
             isConnected: true,
-            walletAddress: walletAddress,
-            authToken: result.authToken,
+            walletAddress: connection.address,
+            sessionToken: connection.sessionToken,
           ),
         );
 
@@ -75,8 +103,6 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
           ),
         );
       }
-
-      await session.close();
     } catch (e, st) {
       debugPrint('WalletCubit.connectWallet error: $e\n$st');
       emit(
@@ -93,22 +119,16 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
   Future<void> disconnectWallet() async {
     emit(state.copyWith(isLoading: true, error: null));
 
-    try {
-      // Best-effort deauthorize; if authToken is gone (cold start restore),
-      // we skip the MWA call and just clear local state.
-      if (state.authToken != null) {
-        final session = await LocalAssociationScenario.create();
-        session.startActivityForResult(null).ignore();
-        final client = await session.start();
-        await client.deauthorize(authToken: state.authToken!);
-        await session.close();
-      }
-    } catch (e) {
-      debugPrint('[WalletCubit] deauthorize failed (non-fatal): $e');
-    }
+    // Best effort: the connector swallows its own failures, since local state
+    // has to be cleared either way.
+    await _connector.disconnect(state.sessionToken);
 
-    // Always clear local state regardless of deauthorize result.
-    emit(const WalletState());
+    // Disconnecting has to invalidate the backend session as well, or the
+    // bearer token would outlive it in storage — on a shared browser that is
+    // the next person's session.
+    await SessionStore().clear();
+
+    emit(WalletState(wallets: state.wallets));
   }
 
   // ── Balances ─────────────────────────────────────────────────────────────────
@@ -154,70 +174,50 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     }
 
     // ── USDC ──────────────────────────────────────────────────────────────────
+    balances.add(
+      WalletBalance(
+        currency: 'USDC',
+        amount: await _tokenBalance(walletAddress, AppConstants.usdcMintAddress),
+      ),
+    );
+
+    // ── SKR (Seeker) ─────────────────────────────────────────
+    // Skipped if the mint address is still the placeholder constant.
+    final skr = AppConstants.skrMintAddress == AppConstants.skrMintPlaceholder
+        ? 0.0
+        : await _tokenBalance(walletAddress, AppConstants.skrMintAddress);
+    balances.add(WalletBalance(currency: 'SKR', amount: skr));
+
+    return balances;
+  }
+
+  /// Returns the owner's balance of [mint], or 0 if they hold none.
+  ///
+  /// A missing token account and a failed RPC call are both reported as zero:
+  /// the player cannot act on the difference, and the cause is logged.
+  Future<double> _tokenBalance(String walletAddress, String mint) async {
     try {
-      final usdcAccounts = await _solanaClient.rpcClient.getTokenAccountsByOwner(
+      final accounts = await _solanaClient.rpcClient.getTokenAccountsByOwner(
         walletAddress,
-        TokenAccountsFilter.byMint(AppConstants.usdcMintAddress),
+        TokenAccountsFilter.byMint(mint),
         commitment: Commitment.confirmed,
         encoding: Encoding.jsonParsed,
       );
 
-      double usdcAmount = 0.0;
-      if (usdcAccounts.value.isNotEmpty) {
-        final accountInfo = usdcAccounts.value.first;
-        if (accountInfo.account.data is ParsedAccountData) {
-          final parsedData =
-              ((accountInfo.account.data as ParsedAccountData)
-                          as ParsedSplTokenProgramAccountData)
-                      .parsed as TokenAccountData;
-          final info = parsedData.info;
-          final raw = double.tryParse(info.tokenAmount.amount) ?? 0;
-          final decimals = info.tokenAmount.decimals.toDouble();
-          usdcAmount = raw / pow(10, decimals);
-        }
-      }
-      balances.add(WalletBalance(currency: 'USDC', amount: usdcAmount));
+      if (accounts.value.isEmpty) return 0.0;
+      final data = accounts.value.first.account.data;
+      if (data is! ParsedAccountData) return 0.0;
+
+      final parsed = (data as ParsedSplTokenProgramAccountData).parsed;
+      if (parsed is! TokenAccountData) return 0.0;
+
+      final amount = parsed.info.tokenAmount;
+      final raw = double.tryParse(amount.amount) ?? 0;
+      return raw / pow(10, amount.decimals.toDouble());
     } catch (e) {
-      debugPrint('[WalletCubit] USDC balance fetch failed: $e');
-      balances.add(const WalletBalance(currency: 'USDC', amount: 0.0));
+      debugPrint('[WalletCubit] balance fetch failed for $mint: $e');
+      return 0.0;
     }
-
-    // ── SKR (Seeker) ─────────────────────────────────────────
-    // Skipped if the mint address is still the placeholder constant.
-    if (AppConstants.skrMintAddress != AppConstants.skrMintPlaceholder) {
-      try {
-        final skrAccounts = await _solanaClient.rpcClient.getTokenAccountsByOwner(
-          walletAddress,
-          TokenAccountsFilter.byMint(AppConstants.skrMintAddress),
-          commitment: Commitment.confirmed,
-          encoding: Encoding.jsonParsed,
-        );
-
-        double skrAmount = 0.0;
-        if (skrAccounts.value.isNotEmpty) {
-          final accountInfo = skrAccounts.value.first;
-          if (accountInfo.account.data is ParsedAccountData) {
-            final parsedData =
-                ((accountInfo.account.data as ParsedAccountData)
-                            as ParsedSplTokenProgramAccountData)
-                        .parsed as TokenAccountData;
-            final info = parsedData.info;
-            final raw = double.tryParse(info.tokenAmount.amount) ?? 0;
-            final decimals = info.tokenAmount.decimals.toDouble();
-            skrAmount = raw / pow(10, decimals);
-          }
-        }
-        balances.add(WalletBalance(currency: 'SKR', amount: skrAmount));
-      } catch (e) {
-        debugPrint('[WalletCubit] SKR balance fetch failed: $e');
-        balances.add(const WalletBalance(currency: 'SKR', amount: 0.0));
-      }
-    } else {
-      // Real mint not yet configured — show 0 until AppConstants is updated.
-      balances.add(const WalletBalance(currency: 'SKR', amount: 0.0));
-    }
-
-    return balances;
   }
 
   // ── Signing ──────────────────────────────────────────────────────────────────
@@ -226,48 +226,32 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
   String get walletAddress => state.walletAddress ?? '';
 
   @override
-  Future<Uint8List> signMessage(Uint8List message) => _withWallet((client) async {
-        final result = await client.signMessages(
-          messages: [message],
-          addresses: [Uint8List.fromList(base58decode(walletAddress))],
-        );
-        final signatures = result.signedMessages.firstOrNull?.signatures ?? const [];
-        if (signatures.isEmpty) throw const WalletException(message: 'Sign-in was rejected in your wallet');
-        return signatures.first;
-      });
+  Future<Uint8List> signMessage(Uint8List message) async {
+    final result = await _connector.signMessage(
+      message,
+      address: walletAddress,
+      sessionToken: state.sessionToken,
+    );
+    _rememberSession(result);
+    return result.bytes;
+  }
 
   @override
-  Future<String> signAndSendTransaction(Uint8List transaction) => _withWallet((client) async {
-        final result = await client.signAndSendTransactions(transactions: [transaction]);
-        if (result.signatures.isEmpty) throw const WalletException(message: 'Transaction was rejected in your wallet');
-        return base58encode(result.signatures.first);
-      });
+  Future<String> signAndSendTransaction(Uint8List transaction) async {
+    final result = await _connector.signAndSendTransaction(
+      transaction,
+      address: walletAddress,
+      sessionToken: state.sessionToken,
+    );
+    _rememberSession(result);
+    return result.base58;
+  }
 
-  /// Opens an MWA session, (re)authorizes, runs [action], and closes.
-  Future<T> _withWallet<T>(Future<T> Function(MobileWalletAdapterClient client) action) async {
-    final session = await LocalAssociationScenario.create();
-    session.startActivityForResult(null).ignore();
-    try {
-      final client = await session.start();
-      final token = state.authToken;
-      final auth = token == null
-          ? await client.authorize(
-              identityUri: Uri.parse('https://formation.titalabs.xyz'),
-              iconUri: Uri.parse('favicon.png'),
-              identityName: 'Formation',
-              cluster: 'mainnet-beta',
-            )
-          : await client.reauthorize(
-              identityUri: Uri.parse('https://formation.titalabs.xyz'),
-              iconUri: Uri.parse('favicon.png'),
-              identityName: 'Formation',
-              authToken: token,
-            );
-      if (auth == null) throw const WalletException(message: 'Wallet authorization was cancelled');
-      emit(state.copyWith(authToken: auth.authToken));
-      return await action(client);
-    } finally {
-      await session.close();
+  /// Keeps the refreshed session token, so the next signature can reauthorize
+  /// instead of asking the player to approve the app all over again.
+  void _rememberSession(WalletSignature signature) {
+    if (signature.sessionToken != null) {
+      emit(state.copyWith(sessionToken: signature.sessionToken));
     }
   }
 

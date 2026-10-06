@@ -10,6 +10,7 @@ import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/shared/data/session_store.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/domain/roster_shapes.dart';
 
@@ -27,21 +28,26 @@ abstract class WalletSigner {
 /// [FormationRepository] backed by the NestJS API.
 ///
 /// Signs in lazily on the first request: the wallet signs a one-time challenge
-/// and the backend returns a bearer token kept for the app session.
+/// and the backend returns a bearer token, which is kept on disk until it
+/// expires so a restart — or, on web, a page reload — does not cost the player
+/// another wallet prompt.
 class ApiRepository implements FormationRepository {
   ApiRepository({
     required String baseUrl,
     required WalletSigner signer,
     http.Client? client,
+    SessionStore? sessions,
   })  : _baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl,
         _signer = signer,
-        _http = client ?? http.Client();
+        _http = client ?? http.Client(),
+        _sessions = sessions ?? SessionStore();
 
   static const _adminKey = String.fromEnvironment('ADMIN_KEY');
 
   final String _baseUrl;
   final WalletSigner _signer;
   final http.Client _http;
+  final SessionStore _sessions;
   final _changes = StreamController<void>.broadcast();
 
   String? _token;
@@ -62,6 +68,14 @@ class ApiRepository implements FormationRepository {
   }
 
   Future<void> _signIn() async {
+    // A token from a previous run beats asking the wallet to sign again.
+    final stored = await _sessions.read(_signer.walletAddress);
+    if (stored != null) {
+      _token = stored.token;
+      _userId = stored.userId;
+      return;
+    }
+
     final challenge = await _request('POST', '/auth/challenge',
         body: {'walletAddress': _signer.walletAddress}, auth: false) as Map<String, dynamic>;
     final signature = await _signer.signMessage(
@@ -73,6 +87,11 @@ class ApiRepository implements FormationRepository {
     }) as Map<String, dynamic>;
     _token = result['token'] as String;
     _userId = (result['user'] as Map<String, dynamic>)['id'] as String;
+    await _sessions.write(
+      walletAddress: _signer.walletAddress,
+      token: _token!,
+      userId: _userId,
+    );
   }
 
   Future<Object?> _request(
@@ -121,7 +140,12 @@ class ApiRepository implements FormationRepository {
       );
     }
 
-    if (response.statusCode == 401 && auth) _token = null;
+    // A rejected token is worth nothing on the next request either, so drop
+    // the stored copy too and let the wallet mint a fresh one.
+    if (response.statusCode == 401 && auth) {
+      _token = null;
+      _sessions.clear().ignore();
+    }
     if (response.statusCode >= 400) {
       throw _failure(method, path, response.statusCode, decoded);
     }

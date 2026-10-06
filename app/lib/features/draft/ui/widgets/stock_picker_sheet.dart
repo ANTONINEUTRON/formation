@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/draft/ui/cubits/draft_state.dart';
@@ -18,11 +19,9 @@ class StockPickerSheet extends StatefulWidget {
 
   static Future<void> show(BuildContext context, {required int slotIndex}) {
     final cubit = context.read<DraftCubit>();
-    return showModalBottomSheet<void>(
+    return showAdaptiveSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (sheetContext) => BlocProvider.value(
         value: cubit,
         child: StockPickerSheet(

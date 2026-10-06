@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
-import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -27,13 +27,9 @@ class EditProfileSheet extends StatefulWidget {
     required Profile profile,
     required FormationRepository repository,
   }) =>
-      showModalBottomSheet<Profile>(
+      showAdaptiveSheet<Profile>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
         builder: (_) => EditProfileSheet(profile: profile, repository: repository),
       );
 

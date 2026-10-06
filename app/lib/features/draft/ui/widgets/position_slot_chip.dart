@@ -46,6 +46,10 @@ class PositionSlotChip extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      // A pointer has to be told this is clickable; a finger does not.
+      // MouseRegion is inert off the web, so the chip is unchanged there.
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -111,6 +115,7 @@ class PositionSlotChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

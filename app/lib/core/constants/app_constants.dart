@@ -7,16 +7,34 @@ class AppConstants {
   static const String appTagline =
       'Fantasy sports for real stocks. Draft xStocks, climb the league, win duels.';
 
+  /// Identity this app presents to wallets, for both MWA and Wallet Standard.
+  /// Wallets show it on the approval prompt, so it has to be a real origin.
+  static const String appIdentityUri = 'https://formation.titalabs.xyz';
+  static const String appIdentityIcon = 'favicon.png';
+
   /// NestJS backend base URL. Empty means fixture mode (in-memory data).
-  /// Set with `flutter run --dart-define=API_URL=https://...`.
-  static const String apiUrl = 'https://api.formation.titalabs.xyz';
+  /// Override with `flutter run --dart-define=API_URL=https://...`.
+  static const String apiUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'https://api.formation.titalabs.xyz',
+  );
 
   // Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Solana
-  static const String solanaRpcUrl = 'https://api.mainnet-beta.solana.com';
-  static const String solanaWsUrl = 'wss://api.mainnet-beta.solana.com';
+  //
+  // The public endpoint rate-limits by origin, which a browser build hits far
+  // sooner than an APK does — pass a dedicated RPC with --dart-define for web.
+  static const String solanaRpcUrl = String.fromEnvironment(
+    'SOLANA_RPC_URL',
+    defaultValue: 'https://api.mainnet-beta.solana.com',
+  );
+  static const String solanaWsUrl = String.fromEnvironment(
+    'SOLANA_WS_URL',
+    defaultValue: 'wss://api.mainnet-beta.solana.com',
+  );
+  static const String solanaCluster = 'mainnet-beta';
 
   /// Mainnet USDC SPL token mint address.
   static const String usdcMintAddress =

@@ -2,8 +2,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/features/league/ui/cubits/league_cubit.dart';
 import 'package:formation/features/league/ui/widgets/league_tab.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
@@ -22,13 +24,32 @@ class SportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repository = context.read<FormationRepository>();
+    // With room for both, the tabs are a cost rather than a saving: the whole
+    // point of the league table is comparing it against the squad you just
+    // picked, and tabs make that two clicks and a memory test.
+    final sideBySide = context.layoutSize.hasRoomForTwoPanes;
 
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => LeagueCubit(repository: repository, mode: mode)..load()),
         BlocProvider(create: (_) => TeamCubit(repository: repository, mode: mode)..load()),
       ],
-      child: DefaultTabController(
+      child: sideBySide ? _wide(context) : _tabbed(context),
+    );
+  }
+
+  /// Squad and league table together, for a window wide enough for both.
+  Widget _wide(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: FormationAppBar(title: mode.label),
+      body: const TwoPane(main: TeamTab(), detail: LeagueTab()),
+      floatingActionButton: _leaguesButton(context, bottomPadding: 0),
+    );
+  }
+
+  Widget _tabbed(BuildContext context) {
+    return DefaultTabController(
         length: 2,
         child: Scaffold(
           backgroundColor: AppColors.background,
@@ -48,19 +69,23 @@ class SportPage extends StatelessWidget {
             ),
           ),
           body: const TabBarView(children: [LeagueTab(), TeamTab()]),
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 85),
-            child: FloatingActionButton(
-              heroTag: 'leagues-${mode.apiValue}',
-              onPressed: () => context.router.push(LeaguesRoute(mode: mode)),
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textInverse,
-              tooltip: 'Leagues',
-              shape: const CircleBorder(),
-              child: const Icon(Icons.group_add),
-            ),
-          ),
+          // Clears the floating bottom nav bar, which only exists here.
+          floatingActionButton: _leaguesButton(context, bottomPadding: 85),
         ),
+      );
+  }
+
+  Widget _leaguesButton(BuildContext context, {required double bottomPadding}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: FloatingActionButton(
+        heroTag: 'leagues-${mode.apiValue}',
+        onPressed: () => context.router.push(LeaguesRoute(mode: mode)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textInverse,
+        tooltip: 'Leagues',
+        shape: const CircleBorder(),
+        child: const Icon(Icons.group_add),
       ),
     );
   }

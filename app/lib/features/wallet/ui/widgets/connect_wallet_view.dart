@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/wallet/data/wallet_connector.dart';
 import 'package:formation/gen/assets.gen.dart';
 
 /// Shown in the profile tab when no wallet is connected.
@@ -14,11 +15,19 @@ class ConnectWalletView extends StatelessWidget {
     required this.onConnect,
     this.isLoading = false,
     this.error,
+    this.wallets = const [],
   });
 
-  final VoidCallback onConnect;
+  /// Connects to the named wallet, or lets the platform choose when null.
+  final void Function(String? walletName) onConnect;
   final bool isLoading;
   final String? error;
+
+  /// Wallets detected in this browser.
+  ///
+  /// Empty on Android, where the system picker does the choosing and a single
+  /// Connect button is the whole interaction.
+  final List<WalletOption> wallets;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +58,7 @@ class ConnectWalletView extends StatelessWidget {
 
           // Title
           Text(
-            'No Wallet Connected',
+            wallets.length > 1 ? 'Choose a Wallet' : 'No Wallet Connected',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -59,7 +68,9 @@ class ConnectWalletView extends StatelessWidget {
 
           // Description
           Text(
-            'Connect your Solana wallet to get started',
+            wallets.length > 1
+                ? 'Pick the wallet holding your xStocks'
+                : 'Connect your Solana wallet to get started',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
@@ -88,33 +99,73 @@ class ConnectWalletView extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
-          // Connect button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: isLoading ? null : onConnect,
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.textInverse,
-                      ),
-                    )
-                  : const Icon(Icons.link_rounded, size: 20),
-              label: Text(isLoading ? 'Connecting…' : 'Connect Wallet'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textInverse,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          // One button per detected wallet, or a single generic one where the
+          // platform picks (Android) or nothing was detected.
+          if (wallets.length > 1)
+            for (final wallet in wallets) ...[
+              _connectButton(
+                label: wallet.name,
+                icon: wallet.icon,
+                onPressed: () => onConnect(wallet.name),
+                filled: wallet == wallets.first,
               ),
+              if (wallet != wallets.last) const SizedBox(height: 10),
+            ]
+          else
+            _connectButton(
+              label: isLoading ? 'Connecting…' : 'Connect Wallet',
+              onPressed: () => onConnect(wallets.firstOrNull?.name),
+              filled: true,
+              showSpinner: isLoading,
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _connectButton({
+    required String label,
+    required VoidCallback onPressed,
+    required bool filled,
+    String? icon,
+    bool showSpinner = false,
+  }) {
+    // The icon is a data URI the wallet itself supplies, so it gets a fixed
+    // box and is allowed to fail quietly rather than shifting the layout.
+    final leading = showSpinner
+        ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.textInverse,
+            ),
+          )
+        : icon != null
+            ? Image.network(
+                icon,
+                width: 20,
+                height: 20,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.account_balance_wallet_outlined, size: 20),
+              )
+            : const Icon(Icons.link_rounded, size: 20);
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: isLoading ? null : onPressed,
+        icon: leading,
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          backgroundColor: filled ? AppColors.primary : AppColors.background,
+          foregroundColor: filled ? AppColors.textInverse : AppColors.textPrimary,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: filled ? null : const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }

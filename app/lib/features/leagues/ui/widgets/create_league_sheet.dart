@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/leagues/ui/cubits/leagues_cubit.dart';
 
@@ -24,13 +25,9 @@ class CreateLeagueSheet extends StatefulWidget {
   final LeaguesCubit cubit;
 
   static Future<void> show(BuildContext context, LeaguesCubit cubit) =>
-      showModalBottomSheet<void>(
+      showAdaptiveSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
         builder: (_) => CreateLeagueSheet(cubit: cubit),
       );
 
