@@ -26,7 +26,7 @@ Future<T?> showAdaptiveSheet<T>({
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: builder,
+      builder: (sheetContext) => _KeyboardInset(child: builder(sheetContext)),
     );
   }
 
@@ -39,6 +39,12 @@ Future<T?> showAdaptiveSheet<T>({
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       clipBehavior: Clip.antiAlias,
+      // A bounded max height, and nothing tighter. These sheets are either a
+      // Column with mainAxisSize.min, which sizes to its content, or a
+      // scrollable that needs a finite bound to flex against — and an
+      // IntrinsicHeight here satisfies neither: it asks a ListView for an
+      // intrinsic height it cannot give, and the sheet throws instead of
+      // opening.
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 460,
@@ -46,10 +52,29 @@ Future<T?> showAdaptiveSheet<T>({
           // page rather than a second page.
           maxHeight: MediaQuery.sizeOf(dialogContext).height * 0.85,
         ),
-        child: IntrinsicHeight(child: builder(dialogContext)),
+        child: builder(dialogContext),
       ),
     ),
   );
+}
+
+/// Lifts a bottom sheet clear of the on-screen keyboard.
+///
+/// `showModalBottomSheet` does not do this for you: a sheet with a focused
+/// text field keeps its original height and the keyboard covers whatever is at
+/// the bottom, which on the buy sheet is the Buy button itself.
+class _KeyboardInset extends StatelessWidget {
+  const _KeyboardInset({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: child,
+    );
+  }
 }
 
 /// Lays out a main pane and an optional detail pane side by side.

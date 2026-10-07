@@ -9,7 +9,6 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import type { User } from '../core/db-types.js';
 import type { ProfileDto } from '../domain/dto.js';
-import { shortAddress } from '../domain/sport.js';
 
 @Injectable()
 export class UsersService {
@@ -20,7 +19,7 @@ export class UsersService {
     if (existing) return existing;
     return this.db
       .insertInto('users')
-      .values({ wallet_address: walletAddress, username: shortAddress(walletAddress) })
+      .values({ wallet_address: walletAddress, username: defaultUsername(walletAddress) })
       .returningAll()
       .executeTakeFirstOrThrow();
   }
@@ -175,4 +174,25 @@ export function normaliseUsername(raw: string): string {
     );
   }
   return username;
+}
+
+/**
+ * The name a player starts with, before they pick one.
+ *
+ * It must satisfy [USERNAME], and this is not a detail: the app pre-fills the
+ * name field with whatever the player currently has, so an invalid default
+ * comes straight back on the next save and is rejected — which made it
+ * impossible to set a bio without also renaming yourself. `shortAddress`
+ * produced exactly that, since its ellipsis is not an allowed character.
+ *
+ * Base58 has no characters outside the allowed set, so bookending the wallet
+ * is enough.
+ */
+export function defaultUsername(walletAddress: string): string {
+  const head = walletAddress.slice(0, 4);
+  const tail = walletAddress.slice(-4);
+  const candidate = walletAddress.length <= 10 ? walletAddress : `${head}_${tail}`;
+  // A wallet short or odd enough to fall outside the rule still has to get a
+  // usable name rather than a 500 on first sign-in.
+  return USERNAME.test(candidate) ? candidate : `player_${tail}`;
 }

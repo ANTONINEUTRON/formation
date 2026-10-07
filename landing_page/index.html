@@ -705,6 +705,59 @@
   }
   .close__cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 30px; }
 
+  /* ── Get-the-app dialog ──────────────────────────────────────────────── */
+  /* There are two ways to play and the page should not have to guess which
+     one a visitor wants: a desktop cannot install the APK, and plenty of
+     people on a phone would rather not install anything. So the CTA asks. */
+  .pick::backdrop { background: rgba(6,13,10,0.72); }
+  .pick {
+    width: min(420px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--pitch);
+    color: var(--chalk);
+  }
+  .pick__in { padding: 24px; }
+  .pick__h {
+    font-family: var(--display);
+    font-size: 26px;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .pick__p { margin: 0 0 20px; font-size: 14px; color: var(--chalk-dim); line-height: 1.5; }
+  .pick__opts { display: grid; gap: 10px; }
+  .pick__opt {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    text-decoration: none;
+    color: var(--chalk);
+    transition: border-color .15s, background-color .15s;
+  }
+  .pick__opt:hover { border-color: var(--lime); background: rgba(184,255,60,0.05); }
+  .pick__opt svg { flex: none; color: var(--lime); }
+  .pick__t { display: block; font-weight: 700; font-size: 14.5px; }
+  .pick__s { display: block; font-size: 12.5px; color: var(--chalk-dim); margin-top: 3px; line-height: 1.4; }
+  .pick__x {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+    border: 0;
+    border-radius: var(--r);
+    background: none;
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--chalk-faint);
+    cursor: pointer;
+  }
+  .pick__x:hover { color: var(--chalk); }
+
   .foot {
     border-top: 1px solid var(--line);
     padding-block: 26px 32px;
@@ -731,6 +784,9 @@
     text-decoration: none;
   }
   .foot__l a:hover { color: var(--lime); }
+  /* The X link is an icon beside its label, so it needs to sit on the
+     baseline with the text links either side of it. */
+  .foot__l a { display: inline-flex; align-items: center; gap: 6px; }
 
   .rs {
     margin-top: 16px;
@@ -753,7 +809,7 @@
       <a href="#scoring">How it works</a>
       <a href="#copy">Copy the best</a>
       <a href="#built">It's live</a>
-      <a class="btn btn--go" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Get the app</a>
+      <a class="btn btn--go" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Get the app</a>
     </nav>
   </div>
 </header>
@@ -769,8 +825,8 @@
         the market
       </p>
       <div class="hero__cta">
-        <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Get the app</a>
-        <a class="btn btn--ghost btn--lg" href="https://app.formation.titalabs.xyz">Play in your browser</a>
+        <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Get the app</a>
+        <a class="btn btn--ghost btn--lg" href="#scoring">See how it works</a>
       </div>
     </div>
 
@@ -1126,8 +1182,8 @@
       You've already picked the stocks. Now give them something to play for.
     </p>
     <div class="close__cta">
-      <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Get the app</a>
-      <a class="btn btn--ghost btn--lg" href="https://app.formation.titalabs.xyz">Play in your browser</a>
+      <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Get the app</a>
+      <a class="btn btn--ghost btn--lg" href="#scoring">See how it works</a>
     </div>
   </div>
 </section>
@@ -1138,8 +1194,12 @@
       <span class="foot__t">Formation · We make your portfolio interesting</span>
       <nav class="foot__l">
         <a href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Get the app</a>
-        <a href="https://app.formation.titalabs.xyz">Web app</a>
+        <a href="https://formation-xstocks.web.app">Web app</a>
         <a href="#scoring">How it works</a>
+        <a href="https://x.com/formation_sol" aria-label="Formation on X">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X
+        </a>
       </nav>
     </div>
     <p class="rs">
@@ -1152,6 +1212,61 @@
     </p>
   </div>
 </footer>
+
+<dialog class="pick" id="pick" aria-labelledby="pick-h">
+  <div class="pick__in">
+    <h2 class="pick__h" id="pick-h">Two ways in</h2>
+    <p class="pick__p">
+      Both play the same game against the same leaderboard, with the same stocks
+      in your own wallet.
+    </p>
+    <div class="pick__opts">
+      <a class="pick__opt" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+        <span>
+          <span class="pick__t">Download the Android app</span>
+          <span class="pick__s">Signs with your phone's wallet. Built for Seeker.</span>
+        </span>
+      </a>
+      <a class="pick__opt" href="https://formation-xstocks.web.app">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.6 2.6 2.6 16.4 0 19M12 2.5c-2.6 2.6-2.6 16.4 0 19"/></svg>
+        <span>
+          <span class="pick__t">Play in your browser</span>
+          <span class="pick__s">Nothing to install. Connect Phantom, Solflare or Backpack.</span>
+        </span>
+      </a>
+    </div>
+    <button class="pick__x" type="button" data-pick-close>Not now</button>
+  </div>
+</dialog>
+
+<script>
+  /* The "Get the app" buttons open the chooser above. Their href still points
+     at the APK, so without JavaScript — or without <dialog> — the button
+     keeps working and just skips the choice. */
+  (function () {
+    var pick = document.getElementById('pick');
+    if (!pick || typeof pick.showModal !== 'function') return;
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pick]'), function (trigger) {
+      trigger.addEventListener('click', function (event) {
+        event.preventDefault();
+        pick.showModal();
+      });
+    });
+
+    pick.querySelector('[data-pick-close]').addEventListener('click', function () {
+      pick.close();
+    });
+
+    // Clicking the backdrop closes it. The backdrop is the dialog element
+    // itself; anything inside .pick__in is a real target and must not.
+    pick.addEventListener('click', function (event) {
+      if (event.target === pick) pick.close();
+    });
+  })();
+</script>
+
 <script>
   (function () {
     var sheet = document.querySelector('.sheet');

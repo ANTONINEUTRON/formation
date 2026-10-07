@@ -6,6 +6,7 @@ import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/sport/ui/pages/sport_page.dart';
+import 'package:formation/gen/assets.gen.dart';
 
 /// Home page - main shell with one navigation destination per sport.
 @RoutePage()
@@ -99,6 +100,17 @@ class _SportRail extends StatelessWidget {
       selectedIndex: currentIndex,
       onDestinationSelected: onSelected,
       backgroundColor: AppColors.surface,
+      // The phone layout carries the brand in the app bar, which the rail
+      // sits beside rather than under — so without this the wide layout is
+      // the only place Formation never says its own name.
+      leading: Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: 20),
+        child: Assets.brand.formationLogoNobg.image(
+          width: 36,
+          height: 36,
+          fit: BoxFit.contain,
+        ),
+      ),
       indicatorColor: AppColors.primary.withValues(alpha: 0.14),
       selectedIconTheme: const IconThemeData(color: AppColors.primary),
       unselectedIconTheme: const IconThemeData(color: AppColors.textMuted),

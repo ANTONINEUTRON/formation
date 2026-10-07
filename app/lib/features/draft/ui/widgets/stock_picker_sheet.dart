@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/format.dart';
@@ -58,13 +59,24 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<DraftCubit>();
+    // On a phone this is a sheet you can drag taller. In a dialog there is
+    // nothing to drag against, and DraggableScrollableSheet needs the
+    // unbounded parent that only showModalBottomSheet gives it — inside a
+    // dialog it cannot lay out, and the picker never appears.
+    if (!context.layoutSize.isCompact) return _body(context, null);
 
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.75,
       maxChildSize: 0.95,
-      builder: (context, scrollController) => BlocBuilder<DraftCubit, DraftState>(
+      builder: (context, scrollController) => _body(context, scrollController),
+    );
+  }
+
+  Widget _body(BuildContext context, ScrollController? scrollController) {
+    final cubit = context.read<DraftCubit>();
+
+    return BlocBuilder<DraftCubit, DraftState>(
         builder: (context, state) {
           final position = state.roster!.slots[widget.slotIndex].position;
           final q = _query.toLowerCase();
@@ -152,7 +164,6 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
             ],
           );
         },
-      ),
     );
   }
 }

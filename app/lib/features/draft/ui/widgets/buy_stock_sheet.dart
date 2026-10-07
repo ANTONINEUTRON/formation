@@ -139,7 +139,11 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     final quote = _quote;
 
     return SafeArea(
-      child: Padding(
+      // The amount field autofocuses, so the keyboard is up before the player
+      // has done anything. showAdaptiveSheet lifts the sheet clear of it; this
+      // scrolls when even the lifted sheet does not fit, which is the case on
+      // a short phone once the quote rows appear.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,

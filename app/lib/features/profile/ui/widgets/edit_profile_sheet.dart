@@ -56,10 +56,18 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      // Only what the player actually edited. Sending all three means an
+      // untouched field can fail validation and take the others down with it
+      // — which is what happened to anyone still holding the old default
+      // username: they could not save a bio without renaming themselves.
+      final username = _username.text.trim();
+      final bio = _bio.text.trim();
+      final email = _email.text.trim();
+
       final updated = await widget.repository.updateProfile(
-        username: _username.text.trim(),
-        bio: _bio.text.trim(),
-        email: _email.text.trim(),
+        username: username == widget.profile.username ? null : username,
+        bio: bio == (widget.profile.bio ?? '') ? null : bio,
+        email: email == (widget.profile.email ?? '') ? null : email,
       );
       if (!mounted) return;
       Navigator.of(context).pop(updated);
