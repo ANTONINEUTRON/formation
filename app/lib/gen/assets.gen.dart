@@ -18,10 +18,6 @@ class $AssetsBrandGen {
   AssetGenImage get formationBlack =>
       const AssetGenImage('assets/brand/formation_black.png');
 
-  /// File path: assets/brand/formation_logo_1024.png
-  AssetGenImage get formationLogo1024 =>
-      const AssetGenImage('assets/brand/formation_logo_1024.png');
-
   /// File path: assets/brand/formation_logo_nobg.png
   AssetGenImage get formationLogoNobg =>
       const AssetGenImage('assets/brand/formation_logo_nobg.png');
@@ -33,7 +29,6 @@ class $AssetsBrandGen {
   /// List of all assets
   List<AssetGenImage> get values => [
     formationBlack,
-    formationLogo1024,
     formationLogoNobg,
     formationWhite,
   ];

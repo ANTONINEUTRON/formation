@@ -150,8 +150,18 @@ flutter pub get
 flutter run
 ```
 
-Point the app at your backend with `--dart-define=API_URL=...`; it defaults to
-the deployed API, and an empty value switches to in-memory fixtures.
+Configuration lives in `app/.env`, compiled into the `Env` class by envied:
+
+```bash
+cp app/.env.example app/.env     # then edit
+cd app && dart run build_runner build --delete-conflicting-outputs
+```
+
+`app/.env` and the generated `app/lib/env/env.g.dart` are both untracked,
+since they hold whatever you put in them — an RPC key included. A fresh clone
+has to run build_runner once before it will compile. Every field has a default
+in `app/lib/env/env.dart`, so a missing `.env` still builds, against the public
+endpoints. `API_URL` set to empty switches the app to in-memory fixtures.
 
 ### Web
 
@@ -170,14 +180,21 @@ Two things to know when testing:
 - Wallet Standard needs a secure context. `localhost` counts; a LAN IP does not,
   so MWA will not register over `http://192.168.x.x`.
 - The public Solana RPC rate-limits per origin and a browser reaches that far
-  sooner than the APK does. Pass your own with
-  `--dart-define=SOLANA_RPC_URL=...`.
+  sooner than the APK does, since every balance read goes through it. Set
+  `SOLANA_RPC_URL` in `app/.env` and re-run build_runner.
+
+An RPC key in a web build is not a secret: the bundle ships to the browser, so
+anyone can read it out of devtools. Restrict the key by domain at the provider
+— that is the control that holds, and obfuscating the bundle is not.
 
 Deploying:
 
 ```powershell
-./scripts/deploy-web.ps1 -RpcUrl "https://mainnet.helius-rpc.com/?api-key=..."
+./scripts/deploy-web.ps1
 ```
+
+It runs build_runner itself, so an edit to `app/.env` is picked up without a
+separate step, and it warns if the RPC is still the public one.
 
 First time only: `firebase hosting:sites:create formation-app`, then add
 `app.formation.titalabs.xyz` to that site in the Firebase console.

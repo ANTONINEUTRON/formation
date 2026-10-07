@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Build-time config and the class generated from it. Both hold whatever is in
+# .env verbatim, including any RPC key, so neither is committed.
+# See .env.example for the template.
+.env
+lib/env/env.g.dart

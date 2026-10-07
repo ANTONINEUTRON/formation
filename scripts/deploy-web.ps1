@@ -24,21 +24,18 @@
   firebase.json or from this script, so nothing here requires a billing
   account. See README for the two options when that gets picked up again.
 
-.PARAMETER RpcUrl
-  Solana RPC for the web build. The public endpoint rate-limits by origin and a
-  browser hits that far sooner than the APK does, so pass a dedicated one
-  (Helius or similar) for anything player-facing.
+  Configuration comes from app/.env (see app/.env.example), compiled into the
+  Env class by build_runner - which this script runs, so an edit to .env is
+  picked up without a separate step.
 
 .PARAMETER SkipDeploy
   Build everything and stop, for checking the output before it goes live.
 
 .EXAMPLE
-  ./scripts/deploy-web.ps1 -RpcUrl "https://mainnet.helius-rpc.com/?api-key=..."
+  ./scripts/deploy-web.ps1
 #>
 [CmdletBinding()]
 param(
-  [string]$ApiUrl = 'https://api.formation.titalabs.xyz',
-  [string]$RpcUrl = '',
   [switch]$SkipDeploy
 )
 
@@ -53,8 +50,14 @@ function Invoke-Step {
   if ($LASTEXITCODE -ne 0) { throw "$Name failed with exit code $LASTEXITCODE" }
 }
 
-if (-not $RpcUrl) {
-  Write-Warning "No -RpcUrl given: the build will use the public mainnet endpoint, which rate-limits browser origins. Fine for a smoke test, not for players."
+# Catch the easy mistake before spending four minutes on a build: shipping the
+# public RPC, which rate-limits per origin and will start dropping balance
+# reads once more than a handful of people are playing.
+$envFile = "$repo/app/.env"
+if (-not (Test-Path $envFile)) {
+  Write-Warning "No app/.env - building against the public Solana endpoint. Copy app/.env.example and set SOLANA_RPC_URL before this goes to players."
+} elseif ((Get-Content $envFile -Raw) -match 'SOLANA_RPC_URL\s*=\s*https://api\.mainnet-beta\.solana\.com') {
+  Write-Warning "app/.env still has the public SOLANA_RPC_URL, which rate-limits browser origins. Fine for a smoke test, not for players."
 }
 
 Invoke-Step 'Bundling the wallet bridge' {
@@ -62,16 +65,14 @@ Invoke-Step 'Bundling the wallet bridge' {
   npm --prefix "$repo/app/web_wallet" run build
 }
 
-Invoke-Step 'Building the Flutter web app' {
-  $defines = @("--dart-define=API_URL=$ApiUrl")
-  if ($RpcUrl) {
-    $defines += "--dart-define=SOLANA_RPC_URL=$RpcUrl"
-    # The websocket host follows the RPC host, or balance subscriptions would
-    # still be pointed at the throttled public endpoint.
-    $defines += "--dart-define=SOLANA_WS_URL=$($RpcUrl -replace '^https:', 'wss:')"
-  }
+Invoke-Step 'Generating config from .env' {
   Push-Location "$repo/app"
-  try { flutter build web --release @defines } finally { Pop-Location }
+  try { dart run build_runner build --delete-conflicting-outputs } finally { Pop-Location }
+}
+
+Invoke-Step 'Building the Flutter web app' {
+  Push-Location "$repo/app"
+  try { flutter build web --release } finally { Pop-Location }
 }
 
 if ($SkipDeploy) {

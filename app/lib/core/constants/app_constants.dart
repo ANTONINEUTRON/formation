@@ -1,3 +1,5 @@
+import 'package:formation/env/env.dart';
+
 /// Application-wide constants.
 class AppConstants {
   AppConstants._();
@@ -13,27 +15,16 @@ class AppConstants {
   static const String appIdentityIcon = 'favicon.png';
 
   /// NestJS backend base URL. Empty means fixture mode (in-memory data).
-  /// Override with `flutter run --dart-define=API_URL=https://...`.
-  static const String apiUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'https://api.formation.titalabs.xyz',
-  );
+  /// Set in `app/.env`; see [Env].
+  static const String apiUrl = Env.apiUrl;
 
   // Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
 
-  // Solana
-  //
-  // The public endpoint rate-limits by origin, which a browser build hits far
-  // sooner than an APK does — pass a dedicated RPC with --dart-define for web.
-  static const String solanaRpcUrl = String.fromEnvironment(
-    'SOLANA_RPC_URL',
-    defaultValue: 'https://api.mainnet-beta.solana.com',
-  );
-  static const String solanaWsUrl = String.fromEnvironment(
-    'SOLANA_WS_URL',
-    defaultValue: 'wss://api.mainnet-beta.solana.com',
-  );
+  // Solana. Both set in `app/.env`; see [Env] for why the web build needs its
+  // own endpoint rather than the public one.
+  static const String solanaRpcUrl = Env.solanaRpcUrl;
+  static const String solanaWsUrl = Env.solanaWsUrl;
   static const String solanaCluster = 'mainnet-beta';
 
   /// Mainnet USDC SPL token mint address.

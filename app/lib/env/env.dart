@@ -1,36 +1,45 @@
 import 'package:envied/envied.dart';
 
-// part 'env.g.dart';
+part 'env.g.dart';
 
-/// Environment variables loaded from .env file.
+/// Build-time configuration, read from `app/.env`.
 ///
-/// Create a `.env` file in the project root with the required variables.
-/// See `.env.example` for the list of required variables.
-///
-/// After modifying, run:
+/// Create `app/.env` from `app/.env.example`, then regenerate:
 /// ```
 /// dart run build_runner build --delete-conflicting-outputs
 /// ```
+///
+/// The generated `env.g.dart` holds the literal values and is NOT committed,
+/// so a fresh clone has to run build_runner once before it will compile.
+/// Every field has a default, so a missing `.env` still builds — it just
+/// builds against the public endpoints.
+///
+/// Nothing here is a secret in a web build. The whole bundle ships to the
+/// browser, so an RPC key in it is readable by anyone who opens devtools;
+/// obfuscation would only make that marginally slower, not harder. Restrict
+/// the key by domain at the provider instead — that is the control that
+/// actually holds.
 @Envied(path: '.env')
 abstract class Env {
-  // // Supabase
-  // @EnviedField(varName: 'DB_URL')
-  // static const String dbUrl = _Env.dbUrl;
+  /// NestJS backend base URL. Empty switches the app to in-memory fixtures.
+  @EnviedField(varName: 'API_URL', defaultValue: 'https://api.formation.titalabs.xyz')
+  static const String apiUrl = _Env.apiUrl;
 
-  // @EnviedField(varName: 'DB_ANON_KEY')
-  // static const String dbAnonKey = _Env.dbAnonKey;
+  /// Solana JSON-RPC endpoint.
+  ///
+  /// The public one rate-limits per origin, and a browser reaches that far
+  /// sooner than the APK does — every balance read goes through here. Use a
+  /// dedicated endpoint for anything player-facing.
+  @EnviedField(
+    varName: 'SOLANA_RPC_URL',
+    defaultValue: 'https://api.mainnet-beta.solana.com',
+  )
+  static const String solanaRpcUrl = _Env.solanaRpcUrl;
 
-  // // Google Auth
-  // @EnviedField(varName: 'GOOGLE_WEB_CLIENT_ID', defaultValue: '')
-  // static const String googleWebClientId = _Env.googleWebClientId;
-
-  // @EnviedField(varName: 'GOOGLE_IOS_CLIENT_ID', defaultValue: '')
-  // static const String googleIosClientId = _Env.googleIosClientId;
-
-  // // RevenueCat (Store flavor)
-  // @EnviedField(varName: 'REVENUECAT_ANDROID_API_KEY', defaultValue: '')
-  // static const String revenueCatAndroidApiKey = _Env.revenueCatAndroidApiKey;
-
-  // @EnviedField(varName: 'REVENUECAT_IOS_API_KEY', defaultValue: '')
-  // static const String revenueCatIosApiKey = _Env.revenueCatIosApiKey;
+  /// Websocket endpoint, which has to be the same provider as the RPC above.
+  @EnviedField(
+    varName: 'SOLANA_WS_URL',
+    defaultValue: 'wss://api.mainnet-beta.solana.com',
+  )
+  static const String solanaWsUrl = _Env.solanaWsUrl;
 }
