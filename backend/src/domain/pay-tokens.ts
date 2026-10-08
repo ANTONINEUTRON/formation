@@ -3,16 +3,22 @@
  *
  * Two things here are easy to get wrong and expensive when you do:
  *
- *   Decimals differ. USDC has 6, SOL has 9. Sending an amount scaled by the
- *   wrong power of ten is a 1000x error in a real transaction, so the scale
- *   always comes from the token rather than from a constant.
+ *   Decimals differ between mints. Sending an amount scaled by the wrong
+ *   power of ten is a 1000x error in a real transaction, so the scale always
+ *   comes from the token rather than from a constant.
  *
  *   Jupiter's platform fee needs a fee account whose mint is the input or the
- *   output mint. One USDC account cannot collect a fee on a SOL swap, so each
+ *   output mint. One USDC account cannot collect a fee on an SKR swap, so each
  *   payable token carries its own, and a token without one simply charges no
  *   fee rather than failing the swap.
+ *
+ * SOL is deliberately not payable. Paying with it means wrapping SOL inside
+ * the swap and a separate wrapped-SOL fee account, and it competes with the
+ * network fees every swap needs SOL for anyway — a player who spends their
+ * last SOL on a stock cannot afford to sign the next transaction. USDC covers
+ * the same need without either problem.
  */
-export const PAY_SYMBOLS = ['USDC', 'SOL', 'SKR'] as const;
+export const PAY_SYMBOLS = ['USDC', 'SKR'] as const;
 export type PaySymbol = (typeof PAY_SYMBOLS)[number];
 
 export interface PayToken {
@@ -21,10 +27,18 @@ export interface PayToken {
   decimals: number;
   /** Token account that collects the platform fee, or '' for no fee. */
   feeAccount: string;
+  /**
+   * Smallest buy this token will quote, in whole units of the token itself.
+   *
+   * Roughly a dollar, and per token because token prices differ. Below about a
+   * dollar a swap stops making sense — the network fee and the rent for a
+   * first-time token account both exceed the trade, so the player pays more to
+   * place it than it is worth, and a slot filled with 30 cents of stock scores
+   * nothing anyone can see.
+   */
+  minAmount: number;
 }
 
-/** Wrapped SOL. Jupiter unwraps native SOL into this automatically. */
-export const SOL_MINT = 'So11111111111111111111111111111111111111112';
 export const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 export function parsePaySymbol(value: string | undefined): PaySymbol {
@@ -38,7 +52,7 @@ export function parsePaySymbol(value: string | undefined): PaySymbol {
 /**
  * Builds the payable list from the environment.
  *
- * USDC and SOL are always available because their mints are fixed. SKR only
+ * USDC is always available because its mint is fixed. SKR only
  * appears once `SKR_MINT` is set — until then the app never offers it, which
  * is safer than shipping a placeholder address people could swap into.
  */
@@ -49,12 +63,7 @@ export function loadPayTokens(env: NodeJS.ProcessEnv): PayToken[] {
       mint: USDC_MINT,
       decimals: 6,
       feeAccount: env.JUPITER_FEE_ACCOUNT_USDC ?? env.JUPITER_FEE_ACCOUNT ?? '',
-    },
-    {
-      symbol: 'SOL',
-      mint: SOL_MINT,
-      decimals: 9,
-      feeAccount: env.JUPITER_FEE_ACCOUNT_SOL ?? '',
+      minAmount: 1,
     },
   ];
 
@@ -71,6 +80,9 @@ export function loadPayTokens(env: NodeJS.ProcessEnv): PayToken[] {
       mint: env.SKR_MINT,
       decimals: skrDecimals,
       feeAccount: env.JUPITER_FEE_ACCOUNT_SKR ?? '',
+      // SKR has no established price here yet, so 1 is a placeholder rather
+      // than a dollar. Revisit alongside SKR_MINT.
+      minAmount: 1,
     });
   }
   return tokens;

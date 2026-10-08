@@ -12,6 +12,7 @@ import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
 
 /// Quote preview and confirm for buying an xStock with USDC via Jupiter.
 class BuyStockSheet extends StatefulWidget {
@@ -83,6 +84,30 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     super.dispose();
   }
 
+  /// SOL a buy needs on hand beyond the trade itself.
+  ///
+  /// Rent for an associated token account the player does not have yet
+  /// (~0.00204), the base fee, and Jupiter's `auto` priority fee, which it
+  /// caps at 0.005 SOL. Rounded up, because the cost of overstating this is a
+  /// warning the player did not need and the cost of understating it is a
+  /// failed signature.
+  static const double _solHeadroom = 0.008;
+
+  /// True when the wallet cannot cover the fees, whatever it is paying with.
+  ///
+  /// Easy to hit and confusing when you do: a wallet funded only with USDC has
+  /// everything it needs to buy a stock except the SOL to pay for the
+  /// transaction. The wallet's own message for this is "couldn't be
+  /// simulated", which says nothing about SOL.
+  bool get _lowOnSol {
+    final balances = context.read<WalletCubit>().state.balances;
+    final sol = balances.where((b) => b.currency == 'SOL').firstOrNull;
+    // No balance yet means the fetch has not landed; stay quiet rather than
+    // warn on missing data.
+    if (sol == null) return false;
+    return sol.amount < _solHeadroom;
+  }
+
   /// Null while the amount is usable; otherwise why it isn't.
   ///
   /// There is no ceiling: it's the player's own wallet, and Jupiter rejects
@@ -93,6 +118,12 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     final value = double.tryParse(raw);
     if (value == null) return 'Enter a number';
     if (value <= 0) return 'Enter an amount greater than zero';
+    // Caught here as well as on the server, so a too-small amount reads as a
+    // field error rather than a failed request — and so we do not ask Jupiter
+    // to price a trade we already know will be refused.
+    if (value < _payWith.minAmount) {
+      return 'At least ${formatAmount(_payWith.minAmount)} ${_payWith.symbol}';
+    }
     return null;
   }
 
@@ -195,12 +226,37 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
                           '${formatAmount(quote.inputAmount)} ${quote.payWith}',
                         ),
                         _QuoteRow('You receive (est.)', '${formatShares(quote.estimatedShares)} ${widget.stock.symbol}'),
-                        _QuoteRow('Price impact', formatPct(quote.priceImpactPct, signed: false)),
                         
                         const _QuoteRow('Route', 'Jupiter'),
                       ],
                     ),
             ),
+            if (_lowOnSol) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.local_gas_station_outlined,
+                        size: 18, color: AppColors.warning),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Low on SOL. Every swap costs network fees, and a stock '
+                        'you have never held needs about ${formatAmount(_solHeadroom)} SOL '
+                        'to open its account. Without it your wallet will say it '
+                        "can't simulate the transaction, and signing would fail.",
+                        style: const TextStyle(fontSize: 12, color: AppColors.warning, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             const Text(
               'You sign this swap in your own wallet. Formation never holds your funds.',

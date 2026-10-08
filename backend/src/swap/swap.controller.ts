@@ -13,10 +13,11 @@ export class SwapController {
   /** What this server accepts as payment. SKR appears only once configured. */
   @Get('tokens')
   tokens(): PayTokenDto[] {
-    return this.swaps.payTokens.map(({ symbol, mint, decimals }) => ({
+    return this.swaps.payTokens.map(({ symbol, mint, decimals, minAmount }) => ({
       symbol,
       mint,
       decimals,
+      minAmount,
     }));
   }
 

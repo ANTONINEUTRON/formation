@@ -745,12 +745,16 @@ class PayToken extends Equatable {
     required this.symbol,
     required this.mint,
     required this.decimals,
+    this.minAmount = 1,
   });
 
   factory PayToken.fromJson(Map<String, dynamic> json) => PayToken(
         symbol: json['symbol'] as String,
         mint: json['mint'] as String,
         decimals: json['decimals'] as int,
+        // An older server does not send this. Falling back to 1 matches what
+        // USDC uses, and the server is the real gate either way.
+        minAmount: (json['minAmount'] as num?)?.toDouble() ?? 1,
       );
 
   static const usdc = PayToken(
@@ -763,15 +767,21 @@ class PayToken extends Equatable {
   final String mint;
   final int decimals;
 
+  /// Smallest buy the server will quote, in whole units of this token.
+  ///
+  /// Roughly a dollar, which is why it travels with the token rather than
+  /// being one constant: token prices differ, so one number cannot be a
+  /// dollar in all of them.
+  final double minAmount;
+
   /// Asset path for this token's icon in `assets/icons/`.
   String get iconAsset => switch (symbol) {
-        'SOL' => 'assets/icons/solana.png',
         'SKR' => 'assets/icons/seeker.png',
         _ => 'assets/icons/usdc.png',
       };
 
   @override
-  List<Object?> get props => [symbol, mint, decimals];
+  List<Object?> get props => [symbol, mint, decimals, minAmount];
 }
 
 class SwapQuote extends Equatable {

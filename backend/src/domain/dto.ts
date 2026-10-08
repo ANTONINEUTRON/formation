@@ -109,6 +109,8 @@ export interface PayTokenDto {
   symbol: PaySymbol;
   mint: string;
   decimals: number;
+  /** Smallest buy this token will quote, in whole units of the token. */
+  minAmount: number;
 }
 
 /**

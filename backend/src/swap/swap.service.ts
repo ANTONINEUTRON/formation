@@ -94,10 +94,17 @@ export class SwapService {
     const payToken = this.payToken(paySymbol);
     const feeBps = this.feeBpsFor(payToken);
     // No upper limit: it is the player's own money and their own wallet, and
-    // Jupiter already rejects anything it cannot route. Only reject amounts
-    // that aren't a usable number.
+    // Jupiter already rejects anything it cannot route. There is a floor,
+    // though — below roughly a dollar the network fee and the rent for a
+    // first-time token account both cost more than the trade itself, so the
+    // player pays to place a buy that buys nothing worth holding.
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException('Enter an amount greater than zero');
+    }
+    if (amount < payToken.minAmount) {
+      throw new BadRequestException(
+        `The smallest buy is ${payToken.minAmount} ${payToken.symbol}`,
+      );
     }
     const stock = (await this.xstocks.byMint()).get(mint);
     if (!stock) throw new BadRequestException('Unsupported token');
@@ -108,6 +115,13 @@ export class SwapService {
       // Scale by the paying token's own decimals: USDC is 6, SOL is 9.
       amount: String(Math.round(amount * 10 ** payToken.decimals)),
       slippageBps: String(SLIPPAGE_BPS),
+      // Every xStock is a Token-2022 mint, and Jupiter's original Route
+      // instruction cannot take a platform fee on a Token-2022 swap: it fails
+      // on-chain with 6014 IncorrectTokenProgramID before swapping anything.
+      // That was every fee-bearing buy, in every pay token — the wallet could
+      // not simulate it, and signing anyway just paid the network fee for a
+      // failure. V2 is the instruction that supports it.
+      instructionVersion: 'V2',
     });
     if (feeBps > 0) params.set('platformFeeBps', String(feeBps));
 
@@ -158,8 +172,30 @@ export class SwapService {
       }),
     });
     if (!res.ok) await this.fail(res, 'building the transaction');
-    const { swapTransaction } = (await res.json()) as { swapTransaction: string };
-    return { swapTransaction };
+    const built = (await res.json()) as {
+      swapTransaction: string;
+      // Undocumented in the OpenAPI schema but returned in practice, so it is
+      // read defensively rather than destructured as required.
+      simulationError?: { error?: string; errorCode?: string } | string | null;
+    };
+
+    // Jupiter simulates the swap while building it. If that simulation failed,
+    // it still hands back a transaction — and handing that on is how a player
+    // ends up staring at "this transaction couldn't be simulated" in their
+    // wallet and paying a fee to confirm a swap that was never going to land.
+    // Refusing here costs them nothing and tells them why.
+    if (built.simulationError) {
+      const reason =
+        typeof built.simulationError === 'string'
+          ? built.simulationError
+          : (built.simulationError.error ?? built.simulationError.errorCode ?? 'unknown');
+      this.logger.warn(`Jupiter flagged the swap as failing: ${reason}`);
+      throw new BadRequestException(
+        'That trade would fail right now. The price may have moved, or the pool may be too thin for this size — try a smaller amount or a different stock.',
+      );
+    }
+
+    return { swapTransaction: built.swapTransaction };
   }
 
   /** Waits for the user-sent swap to confirm, then refreshes their balances. */

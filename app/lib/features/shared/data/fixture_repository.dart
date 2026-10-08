@@ -529,15 +529,11 @@ class FixtureRepository implements FormationRepository {
 
   // ── Swaps ──────────────────────────────────────────────────────────────────
 
-  /// Fixtures offer all three so the picker can be exercised offline.
+  /// Both payable tokens, so the picker can be exercised offline. SOL is not
+  /// one of them: swaps need it for network fees, so it is never spendable.
   @override
   Future<List<PayToken>> getPayTokens() => _delay(() => const [
         PayToken.usdc,
-        PayToken(
-          symbol: 'SOL',
-          mint: 'So11111111111111111111111111111111111111112',
-          decimals: 9,
-        ),
         PayToken(symbol: 'SKR', mint: 'SKRfixture', decimals: 9),
       ]);
 
@@ -551,7 +547,7 @@ class FixtureRepository implements FormationRepository {
         final fee = amount * _platformFeeBps / 10000;
         // Fixtures price everything in dollars, so non-USDC tokens need a
         // notional rate to turn an amount into shares.
-        final rate = switch (payWith.symbol) { 'SOL' => 150.0, 'SKR' => 0.5, _ => 1.0 };
+        final rate = switch (payWith.symbol) { 'SKR' => 0.5, _ => 1.0 };
         return SwapQuote(
           stock: stock,
           payWith: payWith.symbol,

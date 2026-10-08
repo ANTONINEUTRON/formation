@@ -134,24 +134,28 @@ void main() {
       expect(roster.slots.first.balance, closeTo(quote.estimatedShares, 1e-9));
     });
 
-    test('paying in SOL quotes in SOL, not dollars', () async {
+    test('SOL is never offered as payment', () async {
+      // Swaps need SOL for network fees; spending it on stocks would leave a
+      // player unable to sign their next transaction.
+      final tokens = await FixtureRepository(walletAddress: _wallet).getPayTokens();
+      expect(tokens.map((t) => t.symbol), isNot(contains('SOL')));
+    });
+
+    test('paying in SKR quotes in SKR, not dollars', () async {
       final repo = FixtureRepository(walletAddress: _wallet);
       final amd = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');
 
       final tokens = await repo.getPayTokens();
-      final sol = tokens.firstWhere((t) => t.symbol == 'SOL');
-      // SOL has 9 decimals against USDC's 6 — the difference the backend
-      // scales the swap amount by.
-      expect(sol.decimals, 9);
-      expect(sol.iconAsset, 'assets/icons/solana.png');
+      final skr = tokens.firstWhere((t) => t.symbol == 'SKR');
+      expect(skr.iconAsset, 'assets/icons/seeker.png');
 
       final inUsdc = await repo.getSwapQuote(amd, 10);
-      final inSol = await repo.getSwapQuote(amd, 10, payWith: sol);
+      final inSkr = await repo.getSwapQuote(amd, 10, payWith: skr);
 
-      expect(inSol.payWith, 'SOL');
-      expect(inSol.inputAmount, 10);
-      // Ten SOL buys far more than ten dollars' worth.
-      expect(inSol.estimatedShares, greaterThan(inUsdc.estimatedShares));
+      expect(inSkr.payWith, 'SKR');
+      expect(inSkr.inputAmount, 10);
+      // The amount is in SKR, which is not a dollar, so the shares differ.
+      expect(inSkr.estimatedShares, isNot(inUsdc.estimatedShares));
     });
 
     test('changing formation drops the picks that no longer fit', () async {
