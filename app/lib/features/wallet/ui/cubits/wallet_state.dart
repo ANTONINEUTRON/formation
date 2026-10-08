@@ -16,6 +16,7 @@ class WalletState extends Equatable {
     this.sessionToken,
     this.balances = const [],
     this.wallets = const [],
+    this.needsTap = false,
     this.error,
   });
 
@@ -43,6 +44,12 @@ class WalletState extends Equatable {
   /// Always empty on Android, where the system picker does the choosing.
   final List<WalletOption> wallets;
 
+  /// True while a wallet action is waiting for the player to tap.
+  ///
+  /// Mobile web only: Chrome lets a tap, and nothing else, open the wallet
+  /// app. Never persisted — a waiting action does not survive a reload.
+  final bool needsTap;
+
   /// Latest error message, null if no error.
   final String? error;
 
@@ -54,6 +61,7 @@ class WalletState extends Equatable {
     String? sessionToken,
     List<WalletBalance>? balances,
     List<WalletOption>? wallets,
+    bool? needsTap,
     String? error,
   }) {
     return WalletState(
@@ -64,6 +72,7 @@ class WalletState extends Equatable {
       sessionToken: sessionToken ?? this.sessionToken,
       balances: balances ?? this.balances,
       wallets: wallets ?? this.wallets,
+      needsTap: needsTap ?? this.needsTap,
       error: error,
     );
   }
@@ -91,6 +100,7 @@ class WalletState extends Equatable {
         sessionToken,
         balances,
         wallets,
+        needsTap,
         error,
       ];
 }

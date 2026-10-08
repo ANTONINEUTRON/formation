@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:solana/dto.dart';
 import 'package:solana/solana.dart';
 
 import 'package:formation/core/constants/app_constants.dart';
+import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
 import 'package:formation/features/shared/data/session_store.dart';
 import 'package:formation/features/wallet/data/wallet_connector.dart';
@@ -42,6 +44,10 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
   SignInProof? _signInProof;
 
   static const _signInStatement = 'Sign in to Formation';
+
+  /// Resolved by [continueInWallet] (true) or [cancelWalletAction] (false)
+  /// while an action waits for a tap. See [_withTap].
+  Completer<bool>? _tapGate;
 
   void _setupSolanaClient() {
     _solanaClient = SolanaClient(
@@ -94,11 +100,13 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
       // would be a second hop with no tap behind it, and Chrome blocks it —
       // which is why Mobile Wallet Adapter sign-in kept failing.
       final proof = _connector.canRestoreSilently
-          ? await _connector.signIn(
-              walletName: walletName,
-              statement: _signInStatement,
-              nonce: _nonce(),
-              issuedAt: DateTime.now().toUtc().toIso8601String(),
+          ? await _withTap(
+              () => _connector.signIn(
+                walletName: walletName,
+                statement: _signInStatement,
+                nonce: _nonce(),
+                issuedAt: DateTime.now().toUtc().toIso8601String(),
+              ),
             )
           : null;
       if (proof != null) {
@@ -152,6 +160,8 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     emit(state.copyWith(isLoading: true, error: null));
 
     _signInProof = null;
+    // Anything still waiting for a tap belongs to the session being ended.
+    if (_tapGate != null) _openTapGate(false);
 
     // Best effort: the connector swallows its own failures, since local state
     // has to be cleared either way.
@@ -278,10 +288,12 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
   @override
   Future<Uint8List> signMessage(Uint8List message) async {
-    final result = await _connector.signMessage(
-      message,
-      address: walletAddress,
-      sessionToken: state.sessionToken,
+    final result = await _withTap(
+      () => _connector.signMessage(
+        message,
+        address: walletAddress,
+        sessionToken: state.sessionToken,
+      ),
     );
     _rememberSession(result);
     return result.bytes;
@@ -289,13 +301,61 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
   @override
   Future<String> signAndSendTransaction(Uint8List transaction) async {
-    final result = await _connector.signAndSendTransaction(
-      transaction,
-      address: walletAddress,
-      sessionToken: state.sessionToken,
+    final result = await _withTap(
+      () => _connector.signAndSendTransaction(
+        transaction,
+        address: walletAddress,
+        sessionToken: state.sessionToken,
+      ),
     );
     _rememberSession(result);
     return result.base58;
+  }
+
+  // ── Tap gate ─────────────────────────────────────────────────────────────
+
+  /// Runs [action], and if the wallet can only be opened from a tap, waits
+  /// for one and runs it again from there.
+  ///
+  /// Mobile web only. Chrome lets a tap, and nothing else, switch to the
+  /// wallet app, so an action the player did not start directly — signing in
+  /// again after a session expires, or a buy whose transaction took a while
+  /// to build — would otherwise fail, and the wallet library would report
+  /// "We can't find a wallet" to someone whose wallet is installed. Instead
+  /// [WalletState.needsTap] goes up, the app shows a button, and its tap is
+  /// the one that opens the wallet.
+  Future<T> _withTap<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on WalletTapRequired {
+      // One prompt for whatever is waiting: a second action joins the first.
+      final gate = _tapGate ??= Completer<bool>();
+      emit(state.copyWith(needsTap: true));
+      if (!await gate.future) {
+        throw const WalletException(message: 'Cancelled — nothing was signed.');
+      }
+      try {
+        // Straight from the tap, while Chrome still allows the switch.
+        return await action();
+      } on WalletTapRequired {
+        throw const WalletException(
+          message: "Your browser wouldn't open the wallet. Please try again.",
+        );
+      }
+    }
+  }
+
+  /// The player tapped "Continue in wallet": resume whatever was waiting.
+  void continueInWallet() => _openTapGate(true);
+
+  /// The player declined: whatever was waiting fails with a plain message.
+  void cancelWalletAction() => _openTapGate(false);
+
+  void _openTapGate(bool proceed) {
+    final gate = _tapGate;
+    _tapGate = null;
+    emit(state.copyWith(needsTap: false));
+    if (gate != null && !gate.isCompleted) gate.complete(proceed);
   }
 
   /// Keeps the refreshed session token, so the next signature can reauthorize

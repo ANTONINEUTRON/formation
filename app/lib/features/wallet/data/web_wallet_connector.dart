@@ -51,8 +51,9 @@ class WebWalletConnector implements WalletConnector {
     required String nonce,
     required String issuedAt,
   }) async {
-    final result =
-        await _bridge.signIn(walletName, statement, nonce, issuedAt).toDart;
+    final result = await _tapAware(
+      () => _bridge.signIn(walletName, statement, nonce, issuedAt).toDart,
+    );
     if (result == null) return null;
     return SignInProof(
       address: result.address,
@@ -77,7 +78,7 @@ class WebWalletConnector implements WalletConnector {
     required String address,
     String? sessionToken,
   }) async {
-    final signature = await _bridge.signMessage(message.toJS).toDart;
+    final signature = await _tapAware(() => _bridge.signMessage(message.toJS).toDart);
     return WalletSignature(value: signature.toDart);
   }
 
@@ -87,8 +88,24 @@ class WebWalletConnector implements WalletConnector {
     required String address,
     String? sessionToken,
   }) async {
-    final signature = await _bridge.signAndSendTransaction(transaction.toJS).toDart;
+    final signature =
+        await _tapAware(() => _bridge.signAndSendTransaction(transaction.toJS).toDart);
     return WalletSignature(value: signature.toDart);
+  }
+
+  /// Turns the bridge's "needs a tap" refusal into [WalletTapRequired].
+  ///
+  /// The bridge marks it with a fixed string because a JS rejection reaches
+  /// Dart as an opaque object; its text is the one thing reliably readable.
+  Future<T> _tapAware<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } catch (e) {
+      if (e.toString().contains('FORMATION_TAP_REQUIRED')) {
+        throw const WalletTapRequired();
+      }
+      rethrow;
+    }
   }
 }
 

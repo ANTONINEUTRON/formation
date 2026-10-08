@@ -18,6 +18,7 @@ import {
   createDefaultChainSelector,
   createDefaultWalletNotFoundHandler,
   registerMwa,
+  SolanaMobileWalletAdapterWalletName,
 } from '@solana-mobile/wallet-standard-mobile';
 import bs58 from 'bs58';
 
@@ -120,6 +121,35 @@ function signingAccount(wallet: Wallet): WalletAccount | null {
   // Some wallets report no per-account chains until after a signature; falling
   // back to the first account is better than refusing a working connection.
   return usable[0] ?? wallet.accounts[0] ?? null;
+}
+
+/**
+ * Marker the Dart side looks for. A rejection carrying it means "nothing went
+ * wrong — ask for a tap and try again", not a failure to show the player.
+ */
+const TAP_REQUIRED = 'FORMATION_TAP_REQUIRED';
+
+/**
+ * Refuses to start a Mobile Wallet Adapter hop that Chrome would block.
+ *
+ * Every MWA action switches to the wallet app, and Android Chrome only allows
+ * that switch while a tap is still fresh. Without one, the library tries
+ * anyway, the switch silently fails, and three seconds later it decides no
+ * wallet is installed and shows "We can't find a wallet" — to a player whose
+ * wallet is installed. Checking first means that never happens: the app gets
+ * TAP_REQUIRED instead, shows a button, and retries from that tap.
+ *
+ * Only MWA is guarded. Desktop extensions open their approval inside the
+ * browser, which needs no tap, and browsers without the UserActivation API
+ * are let through to behave as before.
+ */
+function requireTap(wallet: Wallet) {
+  if (wallet.name !== SolanaMobileWalletAdapterWalletName) return;
+  const activation = (navigator as Navigator & { userActivation?: { isActive: boolean } })
+    .userActivation;
+  if (activation && !activation.isActive) {
+    throw new Error(`${TAP_REQUIRED}: tap to open your wallet`);
+  }
 }
 
 function requireActive() {
@@ -239,6 +269,7 @@ async function signIn(
   const wallet = candidates[0];
   const feature = wallet && features(wallet)[SolanaSignIn];
   if (!wallet || !feature) return null;
+  requireTap(wallet);
 
   // The domain is left to the wallet, which takes it from the page it is
   // actually on. That is what makes a message signed on another site useless
@@ -265,6 +296,7 @@ async function disconnect(): Promise<void> {
 /** Returns the raw 64-byte ed25519 signature over `message`. */
 async function signMessage(message: Uint8Array): Promise<Uint8Array> {
   const { wallet, account } = requireActive();
+  requireTap(wallet);
   const feature = features(wallet)[SolanaSignMessage];
   if (!feature) throw new Error(`${wallet.name} cannot sign messages.`);
 
@@ -276,6 +308,7 @@ async function signMessage(message: Uint8Array): Promise<Uint8Array> {
 /** Signs and submits a serialized transaction. Returns the base58 signature. */
 async function signAndSendTransaction(transaction: Uint8Array): Promise<string> {
   const { wallet, account } = requireActive();
+  requireTap(wallet);
   const feature = features(wallet)[SolanaSignAndSendTransaction];
   if (!feature) throw new Error(`${wallet.name} cannot send transactions.`);
 

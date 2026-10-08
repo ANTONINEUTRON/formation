@@ -29,6 +29,15 @@ class WalletConnection {
   final String? sessionToken;
 }
 
+/// The wallet can only be opened from a fresh tap, and there was none.
+///
+/// Thrown on mobile web, where Chrome only lets a tap switch to the wallet
+/// app. Not a failure: the action is fine, it just has to be started again
+/// from a tap. [WalletCubit] catches it and asks for one.
+class WalletTapRequired implements Exception {
+  const WalletTapRequired();
+}
+
 /// A Sign In With Solana message the wallet built and signed.
 ///
 /// Produced when connecting and signing in happen in one wallet prompt, and

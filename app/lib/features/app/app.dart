@@ -17,6 +17,7 @@ import 'package:formation/features/notifications/ui/cubits/notifications_cubit.d
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
+import 'package:formation/features/wallet/ui/widgets/wallet_tap_gate.dart';
 
 /// Main application widget.
 class MyApp extends StatefulWidget {
@@ -126,7 +127,9 @@ class _ConnectedApp extends StatelessWidget {
         ),
         debugShowCheckedModeBanner: false,
         scrollBehavior: kIsWeb ? _WebScrollBehavior() : null,
-        builder: (context, child) => _ResponsiveFrame(child: child),
+        // The tap gate sits over everything, so a wallet action waiting for
+        // a tap can ask for one from whichever screen it started on.
+        builder: (context, child) => WalletTapGate(child: _ResponsiveFrame(child: child)),
       ),
     );
   }
@@ -143,7 +146,7 @@ class _OnboardingApp extends StatelessWidget {
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       scrollBehavior: kIsWeb ? _WebScrollBehavior() : null,
-      builder: (context, child) => _ResponsiveFrame(child: child),
+      builder: (context, child) => WalletTapGate(child: _ResponsiveFrame(child: child)),
       home: const OnboardingPage(),
     );
   }
