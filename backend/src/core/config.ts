@@ -20,6 +20,11 @@ export interface AppConfig {
   payTokens: PayToken[];
   adminKey: string;
   authSecret: string;
+  /**
+   * Origins the web app is served from, from CORS_ORIGINS. Sign In With
+   * Solana messages must name one of these as their domain.
+   */
+  webOrigins: string[];
 
   // ── Scoring (docs/formation-scoring.md) ────────────────────────────────────
   /** Minutes between price snapshots, and therefore between banked points. */
@@ -70,6 +75,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     payTokens: loadPayTokens(env),
     adminKey: env.ADMIN_KEY ?? '',
     authSecret: env.AUTH_SECRET ?? '',
+    webOrigins: (env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0),
 
     priceTickMinutes: number(env.PRICE_TICK_MINUTES, 60),
     sessionMinutes: number(env.SESSION_MINUTES, DAY_MINUTES),

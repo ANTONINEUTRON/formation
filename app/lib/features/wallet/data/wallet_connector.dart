@@ -29,6 +29,28 @@ class WalletConnection {
   final String? sessionToken;
 }
 
+/// A Sign In With Solana message the wallet built and signed.
+///
+/// Produced when connecting and signing in happen in one wallet prompt, and
+/// handed to the backend in place of the challenge flow. See [WalletConnector.signIn].
+class SignInProof {
+  const SignInProof({
+    required this.address,
+    required this.signedMessage,
+    required this.signature,
+  });
+
+  /// Base58 address of the account that signed.
+  final String address;
+
+  /// The exact bytes the wallet signed — the server checks the signature
+  /// against these, so they are kept as they came back, never re-encoded.
+  final Uint8List signedMessage;
+
+  /// Raw 64-byte ed25519 signature over [signedMessage].
+  final Uint8List signature;
+}
+
 /// Platform-specific wallet transport.
 ///
 /// [WalletCubit] owns the state and the balances; everything that actually
@@ -56,6 +78,23 @@ abstract class WalletConnector {
   /// startup to restore a hydrated address without nagging the player.
   /// Returns null when the player cancels.
   Future<WalletConnection?> connect({String? walletName, bool silent = false});
+
+  /// Connects and signs in with a single wallet prompt, if the wallet can.
+  ///
+  /// Returns null when it cannot — the caller then falls back to [connect]
+  /// and signs in later. On the web this is the preferred path, because
+  /// Android Chrome only lets a tap open the wallet app: connect-then-sign is
+  /// two hops, and the second, with no tap behind it, is blocked.
+  ///
+  /// Call it straight from the tap. [nonce] and [issuedAt] are made by the
+  /// caller rather than fetched, since a network round trip first can cost
+  /// the tap its permission to open the wallet.
+  Future<SignInProof?> signIn({
+    String? walletName,
+    required String statement,
+    required String nonce,
+    required String issuedAt,
+  });
 
   /// Best-effort teardown. Must not throw.
   Future<void> disconnect(String? sessionToken);

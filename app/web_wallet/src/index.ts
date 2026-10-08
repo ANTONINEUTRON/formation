@@ -28,6 +28,7 @@ import type {
 } from '@wallet-standard/features';
 import type {
   SolanaSignAndSendTransactionFeature,
+  SolanaSignInFeature,
   SolanaSignMessageFeature,
 } from '@solana/wallet-standard-features';
 
@@ -42,12 +43,14 @@ const StandardConnect = 'standard:connect';
 const StandardDisconnect = 'standard:disconnect';
 const SolanaSignMessage = 'solana:signMessage';
 const SolanaSignAndSendTransaction = 'solana:signAndSendTransaction';
+const SolanaSignIn = 'solana:signIn';
 
 type Features = Partial<
   StandardConnectFeature &
     StandardDisconnectFeature &
     SolanaSignMessageFeature &
-    SolanaSignAndSendTransactionFeature
+    SolanaSignAndSendTransactionFeature &
+    SolanaSignInFeature
 >;
 
 /** The wallet and account chosen by the player, for the life of the page. */
@@ -208,6 +211,49 @@ async function restore(wallet: Wallet): Promise<WalletAccount | null> {
   return signingAccount(wallet);
 }
 
+/**
+ * Connects and signs in with one wallet prompt, or returns null if `name`
+ * cannot do that.
+ *
+ * This is how the web app signs in whenever the wallet supports it, and the
+ * reason is Android Chrome: every hop to the wallet app must come straight
+ * from a tap, and connect-then-sign is two hops. The second one, with no tap
+ * behind it, is blocked, so Mobile Wallet Adapter sign-in never completed.
+ * `solana:signIn` does both in a single hop. Desktop extensions support it
+ * too, and their players get one approval instead of two.
+ *
+ * Must be called from the tap itself, with nothing awaited on the network
+ * first. The nonce and issue time are passed in for that reason, rather than
+ * fetched from the server here.
+ */
+async function signIn(
+  name: string | null,
+  statement: string,
+  nonce: string,
+  issuedAt: string,
+): Promise<{ address: string; signedMessage: Uint8Array; signature: Uint8Array } | null> {
+  await waitForWallets();
+  const candidates = name
+    ? usableWallets().filter((wallet) => wallet.name === name)
+    : usableWallets();
+  const wallet = candidates[0];
+  const feature = wallet && features(wallet)[SolanaSignIn];
+  if (!wallet || !feature) return null;
+
+  // The domain is left to the wallet, which takes it from the page it is
+  // actually on. That is what makes a message signed on another site useless
+  // to whoever ran that site.
+  const [result] = await feature.signIn({ statement, nonce, issuedAt });
+  if (!result) throw new Error('Sign-in was rejected in your wallet.');
+
+  active = { wallet, account: result.account };
+  return {
+    address: result.account.address,
+    signedMessage: result.signedMessage,
+    signature: result.signature,
+  };
+}
+
 async function disconnect(): Promise<void> {
   const current = active;
   active = null;
@@ -247,6 +293,7 @@ declare global {
     formationWallet: {
       list: typeof list;
       connect: typeof connect;
+      signIn: typeof signIn;
       disconnect: typeof disconnect;
       signMessage: typeof signMessage;
       signAndSendTransaction: typeof signAndSendTransaction;
@@ -257,6 +304,7 @@ declare global {
 window.formationWallet = {
   list,
   connect,
+  signIn,
   disconnect,
   signMessage,
   signAndSendTransaction,

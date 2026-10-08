@@ -116,7 +116,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                       if (manager.holdings.isEmpty)
                         const EmptyState(
                           icon: Icons.account_balance_wallet_outlined,
-                          message: 'This wallet holds no supported xStocks.',
+                          message: 'This wallet holds no supported stocks.',
                         )
                       else
                         for (final holding in manager.holdings)

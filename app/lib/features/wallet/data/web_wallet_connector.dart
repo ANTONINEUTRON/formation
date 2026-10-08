@@ -45,6 +45,23 @@ class WebWalletConnector implements WalletConnector {
   }
 
   @override
+  Future<SignInProof?> signIn({
+    String? walletName,
+    required String statement,
+    required String nonce,
+    required String issuedAt,
+  }) async {
+    final result =
+        await _bridge.signIn(walletName, statement, nonce, issuedAt).toDart;
+    if (result == null) return null;
+    return SignInProof(
+      address: result.address,
+      signedMessage: result.signedMessage.toDart,
+      signature: result.signature.toDart,
+    );
+  }
+
+  @override
   Future<void> disconnect(String? sessionToken) async {
     try {
       await _bridge.disconnect().toDart;
@@ -81,6 +98,12 @@ external _Bridge? get _formationWallet;
 extension type _Bridge._(JSObject _) implements JSObject {
   external JSPromise<JSArray<_JsWalletOption>> list();
   external JSPromise<_JsConnection?> connect(String? name, bool silent);
+  external JSPromise<_JsSignIn?> signIn(
+    String? name,
+    String statement,
+    String nonce,
+    String issuedAt,
+  );
   external JSPromise<JSAny?> disconnect();
   external JSPromise<JSUint8Array> signMessage(JSUint8Array message);
   external JSPromise<JSString> signAndSendTransaction(JSUint8Array transaction);
@@ -93,4 +116,10 @@ extension type _JsWalletOption._(JSObject _) implements JSObject {
 
 extension type _JsConnection._(JSObject _) implements JSObject {
   external String get address;
+}
+
+extension type _JsSignIn._(JSObject _) implements JSObject {
+  external String get address;
+  external JSUint8Array get signedMessage;
+  external JSUint8Array get signature;
 }

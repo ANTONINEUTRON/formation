@@ -10,6 +10,7 @@ import 'package:http/testing.dart';
 
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
+import 'package:formation/features/wallet/data/wallet_connector.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 /// Contract tests: the app parses responses recorded from the real backend
@@ -18,6 +19,9 @@ import 'package:formation/features/shared/domain/models.dart';
 String _sample(String name) => File('test/contract/$name.json').readAsStringSync();
 
 class _FakeSigner implements WalletSigner {
+  @override
+  SignInProof? takeSignInProof() => null;
+
   @override
   String get walletAddress => 'GER2werVnaHehJ9dDZN7KVpf41aepYaLEEBgZ27MTUhW';
 
@@ -249,6 +253,93 @@ void main() {
       expect(errorText(TypeError()), isNot(contains('TypeError')));
     });
   });
+
+  group('signing in with a proof from connect', () {
+    // On the web the wallet connects and signs in with one prompt. Spending
+    // that proof is what keeps sign-in from asking the wallet a second time —
+    // which Android Chrome blocks, since no tap started it.
+    final proof = SignInProof(
+      address: 'GER2werVnaHehJ9dDZN7KVpf41aepYaLEEBgZ27MTUhW',
+      signedMessage: Uint8List.fromList(utf8.encode('siws message')),
+      signature: Uint8List(64),
+    );
+
+    ApiRepository withProof({required int siwsStatus, required _ProofSigner signer}) {
+      requested = [];
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        requested.add('${request.method} $path');
+        if (path == '/auth/siws') {
+          return siwsStatus == 200
+              ? http.Response(
+                  jsonEncode({
+                    'token': 'siws-token',
+                    'user': {'id': 'user-1', 'username': 'me', 'walletAddress': 'w'},
+                  }),
+                  200,
+                  headers: {'content-type': 'application/json'},
+                )
+              : http.Response(jsonEncode({'message': 'Cannot POST /auth/siws'}), siwsStatus,
+                  headers: {'content-type': 'application/json'});
+        }
+        final body = switch (path) {
+          '/auth/challenge' => jsonEncode({'message': 'Sign in to Formation'}),
+          '/auth/verify' => jsonEncode({
+              'token': 'test-token',
+              'user': {'id': 'user-1', 'username': 'me', 'walletAddress': 'w'},
+            }),
+          '/users/me' => _sample('profile'),
+          _ => jsonEncode({'message': 'not stubbed: $path'}),
+        };
+        return http.Response(body, 200, headers: {'content-type': 'application/json'});
+      });
+      return ApiRepository(baseUrl: 'http://localhost:3000', signer: signer, client: client);
+    }
+
+    test('signs in with the proof and never asks the wallet again', () async {
+      final signer = _ProofSigner(proof);
+      await withProof(siwsStatus: 200, signer: signer).getProfile();
+
+      expect(requested, contains('POST /auth/siws'));
+      expect(requested, isNot(contains('POST /auth/challenge')));
+      expect(signer.messagesSigned, 0);
+    });
+
+    test('falls back to the challenge on a backend without /auth/siws', () async {
+      final signer = _ProofSigner(proof);
+      await withProof(siwsStatus: 404, signer: signer).getProfile();
+
+      expect(requested, containsAllInOrder(['POST /auth/siws', 'POST /auth/challenge']));
+      expect(signer.messagesSigned, 1);
+    });
+  });
+}
+
+/// A signer holding a sign-in proof, and counting the prompts it would cost.
+class _ProofSigner implements WalletSigner {
+  _ProofSigner(this._proof);
+
+  SignInProof? _proof;
+  int messagesSigned = 0;
+
+  @override
+  SignInProof? takeSignInProof() {
+    final proof = _proof;
+    _proof = null;
+    return proof;
+  }
+
+  @override
+  String get walletAddress => 'GER2werVnaHehJ9dDZN7KVpf41aepYaLEEBgZ27MTUhW';
+
+  @override
+  Future<Uint8List> signMessage(Uint8List message) async {
+    messagesSigned++;
+    return Uint8List(64);
+  }
+
+  @override
+  Future<String> signAndSendTransaction(Uint8List transaction) async => 'signature';
 }
 
 /// Runs [future] and returns whatever it threw.

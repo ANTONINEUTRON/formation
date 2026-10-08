@@ -48,6 +48,18 @@ class MwaWalletConnector implements WalletConnector {
     }
   }
 
+  /// Not used on Android. The browser's tap-only rule that makes one-step
+  /// sign-in necessary on the web does not apply to a native app, and the
+  /// existing connect-then-sign flow works there.
+  @override
+  Future<SignInProof?> signIn({
+    String? walletName,
+    required String statement,
+    required String nonce,
+    required String issuedAt,
+  }) async =>
+      null;
+
   @override
   Future<void> disconnect(String? sessionToken) async {
     // Without a token there is nothing to revoke: a cold start drops it, and

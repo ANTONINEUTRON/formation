@@ -23,9 +23,9 @@ class BuyStockSheet extends StatefulWidget {
 
   static Future<void> show(BuildContext context, {required int slotIndex, required XStock stock}) {
     final cubit = context.read<DraftCubit>();
+    // A bottom sheet on a phone, a dialog on anything wider.
     return showAdaptiveSheet<void>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => BlocProvider.value(
         value: cubit,
         child: BuyStockSheet(slotIndex: slotIndex, stock: stock),
@@ -298,8 +298,17 @@ class _QuoteRow extends StatelessWidget {
       child: Row(
         children: [
           Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          const Spacer(),
-          Text(value, style: AppTextStyles.mono(fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          // A long amount on a narrow screen ("12,345.6789 SPYx") used to
+          // push the row past its width and throw; it now gives way instead.
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.mono(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
     );

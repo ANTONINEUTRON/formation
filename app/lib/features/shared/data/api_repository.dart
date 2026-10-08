@@ -13,6 +13,7 @@ import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/data/session_store.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/domain/roster_shapes.dart';
+import 'package:formation/features/wallet/data/wallet_connector.dart';
 
 /// Signs on behalf of the connected wallet (implemented by WalletCubit via MWA).
 abstract class WalletSigner {
@@ -23,6 +24,13 @@ abstract class WalletSigner {
 
   /// Signs and submits a serialized transaction. Returns the base58 signature.
   Future<String> signAndSendTransaction(Uint8List transaction);
+
+  /// A sign-in the wallet already signed while connecting, handed over once.
+  ///
+  /// Null when there is none, and then the challenge flow signs instead. On
+  /// the web there usually is one, and spending it is what lets sign-in avoid
+  /// a second wallet prompt — which Android Chrome would block.
+  SignInProof? takeSignInProof();
 }
 
 /// [FormationRepository] backed by the NestJS API.
@@ -76,6 +84,24 @@ class ApiRepository implements FormationRepository {
       return;
     }
 
+    // Signed in already, while connecting: one wallet prompt instead of two.
+    final proof = _signer.takeSignInProof();
+    if (proof != null) {
+      try {
+        final result = await _request('POST', '/auth/siws', auth: false, body: {
+          'walletAddress': proof.address,
+          'message': base64Encode(proof.signedMessage),
+          'signature': base58encode(proof.signature),
+        }) as Map<String, dynamic>;
+        await _accept(result);
+        return;
+      } catch (e, s) {
+        // Most likely a backend from before /auth/siws. The challenge flow
+        // still works there, it just costs a second wallet prompt.
+        AppLog.error('Sign In With Solana was refused; using the challenge', e, s);
+      }
+    }
+
     final challenge = await _request('POST', '/auth/challenge',
         body: {'walletAddress': _signer.walletAddress}, auth: false) as Map<String, dynamic>;
     final signature = await _signer.signMessage(
@@ -85,6 +111,11 @@ class ApiRepository implements FormationRepository {
       'walletAddress': _signer.walletAddress,
       'signature': base58encode(signature),
     }) as Map<String, dynamic>;
+    await _accept(result);
+  }
+
+  /// Keeps the token from a successful sign-in, for this run and the next.
+  Future<void> _accept(Map<String, dynamic> result) async {
     _token = result['token'] as String;
     _userId = (result['user'] as Map<String, dynamic>)['id'] as String;
     await _sessions.write(

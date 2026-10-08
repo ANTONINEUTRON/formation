@@ -14,6 +14,22 @@ export class AuthController {
     );
   }
 
+  /**
+   * Exchanges a signed Sign In With Solana message for a bearer token.
+   *
+   * The web app's sign-in: the wallet connects and signs in one step, which
+   * Android Chrome requires — it blocks a second hop to the wallet that a tap
+   * did not start.
+   */
+  @Post('siws')
+  siws(@Body() body: { walletAddress?: string; message?: string; signature?: string }) {
+    return this.auth.verifySiws(
+      requireString(body.walletAddress, 'walletAddress'),
+      requireString(body.message, 'message'),
+      requireString(body.signature, 'signature'),
+    );
+  }
+
   /** Exchanges a base58 signature of the challenge for a bearer token. */
   @Post('verify')
   verify(@Body() body: { walletAddress?: string; signature?: string }) {

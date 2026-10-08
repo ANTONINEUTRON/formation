@@ -37,6 +37,12 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
   final WalletConnector _connector;
   late SolanaClient _solanaClient;
 
+  /// A one-step sign-in waiting for [ApiRepository] to spend it. See
+  /// [takeSignInProof].
+  SignInProof? _signInProof;
+
+  static const _signInStatement = 'Sign in to Formation';
+
   void _setupSolanaClient() {
     _solanaClient = SolanaClient(
       rpcUrl: Uri.parse(AppConstants.solanaRpcUrl),
@@ -82,6 +88,32 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     emit(state.copyWith(isLoading: true, error: null));
 
     try {
+      // On the web, connect and sign in with one wallet prompt where the
+      // wallet supports it. Android Chrome only lets a tap open the wallet
+      // app, and this is the tap: signing in later, on the first API call,
+      // would be a second hop with no tap behind it, and Chrome blocks it —
+      // which is why Mobile Wallet Adapter sign-in kept failing.
+      final proof = _connector.canRestoreSilently
+          ? await _connector.signIn(
+              walletName: walletName,
+              statement: _signInStatement,
+              nonce: _nonce(),
+              issuedAt: DateTime.now().toUtc().toIso8601String(),
+            )
+          : null;
+      if (proof != null) {
+        _signInProof = proof;
+        emit(
+          state.copyWith(
+            isLoading: false,
+            isConnected: true,
+            walletAddress: proof.address,
+          ),
+        );
+        await fetchBalances();
+        return;
+      }
+
       final connection = await _connector.connect(walletName: walletName);
 
       if (connection != null) {
@@ -118,6 +150,8 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
   Future<void> disconnectWallet() async {
     emit(state.copyWith(isLoading: true, error: null));
+
+    _signInProof = null;
 
     // Best effort: the connector swallows its own failures, since local state
     // has to be cleared either way.
@@ -224,6 +258,23 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
 
   @override
   String get walletAddress => state.walletAddress ?? '';
+
+  @override
+  SignInProof? takeSignInProof() {
+    final proof = _signInProof;
+    _signInProof = null;
+    // Only for the wallet it was signed with, in case the player switched.
+    return proof != null && proof.address == walletAddress ? proof : null;
+  }
+
+  /// A nonce for a Sign In With Solana message. Made here rather than fetched
+  /// from the server: a network call before the wallet opens can cost the tap
+  /// its permission to open it. The server accepts each nonce once.
+  static String _nonce() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(24, (_) => chars[random.nextInt(chars.length)]).join();
+  }
 
   @override
   Future<Uint8List> signMessage(Uint8List message) async {

@@ -12,6 +12,7 @@ import nacl from 'tweetnacl';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { UsersService } from '../users/users.service.js';
+import { parseSiwsMessage, SIWS_MAX_AGE_MS, siwsProblem } from './siws.js';
 import { signToken, TokenPayload, verifyToken } from './token.js';
 
 const CHALLENGE_TTL_MS = 5 * 60_000;
@@ -28,6 +29,8 @@ export class AuthService {
     string,
     { message: string; expires: number }
   >();
+  /** SIWS nonces already accepted, until they are too old to matter. */
+  private readonly usedNonces = new Map<string, number>();
 
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
@@ -65,6 +68,58 @@ export class AuthService {
     );
     if (!valid) throw new UnauthorizedException('Invalid wallet signature');
 
+    return this.issue(walletAddress);
+  }
+
+  /**
+   * Signs in with a Sign In With Solana message the wallet built and signed.
+   *
+   * The web app's path, because it costs one hop to the wallet instead of two
+   * — which matters on Android Chrome, where the second hop is blocked. See
+   * siws.ts for what stands in for a server-issued challenge.
+   */
+  async verifySiws(walletAddress: string, messageBase64: string, signature: string) {
+    const key = this.parseKey(walletAddress);
+    const messageBytes = Buffer.from(messageBase64, 'base64');
+    // A SIWS message is a few hundred bytes; anything far larger is not one.
+    if (messageBytes.length === 0 || messageBytes.length > 2048) {
+      throw new BadRequestException('message must be a base64 sign-in message');
+    }
+
+    const message = parseSiwsMessage(messageBytes.toString('utf8'));
+    if (!message) throw new BadRequestException('Not a Sign In With Solana message');
+    const problem = siwsProblem(message, walletAddress, this.config.webOrigins);
+    if (problem) throw new UnauthorizedException(problem);
+
+    let signatureBytes: Uint8Array;
+    try {
+      signatureBytes = bs58.decode(signature);
+    } catch {
+      throw new BadRequestException('signature must be base58');
+    }
+    if (!nacl.sign.detached.verify(messageBytes, signatureBytes, key.toBytes())) {
+      throw new UnauthorizedException('Invalid wallet signature');
+    }
+
+    // Checked last, so a forged message cannot burn a real player's nonce.
+    this.purgeNonces();
+    if (this.usedNonces.has(message.nonce!)) {
+      throw new UnauthorizedException('Sign-in already used, try again');
+    }
+    this.usedNonces.set(message.nonce!, Date.now() + 2 * SIWS_MAX_AGE_MS);
+
+    return this.issue(walletAddress);
+  }
+
+  private purgeNonces() {
+    const now = Date.now();
+    for (const [nonce, expires] of this.usedNonces) {
+      if (expires < now) this.usedNonces.delete(nonce);
+    }
+  }
+
+  /** Creates the player if new and hands back a bearer token. */
+  private async issue(walletAddress: string) {
     const user = await this.users.upsertByWallet(walletAddress);
     const token = signToken(
       { sub: user.id, wallet: walletAddress, exp: Date.now() + TOKEN_TTL_MS },
