@@ -3,7 +3,7 @@
     "short_name": "Formation",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0A1410",
+    "background_color": "#B8FF3C",
     "theme_color": "#0A1410",
     "description": "Fantasy sports for real stocks. Draft xStocks, climb the league, win duels.",
     "orientation": "portrait-primary",

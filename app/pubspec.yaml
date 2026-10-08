@@ -112,10 +112,13 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/brand/formation_white.png"
+  web:
+    generate: true
+    background_color: "#B8FF3C"
 
 flutter_native_splash:
   color: "#0A1410"
   image: assets/brand/formation_black.png
   android_12:
-    color: "#0A1410"
+    color: "#B8FF3C"
     image: assets/brand/formation_black.png

@@ -16,15 +16,15 @@ class AppConstants {
 
   /// NestJS backend base URL. Empty means fixture mode (in-memory data).
   /// Set in `app/.env`; see [Env].
-  static const String apiUrl = Env.apiUrl;
+  static String apiUrl = Env.apiUrl;
 
   // Timeouts
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Solana. Both set in `app/.env`; see [Env] for why the web build needs its
   // own endpoint rather than the public one.
-  static const String solanaRpcUrl = Env.solanaRpcUrl;
-  static const String solanaWsUrl = Env.solanaWsUrl;
+  static String solanaRpcUrl = Env.solanaRpcUrl;
+  static String solanaWsUrl = Env.solanaWsUrl;
   static const String solanaCluster = 'mainnet-beta';
 
   /// Mainnet USDC SPL token mint address.

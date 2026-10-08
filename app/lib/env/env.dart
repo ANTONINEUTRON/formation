@@ -19,11 +19,11 @@ part 'env.g.dart';
 /// obfuscation would only make that marginally slower, not harder. Restrict
 /// the key by domain at the provider instead — that is the control that
 /// actually holds.
-@Envied(path: '.env')
+@Envied(path: '.env', obfuscate: true)
 abstract class Env {
   /// NestJS backend base URL. Empty switches the app to in-memory fixtures.
   @EnviedField(varName: 'API_URL', defaultValue: 'https://api.formation.titalabs.xyz')
-  static const String apiUrl = _Env.apiUrl;
+  static String apiUrl = _Env.apiUrl;
 
   /// Solana JSON-RPC endpoint.
   ///
@@ -34,12 +34,12 @@ abstract class Env {
     varName: 'SOLANA_RPC_URL',
     defaultValue: 'https://api.mainnet-beta.solana.com',
   )
-  static const String solanaRpcUrl = _Env.solanaRpcUrl;
+  static String solanaRpcUrl = _Env.solanaRpcUrl;
 
   /// Websocket endpoint, which has to be the same provider as the RPC above.
   @EnviedField(
     varName: 'SOLANA_WS_URL',
     defaultValue: 'wss://api.mainnet-beta.solana.com',
   )
-  static const String solanaWsUrl = _Env.solanaWsUrl;
+  static String solanaWsUrl = _Env.solanaWsUrl;
 }
