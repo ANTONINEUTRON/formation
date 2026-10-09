@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { sql } from 'kysely';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
@@ -19,6 +20,12 @@ import type {
   SnapshotSlot,
 } from './engine/types.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
+
+/**
+ * Windows up to this long are scored from every tick. Longer ones (custom
+ * leagues can run for months) read a per-session summary instead.
+ */
+const FULL_HISTORY_MS = 8 * 24 * 3_600_000;
 
 /**
  * Turns database state into scoring-engine input: locks lineups, loads price
@@ -43,8 +50,10 @@ export class EntryScoringService {
   }
 
   /**
-   * Locks a player's current team for a scoring window. Returns null when the
-   * roster isn't complete, so only full teams are entered.
+   * Locks a player's current team for a scoring window. Returns null when no
+   * slot is filled. A partial team is locked as it stands: empty slots simply
+   * aren't in the snapshot, and the engine already scores unheld picks as zero.
+   * Whether a team holds enough to be entered is [holdsAny]'s call.
    */
   async lockLineup(
     userId: string,
@@ -66,7 +75,7 @@ export class EntryScoringService {
       .orderBy('slot_index')
       .execute();
     const shape = rosterShape(mode, roster.formation);
-    if (slots.length !== shape.length) return null;
+    if (slots.length === 0) return null;
 
     const stocks = await this.xstocks.byMint();
     const mints = slots.map((s) => s.token_mint);
@@ -94,18 +103,29 @@ export class EntryScoringService {
     };
   }
 
+  /**
+   * True when at least one locked pick is actually held and priced, which is
+   * what it takes to be entered: one owned stock in the lineup is enough.
+   */
+  holdsAny(snapshot: LineupSnapshot): boolean {
+    return snapshot.slots.some((slot) => slot.startBalance > 0 && slot.startPrice > 0);
+  }
+
   /** Price history for the window, plus the benchmark. */
   async priceBook(mints: string[], window: ScoreWindow): Promise<PriceBook> {
     const wanted = [...new Set([...mints, this.config.benchmarkMint])];
     if (wanted.length === 0) return new Map();
-    const rows = await this.db
-      .selectFrom('price_ticks')
-      .select(['mint', 'price_usd', 'captured_at'])
-      .where('mint', 'in', wanted)
-      .where('captured_at', '>=', new Date(window.start))
-      .where('captured_at', '<=', new Date(window.end))
-      .orderBy('captured_at')
-      .execute();
+    const rows =
+      window.end - window.start > FULL_HISTORY_MS
+        ? await this.sessionTicks(wanted, window)
+        : await this.db
+            .selectFrom('price_ticks')
+            .select(['mint', 'price_usd', 'captured_at'])
+            .where('mint', 'in', wanted)
+            .where('captured_at', '>=', new Date(window.start))
+            .where('captured_at', '<=', new Date(window.end))
+            .orderBy('captured_at')
+            .execute();
 
     const book: PriceBook = new Map(wanted.map((mint) => [mint, []]));
     for (const row of rows) {
@@ -115,6 +135,38 @@ export class EntryScoringService {
       });
     }
     return book;
+  }
+
+  /**
+   * Two ticks per mint per session: the last one (each session's close) and
+   * the lowest one (for drawdown events). The engine only reads prices at
+   * session boundaries, at the window end and as a minimum, so for a pick held
+   * the whole window this scores exactly as the full history does — on a few
+   * hundred rows a year instead of a hundred thousand. Sessions are bucketed
+   * as (start, end], so a tick landing on a boundary closes the session it ends.
+   */
+  private async sessionTicks(mints: string[], window: ScoreWindow) {
+    const start = new Date(window.start);
+    const sessionSeconds = Math.max(1, window.sessionMinutes) * 60;
+    const result = await sql<{ mint: string; price_usd: number; captured_at: Date }>`
+      select mint, price_usd, captured_at
+      from (
+        select mint, price_usd, captured_at,
+          row_number() over (partition by mint, bucket order by captured_at desc) as last_rank,
+          row_number() over (partition by mint, bucket order by price_usd, captured_at) as low_rank
+        from (
+          select mint, price_usd, captured_at,
+            ceil(extract(epoch from (captured_at - ${start}::timestamptz)) / ${sessionSeconds}::numeric) as bucket
+          from price_ticks
+          where mint in (${sql.join(mints)})
+            and captured_at >= ${start}
+            and captured_at <= ${new Date(window.end)}
+        ) ticks
+      ) ranked
+      where last_rank = 1 or low_rank = 1
+      order by captured_at
+    `.execute(this.db);
+    return result.rows;
   }
 
   /**

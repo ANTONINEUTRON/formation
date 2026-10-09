@@ -68,7 +68,7 @@ export class GeneralScoringService {
 
   private async bank(candidate: Candidate, mode: SportMode, now: number): Promise<void> {
     const entry = await this.entryFor(candidate, mode, now);
-    // No entry means the roster isn't complete yet; it joins on a later tick.
+    // No entry means no held stock is in the lineup yet; it joins on a later tick.
     if (!entry) return;
 
     await this.bankAlpha(candidate, mode, entry, now);
@@ -219,7 +219,7 @@ export class GeneralScoringService {
     });
   }
 
-  /** Loads the rolling entry, creating it the first time a roster is complete. */
+  /** Loads the rolling entry, creating it once the lineup holds at least one stock. */
   private async entryFor(
     candidate: Candidate,
     mode: SportMode,
@@ -234,7 +234,7 @@ export class GeneralScoringService {
     if (existing) return existing;
 
     const snapshot = await this.scoring.lockLineup(candidate.userId, candidate.wallet, mode);
-    if (!snapshot) return undefined;
+    if (!snapshot || !this.scoring.holdsAny(snapshot)) return undefined;
 
     await this.db
       .insertInto('general_entries')

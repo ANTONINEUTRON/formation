@@ -6,7 +6,7 @@ import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/leagues/ui/cubits/leagues_cubit.dart';
 
-/// Durations the backend accepts.
+/// Quick picks. Anything else up to [_maxMonths] goes through "Custom".
 const _durations = <Duration>[
   Duration(hours: 1),
   Duration(hours: 6),
@@ -14,6 +14,22 @@ const _durations = <Duration>[
   Duration(days: 3),
   Duration(days: 7),
 ];
+
+/// The longest a league can run, matching the backend's MAX_LEAGUE_MONTHS.
+const _maxMonths = 11;
+
+/// [date] moved by whole calendar months, clamped to the month's last day.
+DateTime _addMonths(DateTime date, int months) {
+  final firstOfTarget = DateTime(date.year, date.month + months);
+  final lastDay = DateTime(firstOfTarget.year, firstOfTarget.month + 1, 0).day;
+  return DateTime(
+    firstOfTarget.year,
+    firstOfTarget.month,
+    date.day > lastDay ? lastDay : date.day,
+    date.hour,
+    date.minute,
+  );
+}
 
 /// Creates a league, or a head-to-head duel when an opponent is named.
 ///
@@ -38,11 +54,41 @@ class CreateLeagueSheet extends StatefulWidget {
 class _CreateLeagueSheetState extends State<CreateLeagueSheet> {
   final _name = TextEditingController();
   final _opponent = TextEditingController();
-  Duration _duration = _durations[2];
+  Duration _preset = _durations[2];
+
+  /// The day a custom league ends, at the start's time of day. Null while a
+  /// preset is selected.
+  DateTime? _customEnd;
   bool _isPrivate = true;
   bool _isDuel = false;
   DateTime _startsAt = DateTime.now().add(const Duration(minutes: 5));
   bool _busy = false;
+
+  DateTime get _latestEnd => _addMonths(_startsAt, _maxMonths);
+
+  /// The custom end on its picked day, at the time the league starts.
+  DateTime? get _customEndAt {
+    final end = _customEnd;
+    if (end == null) return null;
+    return DateTime(end.year, end.month, end.day, _startsAt.hour, _startsAt.minute);
+  }
+
+  Duration get _duration => _customEndAt?.difference(_startsAt) ?? _preset;
+
+  Future<void> _pickCustomEnd() async {
+    final firstDay = _startsAt.add(const Duration(days: 1));
+    final current = _customEndAt;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current != null && current.isAfter(firstDay) ? current : firstDay,
+      firstDate: firstDay,
+      lastDate: _latestEnd,
+      helpText: 'League ends on',
+      builder: (context, child) => Theme(data: AppTheme.darkTheme, child: child!),
+    );
+    if (date == null || !mounted) return;
+    setState(() => _customEnd = date);
+  }
 
   @override
   void dispose() {
@@ -68,6 +114,12 @@ class _CreateLeagueSheetState extends State<CreateLeagueSheet> {
     if (time == null) return;
     setState(() {
       _startsAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      // A moved start can leave the custom end too early or past the cap.
+      final end = _customEndAt;
+      if (end != null &&
+          (end.difference(_startsAt) < const Duration(hours: 1) || end.isAfter(_latestEnd))) {
+        _customEnd = null;
+      }
     });
   }
 
@@ -156,15 +208,35 @@ class _CreateLeagueSheetState extends State<CreateLeagueSheet> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
                 for (final d in _durations)
                   ChoiceChip(
                     label: Text(formatDuration(d)),
-                    selected: _duration == d,
+                    selected: _customEnd == null && _preset == d,
                     showCheckmark: false,
-                    onSelected: (_) => setState(() => _duration = d),
+                    onSelected: (_) => setState(() {
+                      _preset = d;
+                      _customEnd = null;
+                    }),
                   ),
+                ChoiceChip(
+                  avatar: const Icon(Icons.event, size: 16),
+                  label: Text(
+                    _customEndAt == null
+                        ? 'Custom'
+                        : 'Until ${formatShortDate(_customEndAt!)} · ${formatDuration(_duration)}',
+                  ),
+                  selected: _customEnd != null,
+                  showCheckmark: false,
+                  onSelected: (_) => _pickCustomEnd(),
+                ),
               ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Custom leagues can run up to $_maxMonths months.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             const SizedBox(height: 20),
             SizedBox(

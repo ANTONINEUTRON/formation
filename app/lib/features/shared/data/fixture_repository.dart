@@ -211,7 +211,7 @@ class FixtureRepository implements FormationRepository {
     _sessions[mode] = Session(
       startsAt: now,
       endsAt: now.add(const Duration(days: 1)),
-      entered: roster.isComplete,
+      entered: roster.holdsAny,
       points: 0,
       slots: const [],
       teamEvents: const [],
@@ -224,7 +224,7 @@ class FixtureRepository implements FormationRepository {
   void _rescore(SportMode mode) {
     final session = _sessions[mode];
     final roster = _rosters[mode]!;
-    if (session == null || !roster.isComplete) return;
+    if (session == null || !roster.holdsAny) return;
 
     final start = _windowStartPrices[mode]!;
     final benchmark = _bySymbol(_benchmarkSymbol);
@@ -403,7 +403,7 @@ class FixtureRepository implements FormationRepository {
         }
         final slots = List.of(roster.slots)..[slotIndex] = slot.fill(stock, balance);
         _rosters[mode] = roster.copyWith(slots: slots);
-        if (_rosters[mode]!.isComplete && _sessions[mode] == null) {
+        if (_rosters[mode]!.holdsAny && _sessions[mode] == null) {
           _openSession(mode);
         }
         _rescore(mode);

@@ -52,7 +52,10 @@ class ScoreHeader extends StatelessWidget {
           ),
           Text(
             session?.entered == false
-                ? 'Finish your team to start scoring'
+                // The backend enters a team on its next price tick, not instantly.
+                ? roster.holdsAny
+                    ? 'Scoring starts on the next price update'
+                    : 'Add a stock you own to start scoring'
                 : 'Banked today · beat SPYx to score',
             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),

@@ -114,6 +114,16 @@ void main() {
       expect(board.where((e) => e.isCurrentUser), hasLength(1));
     });
 
+    test('one held stock is enough to be entered', () async {
+      final repo = FixtureRepository(walletAddress: _wallet);
+      final nvda = xStockFixtures.firstWhere((s) => s.symbol == 'NVDAx');
+      final roster = await repo.fillSlot(SportMode.basketball, 0, nvda);
+
+      expect(roster.isComplete, isFalse);
+      expect(roster.holdsAny, isTrue);
+      expect(roster.session?.entered, isTrue);
+    });
+
     test('rejects an unheld or ineligible stock', () async {
       final repo = FixtureRepository(walletAddress: _wallet);
       final unheld = xStockFixtures.firstWhere((s) => s.symbol == 'AMDx');

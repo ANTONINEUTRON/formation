@@ -69,9 +69,10 @@ class TeamTab extends StatelessWidget {
                 _Banner(
                   icon: Icons.warning_amber_rounded,
                   color: AppColors.warning,
-                  message:
-                      '${roster.slots.where((s) => s.isFilled).length} of ${roster.slots.length} '
-                      'slots filled. Complete your team to start scoring.',
+                  message: roster.holdsAny
+                      ? 'Scoring with ${roster.filledCount} of ${roster.slots.length} picks. '
+                          'Fill more slots to score more.'
+                      : 'Add a stock you own to your lineup to start scoring.',
                   action: TextButton(onPressed: openDraft, child: const Text('Continue')),
                 ),
               ],

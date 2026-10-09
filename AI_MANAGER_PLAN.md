@@ -214,8 +214,8 @@ A `PageView` with dot indicators, plus **Skip** and **Next** buttons. The last s
   2. Buys the stocks the wallet doesn't hold, one at a time, through the existing swap flow
      (`buy_stock_sheet` and the quote, build and confirm endpoints). The user signs each swap.
 
-  A partial failure leaves a valid roster with some slots not yet owned. The existing team view
-  already handles that.
+  If some buys fail, the stocks already bought still score, because one held stock in the lineup is
+  enough to be entered. The remaining slots can be filled later.
 - **"I'll build it myself"** skips to the normal draft board and marks the starter draft as used.
 
 **Placement.** Add a step after connecting in `_AppGate`. Either route to `StarterSquadPage`, or

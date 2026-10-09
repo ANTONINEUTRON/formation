@@ -20,8 +20,43 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { UsersService } from '../users/users.service.js';
 import type { LineupSnapshot, SlotExits } from '../scoring/engine/types.js';
 
-/** Durations a creator can pick, in hours. */
-export const LEAGUE_DURATION_HOURS = [1, 6, 24, 72, 168] as const;
+/** The longest a league can run, counted in calendar months from its start. */
+export const MAX_LEAGUE_MONTHS = 11;
+
+/**
+ * Grace past the calendar cap. The app picks an end date at the start's local
+ * time, so a league crossing a daylight-saving change lands an hour off.
+ */
+const DST_GRACE_MS = 3_600_000;
+
+/** [date] moved by whole calendar months in UTC, clamped to the month's end. */
+export function addUtcMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+}
+
+/**
+ * When a league starting at [startsAt] and running [durationHours] ends.
+ * Any whole number of hours is allowed, from one up to [MAX_LEAGUE_MONTHS].
+ */
+export function leagueEndsAt(startsAt: Date, durationHours: number): Date {
+  if (!Number.isInteger(durationHours) || durationHours < 1) {
+    throw new BadRequestException('durationHours must be a whole number of hours, at least 1');
+  }
+  const endsAt = new Date(startsAt.getTime() + durationHours * 3_600_000);
+  const latest = addUtcMonths(startsAt, MAX_LEAGUE_MONTHS).getTime() + DST_GRACE_MS;
+  if (endsAt.getTime() > latest) {
+    throw new BadRequestException(`A league can run for at most ${MAX_LEAGUE_MONTHS} months`);
+  }
+  return endsAt;
+}
 
 export interface CreateLeagueInput {
   name: string;
@@ -60,11 +95,7 @@ export class LeaguesService {
     if (name.length < 3 || name.length > 40) {
       throw new BadRequestException('League name must be 3–40 characters');
     }
-    if (!(LEAGUE_DURATION_HOURS as readonly number[]).includes(input.durationHours)) {
-      throw new BadRequestException(
-        `durationHours must be one of ${LEAGUE_DURATION_HOURS.join(', ')}`,
-      );
-    }
+    const endsAt = leagueEndsAt(input.startsAt, input.durationHours);
     if (input.startsAt.getTime() < this.clock.now() - 60_000) {
       throw new BadRequestException('Start time must be in the future');
     }
@@ -78,7 +109,7 @@ export class LeaguesService {
         visibility: input.visibility,
         join_code: randomBytes(4).toString('hex').toUpperCase(),
         starts_at: input.startsAt,
-        ends_at: new Date(input.startsAt.getTime() + input.durationHours * 3_600_000),
+        ends_at: endsAt,
         max_members: input.maxMembers,
       })
       .returningAll()
@@ -217,8 +248,8 @@ export class LeaguesService {
         member.wallet_address,
         league.sport_mode,
       );
-      // An incomplete team simply doesn't score; they stay a member.
-      if (!snapshot) continue;
+      // A team holding none of its picks simply doesn't score; they stay a member.
+      if (!snapshot || !this.scoring.holdsAny(snapshot)) continue;
       await this.db
         .insertInto('score_entries')
         .values({
@@ -381,8 +412,55 @@ export class LeaguesService {
     };
   }
 
-  private async standings(league: League, viewerId: string): Promise<LeagueStandingDto[]> {
+  /**
+   * Live points for a running league, recomputed only when a new price tick
+   * has landed since they were last stored.
+   *
+   * Scoring reads price history over the whole window, which for a league
+   * running months is too much to redo on every view — and the league list
+   * renders standings for every live league it shows. Between ticks nothing
+   * the score depends on has moved, so the stored points are exact.
+   */
+  private async liveScores(league: League): Promise<{ userId: string; points: number }[]> {
+    const [rows, latestTick] = await Promise.all([
+      this.db
+        .selectFrom('score_entries')
+        .select(['user_id', 'live_points', 'updated_at'])
+        .where('context', '=', 'league')
+        .where('context_id', '=', league.id)
+        .execute(),
+      this.db
+        .selectFrom('price_ticks')
+        .select((eb) => eb.fn.max('captured_at').as('at'))
+        .executeTakeFirst(),
+    ]);
+    const tickAt = latestTick?.at ? new Date(latestTick.at).getTime() : 0;
+    if (rows.every((row) => new Date(row.updated_at).getTime() >= tickAt)) {
+      return rows.map((row) => ({ userId: row.user_id, points: row.live_points }));
+    }
+
     const scores = await this.scoreMembers(league, this.clock.now());
+    const updatedAt = this.clock.date();
+    await Promise.all(
+      scores.map(({ userId, points }) =>
+        this.db
+          .updateTable('score_entries')
+          .set({ live_points: points, updated_at: updatedAt })
+          .where('context', '=', 'league')
+          .where('context_id', '=', league.id)
+          .where('user_id', '=', userId)
+          .where('final_points', 'is', null)
+          .execute(),
+      ),
+    );
+    return scores;
+  }
+
+  private async standings(league: League, viewerId: string): Promise<LeagueStandingDto[]> {
+    const scores =
+      league.status === 'live'
+        ? await this.liveScores(league)
+        : await this.scoreMembers(league, this.clock.now());
     const members = await this.membersOf(league.id);
     const byId = new Map(members.map((m) => [m.user_id, m]));
 

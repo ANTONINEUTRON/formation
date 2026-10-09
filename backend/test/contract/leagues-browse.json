@@ -1,16 +1,16 @@
 [
   {
-    "id": "d73bde61-9b61-47dd-a110-64db2f8219f5",
+    "id": "5293d398-e39a-456e-9342-9acd08075759",
     "name": "Open Hoops",
     "mode": "basketball",
     "visibility": "public",
-    "joinCode": "B68BF83A",
+    "joinCode": "27997935",
     "startsAt": "2026-01-05T13:00:00.000Z",
     "endsAt": "2026-01-06T13:00:00.000Z",
     "status": "scheduled",
     "maxMembers": null,
     "memberCount": 1,
-    "createdBy": "9yv9…EZdE",
+    "createdBy": "75qV_P9N3",
     "joined": false,
     "joinable": true,
     "standings": []

@@ -329,6 +329,10 @@ class Roster extends Equatable {
 
   bool get isComplete => slots.every((s) => s.isFilled);
   bool get isEmpty => slots.every((s) => !s.isFilled);
+
+  /// One held stock in the lineup is enough to be entered and start scoring.
+  bool get holdsAny => slots.any((s) => s.isFilled && s.balance > 0);
+  int get filledCount => slots.where((s) => s.isFilled).length;
   double get totalValueUsd => slots.fold(0, (sum, s) => sum + s.valueUsd);
 
   /// 'C', 'V' or null, for badges.
