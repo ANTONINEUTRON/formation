@@ -7,6 +7,7 @@ class FeaturePreviewCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.description,
+    super.key,
   });
 
   final IconData icon;

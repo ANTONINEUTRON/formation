@@ -11,6 +11,22 @@
 part of 'app_route.dart';
 
 /// generated route for
+/// [AiManagerPage]
+class AiManagerRoute extends PageRouteInfo<void> {
+  const AiManagerRoute({List<PageRouteInfo>? children})
+    : super(AiManagerRoute.name, initialChildren: children);
+
+  static const String name = 'AiManagerRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const AiManagerPage();
+    },
+  );
+}
+
+/// generated route for
 /// [DraftBoardPage]
 class DraftBoardRoute extends PageRouteInfo<DraftBoardRouteArgs> {
   DraftBoardRoute({
@@ -253,22 +269,6 @@ class ProfileRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const ProfilePage();
-    },
-  );
-}
-
-/// generated route for
-/// [ReportsPage]
-class ReportsRoute extends PageRouteInfo<void> {
-  const ReportsRoute({List<PageRouteInfo>? children})
-    : super(ReportsRoute.name, initialChildren: children);
-
-  static const String name = 'ReportsRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const ReportsPage();
     },
   );
 }

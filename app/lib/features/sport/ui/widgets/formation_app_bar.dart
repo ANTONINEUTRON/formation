@@ -7,7 +7,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
 
-/// App bar shared by the three sport pages: title plus Reports,
+/// App bar shared by the three sport pages: title plus AI Manager,
 /// Notifications and Profile actions.
 class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
   const FormationAppBar({required this.title, this.bottom, super.key});
@@ -26,9 +26,9 @@ class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: bottom,
       actions: [
         IconButton(
-          icon: const Icon(Icons.analytics_outlined),
-          onPressed: () => context.router.push(const ReportsRoute()),
-          tooltip: 'Reports',
+          icon: const Icon(Icons.auto_awesome_outlined),
+          onPressed: () => context.router.push(const AiManagerRoute()),
+          tooltip: 'AI Manager',
         ),
         const _NotificationsAction(),
         Padding(
