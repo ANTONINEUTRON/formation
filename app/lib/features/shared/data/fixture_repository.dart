@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/shared/data/fixtures/xstock_fixtures.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/lineup.dart';
@@ -746,6 +747,129 @@ class FixtureRepository implements FormationRepository {
           _notifications[i] = _notifications[i].copyWith(read: true);
         }
         _notify();
+      });
+
+  // ── Assistant Manager (canned, but reads the real fixture roster) ──────────
+
+  static const _assistantCharacters = [
+    AssistantCharacter(
+      id: 'veteran',
+      name: 'The Veteran',
+      tagline: 'Calm, old-school, protects what you have.',
+      style: 'safe',
+    ),
+    AssistantCharacter(
+      id: 'analyst',
+      name: 'The Analyst',
+      tagline: 'Numbers first. Every call comes with the data.',
+      style: 'balanced',
+    ),
+    AssistantCharacter(
+      id: 'maverick',
+      name: 'The Maverick',
+      tagline: 'Bold, playful, backs momentum.',
+      style: 'bold',
+    ),
+    AssistantCharacter(
+      id: 'mentor',
+      name: 'The Mentor',
+      tagline: 'Encouraging. Explains the rules as you go.',
+      style: 'balanced',
+    ),
+    AssistantCharacter(
+      id: 'scout',
+      name: 'The Scout',
+      tagline: 'Always hunting the next name worth a look.',
+      style: 'balanced',
+    ),
+  ];
+  String? _assistantCharacterId;
+  int _assistantCredits = 5;
+
+  AssistantProfile get _assistantProfile => AssistantProfile(
+        characterId: _assistantCharacterId,
+        characters: _assistantCharacters,
+        credits: _assistantCredits,
+        available: true,
+      );
+
+  @override
+  Future<AssistantProfile> getAssistant() => _delay(() => _assistantProfile);
+
+  @override
+  Future<AssistantProfile> setAssistantCharacter(String characterId) => _delay(() {
+        if (!_assistantCharacters.any((c) => c.id == characterId)) {
+          throw const ValidationException(message: 'Unknown Assistant Manager');
+        }
+        _assistantCharacterId = characterId;
+        return _assistantProfile;
+      });
+
+  @override
+  Future<AssistantReply> askAssistant(
+    AssistantContext context,
+    List<AssistantMessage> messages,
+  ) =>
+      _delay(() {
+        if (_assistantCharacterId == null) {
+          throw const ValidationException(message: 'Pick your Assistant Manager first');
+        }
+        if (_assistantCredits <= 0) {
+          throw const ValidationException(
+            message: 'You are out of Assistant Manager credits',
+            code: outOfCreditsCode,
+          );
+        }
+        _assistantCredits--;
+
+        final roster = _withStanding(context.mode);
+        final suggestions = <AssistantSuggestion>[];
+        // An empty slot and a held stock that fits it is the obvious first
+        // move; otherwise suggest captaining the first pick.
+        final onTeam = {for (final s in roster.slots) ?s.stock?.mint};
+        for (var i = 0; i < roster.slots.length && suggestions.isEmpty; i++) {
+          final position = roster.slots[i].position;
+          if (roster.slots[i].isFilled) continue;
+          for (final entry in _held.entries) {
+            final stock = _byMint(entry.key);
+            if (entry.value <= 0 || onTeam.contains(entry.key) || !position.accepts(stock)) continue;
+            suggestions.add(FillSlotSuggestion(
+              slotIndex: i,
+              position: position.label,
+              mint: stock.mint,
+              symbol: stock.symbol,
+              needsPurchase: false,
+              substitutionCost: 0,
+              reason: 'You already hold it and it fits ${position.label}.',
+            ));
+            break;
+          }
+        }
+        final firstFilled = roster.slots.indexWhere((s) => s.isFilled);
+        if (suggestions.isEmpty &&
+            context.mode != SportMode.americanFootball &&
+            firstFilled >= 0 &&
+            roster.captainSlot != firstFilled) {
+          suggestions.add(CaptainSuggestion(
+            slotIndex: firstFilled,
+            symbol: roster.slots[firstFilled].stock!.symbol,
+            position: roster.slots[firstFilled].position.label,
+            vice: false,
+            reason: '${roster.slots[firstFilled].stock!.symbol} is your steadiest pick.',
+          ));
+        }
+
+        return AssistantReply(
+          text: roster.holdsAny
+              ? 'You have ${roster.filledCount} of ${roster.slots.length} slots filled and '
+                  '${roster.session?.points.toStringAsFixed(1) ?? '0'} points today. '
+                  "Here's what I'd do next."
+              : "Your lineup is empty. Put a stock you own in any slot and you'll start "
+                  'scoring on the next price update.',
+          mood: suggestions.isEmpty ? AssistantMood.neutral : AssistantMood.happy,
+          suggestions: suggestions,
+          credits: _assistantCredits,
+        );
       });
 
   // ── Demo controls ──────────────────────────────────────────────────────────

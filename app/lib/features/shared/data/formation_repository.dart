@@ -1,4 +1,5 @@
 import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 /// Everything the Formation UI needs, independent of where it comes from.
@@ -99,6 +100,17 @@ abstract class FormationRepository {
   Future<void> markNotificationRead(String id);
 
   Future<void> markAllNotificationsRead();
+
+  // ── Assistant Manager ──────────────────────────────────────────────────────
+
+  /// The chosen character (null until picked), the presets, and credits.
+  Future<AssistantProfile> getAssistant();
+
+  Future<AssistantProfile> setAssistantCharacter(String characterId);
+
+  /// One reply to the conversation so far. Costs a credit; throws a
+  /// [ValidationException] with [outOfCreditsCode] when there are none.
+  Future<AssistantReply> askAssistant(AssistantContext context, List<AssistantMessage> messages);
 
   // ── Demo controls (debug builds only) ─────────────────────────────────────
 

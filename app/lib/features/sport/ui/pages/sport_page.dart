@@ -42,7 +42,7 @@ class SportPage extends StatelessWidget {
   Widget _wide(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: FormationAppBar(title: mode.label),
+      appBar: FormationAppBar(mode: mode),
       body: const TwoPane(main: TeamTab(), detail: LeagueTab()),
       floatingActionButton: _leaguesButton(context, bottomPadding: 0),
     );
@@ -54,7 +54,7 @@ class SportPage extends StatelessWidget {
         child: Scaffold(
           backgroundColor: AppColors.background,
           appBar: FormationAppBar(
-            title: mode.label,
+            mode: mode,
             bottom: const TabBar(
               indicatorColor: AppColors.primary,
               labelColor: AppColors.primary,

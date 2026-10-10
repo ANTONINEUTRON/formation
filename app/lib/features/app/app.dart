@@ -10,6 +10,7 @@ import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/route/pending_deep_link.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
 import 'package:formation/features/onboarding/ui/pages/onboarding_page.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
 import 'package:formation/features/shared/data/fixture_repository.dart';
@@ -91,10 +92,20 @@ class _ConnectedApp extends StatelessWidget {
               signer: context.read<WalletCubit>(),
             ),
       child: Builder(
-        builder: (context) => BlocProvider(
-          create: (context) => NotificationsCubit(
-            repository: context.read<FormationRepository>(),
-          )..refreshUnread(),
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (context) => NotificationsCubit(
+                repository: context.read<FormationRepository>(),
+              )..refreshUnread(),
+            ),
+            // Above every tab, so a conversation survives closing the sheet.
+            BlocProvider(
+              create: (context) => AssistantCubit(
+                repository: context.read<FormationRepository>(),
+              ),
+            ),
+          ],
           child: _toastWrapped(),
         ),
       ),

@@ -46,6 +46,9 @@ class ValidationException extends AppException {
   final String? field;
 }
 
+/// [AppException.code] for a 402: the Manager has no Assistant Manager credits left.
+const outOfCreditsCode = 'out_of_credits';
+
 /// Exception thrown when a resource is not found.
 class NotFoundException extends AppException {
   const NotFoundException({

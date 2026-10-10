@@ -47,7 +47,13 @@ describe('validateSuggestions', () => {
       facts(),
     );
     expect(out).toEqual([
-      expect.objectContaining({ slotIndex: 1, mint: 'mint-METAx', needsPurchase: false, substitutionCost: 0 }),
+      expect.objectContaining({
+        slotIndex: 1,
+        position: 'SG',
+        mint: 'mint-METAx',
+        needsPurchase: false,
+        substitutionCost: 0,
+      }),
       expect.objectContaining({ slotIndex: 2, mint: 'mint-JPMx', needsPurchase: true, substitutionCost: 0 }),
     ]);
   });
@@ -88,7 +94,9 @@ describe('validateSuggestions', () => {
         ],
         facts(),
       ),
-    ).toEqual([{ kind: 'setCaptain', slotIndex: 4, vice: false, reason: 'steadier' }]);
+    ).toEqual([
+      { kind: 'setCaptain', slotIndex: 4, symbol: 'AAPLx', position: 'C', vice: false, reason: 'steadier' },
+    ]);
   });
 
   it('allows formation changes in football only', () => {

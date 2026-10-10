@@ -4,15 +4,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
+import 'package:formation/features/assistant_manager/ui/assistant_sheet.dart';
+import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
 
-/// App bar shared by the three sport pages: title plus AI Manager,
-/// Notifications and Profile actions.
+/// App bar shared by the three sport pages: the sport's name plus the
+/// Assistant Manager, Notifications and Profile actions.
 class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const FormationAppBar({required this.title, this.bottom, super.key});
+  const FormationAppBar({required this.mode, this.bottom, super.key});
 
-  final String title;
+  /// The sport this page shows; the Assistant Manager opens about it.
+  final SportMode mode;
   final PreferredSizeWidget? bottom;
 
   @override
@@ -21,14 +25,14 @@ class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title),
+      title: Text(mode.label),
       centerTitle: false,
       bottom: bottom,
       actions: [
         IconButton(
           icon: const Icon(Icons.auto_awesome_outlined),
-          onPressed: () => context.router.push(const AiManagerRoute()),
-          tooltip: 'AI Manager',
+          onPressed: () => showAssistantSheet(context, AssistantContext(mode: mode)),
+          tooltip: 'Assistant Manager',
         ),
         const _NotificationsAction(),
         Padding(

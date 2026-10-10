@@ -13,10 +13,19 @@ const MAX_SUGGESTIONS = 3;
  * shown and left to fail.
  */
 export type Suggestion =
-  | { kind: 'setCaptain'; slotIndex: number; vice: boolean; reason: string }
+  | {
+      kind: 'setCaptain';
+      slotIndex: number;
+      /** For display: the stock in that slot and its position. */
+      symbol: string;
+      position: string;
+      vice: boolean;
+      reason: string;
+    }
   | {
       kind: 'fillSlot';
       slotIndex: number;
+      position: string;
       mint: string;
       symbol: string;
       reason: string;
@@ -53,6 +62,7 @@ export function validateSuggestions(raw: unknown, facts: RosterFacts): Suggestio
   const rules = captaincyRules(facts.mode);
   const out: Suggestion[] = [];
   const seen = new Set<string>();
+  const symbolOf = new Map([...facts.catalogue.values()].map((s) => [s.mint, s.symbol]));
   let substitutions = facts.substitutionsToday;
 
   for (const item of raw) {
@@ -67,7 +77,15 @@ export function validateSuggestions(raw: unknown, facts: RosterFacts): Suggestio
       if (slotIndex === null || !facts.slots.has(slotIndex)) continue;
       if (vice ? !rules.vice : !rules.captain) continue;
       if ((vice ? facts.viceCaptainSlot : facts.captainSlot) === slotIndex) continue;
-      push(`captain:${vice}`, { kind: 'setCaptain', slotIndex, vice, reason });
+      const mint = facts.slots.get(slotIndex) ?? '';
+      push(`captain:${vice}`, {
+        kind: 'setCaptain',
+        slotIndex,
+        symbol: symbolOf.get(mint) ?? mint,
+        position: facts.shape[slotIndex]?.label ?? '',
+        vice,
+        reason,
+      });
     } else if (s.kind === 'fillSlot') {
       const slotIndex = asIndex(s.slotIndex);
       const position = slotIndex === null ? undefined : facts.shape[slotIndex];
@@ -88,6 +106,7 @@ export function validateSuggestions(raw: unknown, facts: RosterFacts): Suggestio
       push(`slot:${slotIndex}`, {
         kind: 'fillSlot',
         slotIndex,
+        position: position.label,
         mint: stock.mint,
         symbol: stock.symbol,
         reason,

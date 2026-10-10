@@ -9,6 +9,7 @@ import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/domain/entity/notification.dart';
+import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/data/session_store.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -193,6 +194,12 @@ class ApiRepository implements FormationRepository {
     final message = raw is List ? raw.join(', ') : raw as String?;
     AppLog.warn('$method $path failed with $status: ${message ?? "no message"}');
 
+    // 502 and 503 are also how the backend says an upstream (the assistant's
+    // model) failed or is switched off. Those messages are written for the
+    // player — "you were not charged" — whereas a proxy's 502 has no message.
+    if ((status == 502 || status == 503) && message != null) {
+      return NetworkException(message: message, statusCode: status);
+    }
     if (status >= 500) {
       return NetworkException(
         message: 'Formation is having trouble right now. Please try again shortly.',
@@ -206,6 +213,12 @@ class ApiRepository implements FormationRepository {
     }
     if (status == 404) {
       return NotFoundException(message: message ?? 'We could not find that.');
+    }
+    if (status == 402) {
+      return ValidationException(
+        message: message ?? 'You are out of Assistant Manager credits.',
+        code: outOfCreditsCode,
+      );
     }
     return ValidationException(message: message ?? 'That request was not accepted.');
   }
@@ -427,6 +440,31 @@ class ApiRepository implements FormationRepository {
   Future<void> markAllNotificationsRead() async {
     await _request('POST', '/notifications/read-all');
     _notify();
+  }
+
+  // ── Assistant Manager ──────────────────────────────────────────────────────
+
+  @override
+  Future<AssistantProfile> getAssistant() async =>
+      AssistantProfile.fromJson(await _request('GET', '/assistant') as Map<String, dynamic>);
+
+  @override
+  Future<AssistantProfile> setAssistantCharacter(String characterId) async =>
+      AssistantProfile.fromJson(
+        await _request('PUT', '/assistant/character', body: {'characterId': characterId})
+            as Map<String, dynamic>,
+      );
+
+  @override
+  Future<AssistantReply> askAssistant(
+    AssistantContext context,
+    List<AssistantMessage> messages,
+  ) async {
+    final json = await _request('POST', '/assistant/chat', body: {
+      'context': context.toJson(),
+      'messages': [for (final m in messages) m.toJson()],
+    });
+    return AssistantReply.fromJson(json as Map<String, dynamic>);
   }
 
   // ── Demo controls ──────────────────────────────────────────────────────────

@@ -11,22 +11,6 @@
 part of 'app_route.dart';
 
 /// generated route for
-/// [AiManagerPage]
-class AiManagerRoute extends PageRouteInfo<void> {
-  const AiManagerRoute({List<PageRouteInfo>? children})
-    : super(AiManagerRoute.name, initialChildren: children);
-
-  static const String name = 'AiManagerRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const AiManagerPage();
-    },
-  );
-}
-
-/// generated route for
 /// [DraftBoardPage]
 class DraftBoardRoute extends PageRouteInfo<DraftBoardRouteArgs> {
   DraftBoardRoute({

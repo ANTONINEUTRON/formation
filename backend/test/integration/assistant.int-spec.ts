@@ -65,7 +65,14 @@ describe('assistant', () => {
     expect(reply.mood).toBe('happy');
     // TSLAx is momentum and slot 2 (SF) needs balanced, so only the captaincy survives.
     expect(reply.suggestions).toEqual([
-      { kind: 'setCaptain', slotIndex: 4, vice: false, reason: 'steadiest pick' },
+      {
+        kind: 'setCaptain',
+        slotIndex: 4,
+        symbol: expect.any(String),
+        position: 'C',
+        vice: false,
+        reason: 'steadiest pick',
+      },
     ]);
     expect(reply.credits).toBe(4);
 

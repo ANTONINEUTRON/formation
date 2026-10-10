@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-import 'package:formation/features/ai_manager/ui/pages/ai_manager_page.dart';
 import 'package:formation/features/draft/ui/pages/draft_board_page.dart';
 import 'package:formation/features/leagues/ui/pages/league_detail_page.dart';
 import 'package:formation/features/managers/ui/pages/manager_profile_page.dart';
@@ -39,7 +38,6 @@ class AppRouter extends RootStackRouter {
 
         // App bar destinations
         AutoRoute(page: ProfileRoute.page, path: '/profile'),
-        AutoRoute(page: AiManagerRoute.page, path: '/ai-manager'),
         AutoRoute(page: NotificationsRoute.page, path: '/notifications'),
 
         // Transaction History
