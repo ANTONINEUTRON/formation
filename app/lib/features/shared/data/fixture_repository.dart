@@ -791,7 +791,30 @@ class FixtureRepository implements FormationRepository {
         characters: _assistantCharacters,
         credits: _assistantCredits,
         available: true,
+        packs: const [
+          CreditPack(id: 'credits-50', credits: 50, usd: 1),
+          CreditPack(id: 'credits-300', credits: 300, usd: 5),
+          CreditPack(id: 'credits-1000', credits: 1000, usd: 15),
+        ],
+        canBuyCredits: true,
       );
+
+  /// SKR at a made-up $0.02, so the demo shows realistic amounts.
+  static const _fixtureSkrUsd = 0.02;
+
+  @override
+  Future<CreditQuote> quoteCredits(CreditPack pack) => _delay(() => CreditQuote(
+        quoteId: 'quote-${_nextId++}',
+        pack: pack,
+        skrAmount: pack.usd / _fixtureSkrUsd,
+        expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      ));
+
+  @override
+  Future<int> buyCredits(CreditQuote quote) => _delay(() {
+        _assistantCredits += quote.pack.credits;
+        return _assistantCredits;
+      });
 
   @override
   Future<AssistantProfile> getAssistant() => _delay(() => _assistantProfile);

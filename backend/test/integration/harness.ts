@@ -18,7 +18,17 @@ import { UsersService } from '../../src/users/users.service.js';
 import { XStocksService } from '../../src/xstocks/xstocks.service.js';
 import { migrate } from '../../src/scripts/migrate.js';
 import { LLM_PROVIDER } from '../../src/assistant/llm.js';
-import { FakeBalanceSource, FakeClock, FakeLlmProvider, FakePriceSource } from '../fakes/fakes.js';
+import { SKR_PAYMENTS } from '../../src/assistant/skr-payments.js';
+import {
+  FakeBalanceSource,
+  FakeClock,
+  FakeLlmProvider,
+  FakePriceSource,
+  FakeSkrPayments,
+} from '../fakes/fakes.js';
+
+/** SKR as the tests configure it, so purchases don't depend on the local .env. */
+export const TEST_SKR = { mint: 'SKR-test-mint', decimals: 6, treasury: 'treasury-test-account' };
 
 export const BENCHMARK_MINT = 'SPYx-test-mint';
 
@@ -62,6 +72,8 @@ const TABLES = [
   'assistant_profiles',
   'assistant_credits',
   'assistant_usage',
+  'credit_purchases',
+  'credit_quotes',
   'users',
   'xstocks',
 ];
@@ -74,6 +86,8 @@ export interface Harness {
   balances: FakeBalanceSource;
   /** Gemini is never called from tests. */
   llm: FakeLlmProvider;
+  /** Nor is the chain, for credit purchases. */
+  skrPayments: FakeSkrPayments;
   rosters: RosterService;
   general: GeneralScoringService;
   leagues: LeaguesService;
@@ -118,10 +132,16 @@ export async function createHarness(): Promise<Harness> {
   const prices = new FakePriceSource();
   const balances = new FakeBalanceSource();
   const llm = new FakeLlmProvider();
+  const skrPayments = new FakeSkrPayments();
+  process.env.SKR_MINT = TEST_SKR.mint;
+  process.env.SKR_DECIMALS = String(TEST_SKR.decimals);
+  process.env.ASSISTANT_TREASURY = TEST_SKR.treasury;
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(LLM_PROVIDER)
     .useValue(llm)
+    .overrideProvider(SKR_PAYMENTS)
+    .useValue(skrPayments)
     .overrideProvider(CLOCK)
     .useValue(clock)
     .overrideProvider(PRICE_SOURCE)
@@ -145,6 +165,7 @@ export async function createHarness(): Promise<Harness> {
     prices,
     balances,
     llm,
+    skrPayments,
     rosters,
     general: app.get(GeneralScoringService),
     leagues: app.get(LeaguesService),
@@ -162,6 +183,8 @@ export async function createHarness(): Promise<Harness> {
       (xstocks as unknown as { cache?: unknown }).cache = undefined;
       for (const stock of TEST_STOCKS) prices.set(stock.mint, 100);
       llm.reset();
+      skrPayments.reset();
+      prices.set(TEST_SKR.mint, 0.02);
       clock.set(Date.UTC(2026, 0, 5, 12, 0, 0));
     },
 

@@ -28,6 +28,8 @@ describe('migrations', () => {
         'assistant_profiles',
         'assistant_usage',
         'classic_scores',
+        'credit_purchases',
+        'credit_quotes',
         'daily_substitutions',
         'follows',
         'general_entries',

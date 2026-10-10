@@ -467,6 +467,26 @@ class ApiRepository implements FormationRepository {
     return AssistantReply.fromJson(json as Map<String, dynamic>);
   }
 
+  @override
+  Future<CreditQuote> quoteCredits(CreditPack pack) async {
+    final json = await _request('POST', '/assistant/credits/quote', body: {'packId': pack.id});
+    return CreditQuote.fromJson(pack, json as Map<String, dynamic>);
+  }
+
+  @override
+  Future<int> buyCredits(CreditQuote quote) async {
+    final built = await _request('POST', '/assistant/credits/build', body: {'quoteId': quote.quoteId})
+        as Map<String, dynamic>;
+    final signature = await _signer.signAndSendTransaction(
+      base64Decode(built['transaction'] as String),
+    );
+    final confirmed = await _request('POST', '/assistant/credits/confirm', body: {
+      'quoteId': quote.quoteId,
+      'signature': signature,
+    }) as Map<String, dynamic>;
+    return (confirmed['credits'] as num).toInt();
+  }
+
   // ── Demo controls ──────────────────────────────────────────────────────────
 
   Map<String, String> get _adminHeaders => {'x-admin-key': _adminKey};

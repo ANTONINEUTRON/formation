@@ -8,6 +8,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/assistant_manager/ui/widgets/buy_credits_sheet.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_picker.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/glass_panel.dart';
@@ -19,7 +20,10 @@ import 'package:formation/features/shared/domain/models.dart';
 Future<void> showAssistantSheet(BuildContext context, AssistantContext assistantContext) {
   final cubit = context.read<AssistantCubit>();
   if (cubit.state.profile == null) cubit.load();
-  final content = BlocProvider.value(value: cubit, child: AssistantSheet(context: assistantContext));
+  final content = BlocProvider.value(
+    value: cubit,
+    child: AssistantSheet(context: assistantContext),
+  );
 
   if (context.layoutSize.isCompact) {
     return showModalBottomSheet<void>(
@@ -191,6 +195,12 @@ class _ChatState extends State<_Chat> {
     await router.push(DraftBoardRoute(mode: _mode));
   }
 
+  void _buyCredits() {
+    final profile = widget.state.profile;
+    if (profile == null || !profile.canBuyCredits) return;
+    BuyCreditsSheet.show(context, profile.packs);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
@@ -204,6 +214,7 @@ class _ChatState extends State<_Chat> {
           pose: state.pose,
           mode: _mode,
           credits: credits,
+          onBuyCredits: state.profile?.canBuyCredits == true ? _buyCredits : null,
           onChangeCharacter: widget.onChangeCharacter,
           onNewConversation: messages.isEmpty
               ? null
@@ -235,24 +246,22 @@ class _ChatState extends State<_Chat> {
                 ),
         ),
         if (state.error != null)
-          _Notice(
-            text: state.error!,
-            onDismiss: () => context.read<AssistantCubit>().dismissError(),
-          )
+          _Notice(text: state.error!, onDismiss: () => context.read<AssistantCubit>().dismissError())
         else if (state.outOfCredits)
-          const _Notice(
-            text: "You're out of credits. Buying more with SKR is coming soon.",
+          _Notice(
+            text: state.profile?.canBuyCredits == true
+                ? "You're out of credits."
+                : "You're out of credits. Buying more isn't available yet.",
+            action: state.profile?.canBuyCredits == true
+                ? TextButton(onPressed: _buyCredits, child: const Text('Buy credits'))
+                : null,
           ),
         _QuickPrompts(
           prompts: _promptsFor(widget.assistantContext),
           enabled: !state.sending && !state.outOfCredits,
           onTap: _send,
         ),
-        _Composer(
-          controller: _input,
-          enabled: !state.sending && !state.outOfCredits,
-          onSend: _send,
-        ),
+        _Composer(controller: _input, enabled: !state.sending && !state.outOfCredits, onSend: _send),
       ],
     );
   }
@@ -260,15 +269,15 @@ class _ChatState extends State<_Chat> {
 
 /// Starters that fit where the Manager opened the assistant from.
 List<String> _promptsFor(AssistantContext context) => switch (context.screen) {
-      'draft' => ['Fill my empty slots', 'Which formation suits me?', 'Explain the tiers'],
-      'league' || 'leagues' => ['How do I climb the table?', 'Why am I losing points?', 'Explain scoring'],
-      _ => [
-          'Review my squad',
-          if (context.mode != SportMode.americanFootball) 'Who should I captain?',
-          'Why am I losing points?',
-          'How does scoring work?',
-        ],
-    };
+  'draft' => ['Fill my empty slots', 'Which formation suits me?', 'Explain the tiers'],
+  'league' || 'leagues' => ['How do I climb the table?', 'Why am I losing points?', 'Explain scoring'],
+  _ => [
+    'Review my squad',
+    if (context.mode != SportMode.americanFootball) 'Who should I captain?',
+    'Why am I losing points?',
+    'How does scoring work?',
+  ],
+};
 
 class _Header extends StatelessWidget {
   const _Header({
@@ -276,6 +285,7 @@ class _Header extends StatelessWidget {
     required this.pose,
     required this.mode,
     required this.credits,
+    required this.onBuyCredits,
     required this.onChangeCharacter,
     required this.onNewConversation,
   });
@@ -284,6 +294,7 @@ class _Header extends StatelessWidget {
   final AssistantPose pose;
   final SportMode mode;
   final int credits;
+  final VoidCallback? onBuyCredits;
   final VoidCallback onChangeCharacter;
   final VoidCallback? onNewConversation;
 
@@ -303,7 +314,11 @@ class _Header extends StatelessWidget {
                   character.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 Text(
                   'Assistant Manager · ${mode.label}',
@@ -315,32 +330,40 @@ class _Header extends StatelessWidget {
             ),
           ),
           Tooltip(
-            message: '$credits credit${credits == 1 ? '' : 's'} left · 1 per reply',
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: credits > 0 ? 0.14 : 0.05),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: credits > 0 ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.toll_outlined,
-                    size: 14,
-                    color: credits > 0 ? AppColors.primary : AppColors.textMuted,
+            message:
+                '$credits credit${credits == 1 ? '' : 's'} left · 1 per reply'
+                '${onBuyCredits != null ? ' · tap to buy more' : ''}',
+            child: InkWell(
+              onTap: onBuyCredits,
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: credits > 0 ? 0.14 : 0.05),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: credits > 0 ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$credits',
-                    style: AppTextStyles.mono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.toll_outlined,
+                      size: 14,
                       color: credits > 0 ? AppColors.primary : AppColors.textMuted,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Text(
+                      '$credits',
+                      style: AppTextStyles.mono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: credits > 0 ? AppColors.primary : AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -350,7 +373,11 @@ class _Header extends StatelessWidget {
             onSelected: (value) => value == 'change' ? onChangeCharacter() : onNewConversation?.call(),
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'change', child: Text('Change Assistant Manager')),
-              PopupMenuItem(value: 'new', enabled: onNewConversation != null, child: const Text('New conversation')),
+              PopupMenuItem(
+                value: 'new',
+                enabled: onNewConversation != null,
+                child: const Text('New conversation'),
+              ),
             ],
           ),
           IconButton(
@@ -417,7 +444,9 @@ class _MessageView extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: mine ? AppColors.primary.withValues(alpha: 0.16) : Colors.white.withValues(alpha: 0.05),
+                color: mine
+                    ? AppColors.primary.withValues(alpha: 0.16)
+                    : Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -425,7 +454,9 @@ class _MessageView extends StatelessWidget {
                   bottomRight: Radius.circular(mine ? 4 : 16),
                 ),
                 border: Border.all(
-                  color: mine ? AppColors.primary.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.06),
+                  color: mine
+                      ? AppColors.primary.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.06),
                 ),
               ),
               child: Text(message.text, style: const TextStyle(color: AppColors.textPrimary, height: 1.4)),
@@ -469,10 +500,11 @@ class _Thinking extends StatelessWidget {
 }
 
 class _Notice extends StatelessWidget {
-  const _Notice({required this.text, this.onDismiss});
+  const _Notice({required this.text, this.onDismiss, this.action});
 
   final String text;
   final VoidCallback? onDismiss;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -488,7 +520,10 @@ class _Notice extends StatelessWidget {
         children: [
           const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary))),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+          ),
+          ?action,
           if (onDismiss != null)
             IconButton(
               visualDensity: VisualDensity.compact,
@@ -618,7 +653,11 @@ class _Centered extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             if (action != null) ...[const SizedBox(height: 12), action!],
           ],
         ),

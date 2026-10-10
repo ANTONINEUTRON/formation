@@ -112,6 +112,13 @@ abstract class FormationRepository {
   /// [ValidationException] with [outOfCreditsCode] when there are none.
   Future<AssistantReply> askAssistant(AssistantContext context, List<AssistantMessage> messages);
 
+  /// Prices [pack] in SKR at the live rate, held for a couple of minutes.
+  Future<CreditQuote> quoteCredits(CreditPack pack);
+
+  /// Pays for [quote] from the wallet (the Manager signs) and returns the new
+  /// credit balance once the payment is confirmed on-chain.
+  Future<int> buyCredits(CreditQuote quote);
+
   // ── Demo controls (debug builds only) ─────────────────────────────────────
 
   /// Records prices now and banks everything owed since the last tick.

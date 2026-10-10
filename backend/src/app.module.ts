@@ -8,6 +8,8 @@ import { AssistantService } from './assistant/assistant.service.js';
 import { CreditsService } from './assistant/credits.service.js';
 import { GeminiProvider } from './assistant/gemini.provider.js';
 import { LLM_PROVIDER } from './assistant/llm.js';
+import { PurchasesService } from './assistant/purchases.service.js';
+import { SKR_PAYMENTS, SolanaSkrPayments } from './assistant/skr-payments.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CoreModule } from './core/core.module.js';
 import { LeagueController } from './league/league.controller.js';
@@ -69,8 +71,10 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     XStocksCatalogueService,
     AssistantService,
     CreditsService,
-    // Swapped for a fake in tests.
+    PurchasesService,
+    // Both swapped for fakes in tests.
     { provide: LLM_PROVIDER, useClass: GeminiProvider },
+    { provide: SKR_PAYMENTS, useClass: SolanaSkrPayments },
   ],
 })
 export class AppModule {}

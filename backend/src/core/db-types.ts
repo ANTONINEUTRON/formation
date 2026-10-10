@@ -196,6 +196,28 @@ export interface AssistantUsageTable {
   created_at: Timestamp;
 }
 
+export interface CreditQuotesTable {
+  id: Generated<string>;
+  user_id: string;
+  pack_id: string;
+  credits: number;
+  usd: number;
+  skr_raw: number;
+  expires_at: Timestamp;
+  used_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+export interface CreditPurchasesTable {
+  signature: string;
+  user_id: string;
+  quote_id: string;
+  credits: number;
+  skr_raw: number;
+  usd: number;
+  created_at: Timestamp;
+}
+
 export interface Database {
   users: UsersTable;
   xstocks: XStocksTable;
@@ -214,6 +236,8 @@ export interface Database {
   assistant_profiles: AssistantProfilesTable;
   assistant_credits: AssistantCreditsTable;
   assistant_usage: AssistantUsageTable;
+  credit_quotes: CreditQuotesTable;
+  credit_purchases: CreditPurchasesTable;
 }
 
 export type User = Selectable<UsersTable>;

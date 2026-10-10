@@ -25,6 +25,8 @@ import { XStocksService } from '../xstocks/xstocks.service.js';
 import { CHARACTERS, characterById } from './characters.js';
 import type { AssistantCharacter } from './characters.js';
 import { CreditsService } from './credits.service.js';
+import type { CreditPack } from './packs.js';
+import { PurchasesService } from './purchases.service.js';
 import { LLM_PROVIDER, LlmError } from './llm.js';
 import type { LlmMessage, LlmProvider } from './llm.js';
 import { REPLY_SCHEMA, systemPrompt } from './prompt.js';
@@ -48,6 +50,9 @@ export interface AssistantProfileDto {
   credits: number;
   /** False when no model is configured: the app shows the assistant as unavailable. */
   available: boolean;
+  /** Credit packs for sale, and whether buying them (with SKR) is switched on. */
+  packs: CreditPack[];
+  canBuyCredits: boolean;
 }
 
 export interface AssistantReplyDto {
@@ -74,6 +79,7 @@ export class AssistantService {
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
     private readonly credits: CreditsService,
+    private readonly purchases: PurchasesService,
     private readonly rosters: RosterService,
     private readonly general: GeneralScoringService,
     private readonly xstocks: XStocksService,
@@ -93,6 +99,8 @@ export class AssistantService {
       characters: CHARACTERS.map(({ id, name, tagline, style }) => ({ id, name, tagline, style })),
       credits,
       available: this.llm.available,
+      packs: this.purchases.packs,
+      canBuyCredits: this.purchases.enabled,
     };
   }
 

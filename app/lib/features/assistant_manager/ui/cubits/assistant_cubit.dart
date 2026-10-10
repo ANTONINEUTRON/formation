@@ -41,16 +41,15 @@ class AssistantState extends Equatable {
     String? error,
     bool clearError = false,
     bool? outOfCredits,
-  }) =>
-      AssistantState(
-        profile: profile ?? this.profile,
-        loading: loading ?? this.loading,
-        sending: sending ?? this.sending,
-        pose: pose ?? this.pose,
-        conversations: conversations ?? this.conversations,
-        error: clearError ? null : error ?? this.error,
-        outOfCredits: outOfCredits ?? this.outOfCredits,
-      );
+  }) => AssistantState(
+    profile: profile ?? this.profile,
+    loading: loading ?? this.loading,
+    sending: sending ?? this.sending,
+    pose: pose ?? this.pose,
+    conversations: conversations ?? this.conversations,
+    error: clearError ? null : error ?? this.error,
+    outOfCredits: outOfCredits ?? this.outOfCredits,
+  );
 
   @override
   List<Object?> get props => [profile, loading, sending, pose, conversations, error, outOfCredits];
@@ -63,8 +62,8 @@ class AssistantState extends Equatable {
 /// calls the draft board uses, so the roster screens refresh themselves.
 class AssistantCubit extends Cubit<AssistantState> {
   AssistantCubit({required FormationRepository repository})
-      : _repository = repository,
-        super(const AssistantState());
+    : _repository = repository,
+      super(const AssistantState());
 
   final FormationRepository _repository;
 
@@ -73,11 +72,7 @@ class AssistantCubit extends Cubit<AssistantState> {
     emit(state.copyWith(loading: true, clearError: true));
     try {
       final profile = await _repository.getAssistant();
-      emit(state.copyWith(
-        profile: profile,
-        loading: false,
-        outOfCredits: profile.credits <= 0,
-      ));
+      emit(state.copyWith(profile: profile, loading: false, outOfCredits: profile.credits <= 0));
     } catch (e) {
       emit(state.copyWith(loading: false, error: errorText(e)));
     }
@@ -101,12 +96,14 @@ class AssistantCubit extends Cubit<AssistantState> {
       ...state.conversation(mode),
       AssistantMessage(role: AssistantRole.manager, text: trimmed),
     ];
-    emit(state.copyWith(
-      conversations: {...state.conversations, mode: history},
-      sending: true,
-      pose: AssistantPose.thinking,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        conversations: {...state.conversations, mode: history},
+        sending: true,
+        pose: AssistantPose.thinking,
+        clearError: true,
+      ),
+    );
 
     try {
       final reply = await _repository.askAssistant(context, history);
@@ -117,22 +114,29 @@ class AssistantCubit extends Cubit<AssistantState> {
         suggestions: reply.suggestions,
         statuses: [for (final _ in reply.suggestions) SuggestionStatus.open],
       );
-      emit(state.copyWith(
-        conversations: {...state.conversations, mode: [...history, message]},
-        sending: false,
-        pose: AssistantPose.forMood(reply.mood),
-        profile: state.profile?.copyWith(credits: reply.credits),
-        outOfCredits: reply.credits <= 0,
-      ));
+      emit(
+        state.copyWith(
+          conversations: {
+            ...state.conversations,
+            mode: [...history, message],
+          },
+          sending: false,
+          pose: AssistantPose.forMood(reply.mood),
+          profile: state.profile?.copyWith(credits: reply.credits),
+          outOfCredits: reply.credits <= 0,
+        ),
+      );
     } catch (e) {
       final out = e is AppException && e.code == outOfCreditsCode;
-      emit(state.copyWith(
-        sending: false,
-        pose: AssistantPose.concerned,
-        error: errorText(e),
-        outOfCredits: out ? true : null,
-        profile: out ? state.profile?.copyWith(credits: 0) : null,
-      ));
+      emit(
+        state.copyWith(
+          sending: false,
+          pose: AssistantPose.concerned,
+          error: errorText(e),
+          outOfCredits: out ? true : null,
+          profile: out ? state.profile?.copyWith(credits: 0) : null,
+        ),
+      );
     }
   }
 
@@ -177,11 +181,23 @@ class AssistantCubit extends Cubit<AssistantState> {
   void handedToPurchase(SportMode mode, int messageIndex, int suggestionIndex) =>
       _setStatus(mode, messageIndex, suggestionIndex, SuggestionStatus.applied);
 
-  void clearConversation(SportMode mode) => emit(state.copyWith(
-        conversations: {...state.conversations, mode: const []},
-        pose: AssistantPose.neutral,
-        clearError: true,
-      ));
+  /// A purchase went through; [balance] is the new total from the server.
+  void creditsBought(int balance) => emit(
+    state.copyWith(
+      profile: state.profile?.copyWith(credits: balance),
+      outOfCredits: balance <= 0,
+      pose: AssistantPose.celebrating,
+      clearError: true,
+    ),
+  );
+
+  void clearConversation(SportMode mode) => emit(
+    state.copyWith(
+      conversations: {...state.conversations, mode: const []},
+      pose: AssistantPose.neutral,
+      clearError: true,
+    ),
+  );
 
   void dismissError() => emit(state.copyWith(clearError: true));
 

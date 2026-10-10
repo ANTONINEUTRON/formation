@@ -1,3 +1,5 @@
+import { parsePacks } from '../assistant/packs.js';
+import type { CreditPack } from '../assistant/packs.js';
 import { loadPayTokens } from '../domain/pay-tokens.js';
 import type { PayToken } from '../domain/pay-tokens.js';
 
@@ -58,6 +60,13 @@ export interface AppConfig {
   geminiModel: string;
   /** Credits a Manager is given the first time they use the assistant. */
   assistantTrialCredits: number;
+  /** Credit packs for sale, from ASSISTANT_PACKS. */
+  assistantPacks: CreditPack[];
+  /**
+   * SKR token account that credit purchases are paid into. Defaults to the SKR
+   * fee account; empty disables buying credits.
+   */
+  assistantTreasury: string;
 }
 
 export const CONFIG = Symbol('CONFIG');
@@ -100,5 +109,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     geminiApiKey: env.GEMINI_API_KEY?.trim() ?? '',
     geminiModel: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
     assistantTrialCredits: number(env.ASSISTANT_TRIAL_CREDITS, 5),
+    assistantPacks: parsePacks(env.ASSISTANT_PACKS),
+    assistantTreasury: (env.ASSISTANT_TREASURY ?? env.JUPITER_FEE_ACCOUNT_SKR ?? '').trim(),
   };
 }

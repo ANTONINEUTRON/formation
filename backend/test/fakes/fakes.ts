@@ -1,5 +1,6 @@
 import type { LlmProvider, LlmRequest, LlmResponse } from '../../src/assistant/llm.js';
 import { LlmError } from '../../src/assistant/llm.js';
+import type { ObservedPayment, SkrPayments, TransferRequest } from '../../src/assistant/skr-payments.js';
 import type { PriceInfo } from '../../src/core/chain.service.js';
 import type { Clock } from '../../src/core/clock.js';
 import type { BalanceSource, PriceSource } from '../../src/core/sources.js';
@@ -95,5 +96,25 @@ export class FakeLlmProvider implements LlmProvider {
     this.fail = false;
     this.reply = { text: 'Looking good, boss.', mood: 'neutral', suggestions: [] };
     this.requests.length = 0;
+  }
+}
+
+/** Stands in for the chain when buying credits: records builds, and reports whatever payment a test plants. */
+export class FakeSkrPayments implements SkrPayments {
+  readonly built: TransferRequest[] = [];
+  readonly onChain = new Map<string, ObservedPayment>();
+
+  async buildTransfer(request: TransferRequest): Promise<string> {
+    this.built.push(request);
+    return Buffer.from(JSON.stringify({ ...request, amountRaw: String(request.amountRaw) })).toString('base64');
+  }
+
+  async observe(signature: string): Promise<ObservedPayment | null> {
+    return this.onChain.get(signature) ?? null;
+  }
+
+  reset(): void {
+    this.built.length = 0;
+    this.onChain.clear();
   }
 }

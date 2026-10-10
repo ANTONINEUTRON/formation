@@ -90,6 +90,25 @@ void main() {
     });
   });
 
+  group('buying credits (fixture backend)', () {
+    test('quotes a pack in SKR and tops the balance up once paid', () async {
+      final repository = FixtureRepository(walletAddress: 'wallet');
+      final cubit = AssistantCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load();
+      final profile = cubit.state.profile!;
+      expect(profile.canBuyCredits, isTrue);
+
+      final quote = await repository.quoteCredits(profile.packs.first);
+      expect(quote.pack.credits, 50);
+      expect(quote.skrAmount, 50); // $1 at the fixture's $0.02
+
+      cubit.creditsBought(await repository.buyCredits(quote));
+      expect(cubit.state.profile!.credits, 55);
+      expect(cubit.state.outOfCredits, isFalse);
+    });
+  });
+
   group('ApiRepository assistant calls', () {
     ApiRepository withChat(http.Response Function(http.Request) chat, List<Object?> sent) =>
         ApiRepository(
@@ -144,6 +163,30 @@ void main() {
       expect(reply.suggestions, [
         const CaptainSuggestion(slotIndex: 4, symbol: 'AAPLx', position: 'C', vice: false, reason: 'steady'),
       ]);
+    });
+
+    test('buying credits builds, has the wallet sign, then confirms with the signature', () async {
+      final sent = <Object?>[];
+      final paths = <String>[];
+      final repository = withChat((request) {
+        paths.add(request.url.path);
+        return http.Response(
+          jsonEncode(switch (request.url.path) {
+            '/assistant/credits/build' => {'transaction': base64Encode([1, 2, 3])},
+            _ => {'credits': 305},
+          }),
+          200,
+        );
+      }, sent);
+      const pack = CreditPack(id: 'credits-300', credits: 300, usd: 5);
+
+      final balance = await repository.buyCredits(
+        CreditQuote(quoteId: 'q-1', pack: pack, skrAmount: 250, expiresAt: DateTime(2030)),
+      );
+
+      expect(balance, 305);
+      expect(paths, ['/assistant/credits/build', '/assistant/credits/confirm']);
+      expect(sent.last, {'quoteId': 'q-1', 'signature': 'signature'});
     });
 
     test('a 402 is recognisable as out of credits; a 502 keeps its message', () async {

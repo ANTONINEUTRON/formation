@@ -7,12 +7,7 @@ import 'package:formation/features/assistant_manager/ui/widgets/character_view.d
 /// "Pick your Assistant Manager": the five characters, swiped one at a time,
 /// each standing in its neutral pose with its name, line and leaning.
 class CharacterPicker extends StatefulWidget {
-  const CharacterPicker({
-    required this.characters,
-    required this.onPicked,
-    this.currentId,
-    super.key,
-  });
+  const CharacterPicker({required this.characters, required this.onPicked, this.currentId, super.key});
 
   final List<AssistantCharacter> characters;
   final Future<void> Function(String characterId) onPicked;
@@ -52,16 +47,12 @@ class _CharacterPickerState extends State<CharacterPicker> {
         const SizedBox(height: 4),
         Text(
           'Pick your Assistant Manager',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        const Text(
-          'You make the calls. They advise.',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
+        const Text('You make the calls. They advise.', style: TextStyle(color: AppColors.textSecondary)),
         Expanded(
           child: PageView.builder(
             controller: _pages,
@@ -100,10 +91,9 @@ class _CharacterPickerState extends State<CharacterPicker> {
         const SizedBox(height: 12),
         Text(
           character.name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 2),
         Text(

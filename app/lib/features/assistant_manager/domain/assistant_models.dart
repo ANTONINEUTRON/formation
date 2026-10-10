@@ -11,10 +11,10 @@ enum AssistantPose {
   concerned;
 
   static AssistantPose forMood(AssistantMood mood) => switch (mood) {
-        AssistantMood.happy => AssistantPose.celebrating,
-        AssistantMood.concerned => AssistantPose.concerned,
-        AssistantMood.neutral => AssistantPose.neutral,
-      };
+    AssistantMood.happy => AssistantPose.celebrating,
+    AssistantMood.concerned => AssistantPose.concerned,
+    AssistantMood.neutral => AssistantPose.neutral,
+  };
 }
 
 enum AssistantMood {
@@ -23,10 +23,10 @@ enum AssistantMood {
   concerned;
 
   static AssistantMood fromApi(Object? value) => switch (value) {
-        'happy' => AssistantMood.happy,
-        'concerned' => AssistantMood.concerned,
-        _ => AssistantMood.neutral,
-      };
+    'happy' => AssistantMood.happy,
+    'concerned' => AssistantMood.concerned,
+    _ => AssistantMood.neutral,
+  };
 }
 
 /// One of the Assistant Managers. The user is the Manager; this is the coach
@@ -40,11 +40,11 @@ class AssistantCharacter extends Equatable {
   });
 
   factory AssistantCharacter.fromJson(Map<String, dynamic> json) => AssistantCharacter(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        tagline: json['tagline'] as String? ?? '',
-        style: json['style'] as String? ?? 'balanced',
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    tagline: json['tagline'] as String? ?? '',
+    style: json['style'] as String? ?? 'balanced',
+  );
 
   final String id;
   final String name;
@@ -60,23 +60,77 @@ class AssistantCharacter extends Equatable {
   List<Object?> get props => [id];
 }
 
+/// Credits sold together, priced in dollars and paid in SKR.
+class CreditPack extends Equatable {
+  const CreditPack({required this.id, required this.credits, required this.usd});
+
+  factory CreditPack.fromJson(Map<String, dynamic> json) => CreditPack(
+    id: json['id'] as String,
+    credits: (json['credits'] as num).toInt(),
+    usd: (json['usd'] as num).toDouble(),
+  );
+
+  final String id;
+  final int credits;
+  final double usd;
+
+  @override
+  List<Object?> get props => [id, credits, usd];
+}
+
+/// A pack's price in SKR, held for a short while so the Manager signs exactly
+/// what they were shown.
+class CreditQuote extends Equatable {
+  const CreditQuote({
+    required this.quoteId,
+    required this.pack,
+    required this.skrAmount,
+    required this.expiresAt,
+  });
+
+  factory CreditQuote.fromJson(CreditPack pack, Map<String, dynamic> json) => CreditQuote(
+    quoteId: json['quoteId'] as String,
+    pack: pack,
+    skrAmount: (json['skrAmount'] as num).toDouble(),
+    expiresAt: DateTime.parse(json['expiresAt'] as String),
+  );
+
+  final String quoteId;
+  final CreditPack pack;
+  final double skrAmount;
+  final DateTime expiresAt;
+
+  @override
+  List<Object?> get props => [quoteId];
+}
+
 class AssistantProfile extends Equatable {
   const AssistantProfile({
     required this.characterId,
     required this.characters,
     required this.credits,
     required this.available,
+    this.packs = const [],
+    this.canBuyCredits = false,
   });
 
   factory AssistantProfile.fromJson(Map<String, dynamic> json) => AssistantProfile(
-        characterId: json['characterId'] as String?,
-        characters: [
-          for (final c in json['characters'] as List)
-            AssistantCharacter.fromJson(c as Map<String, dynamic>),
-        ],
-        credits: (json['credits'] as num).toInt(),
-        available: json['available'] as bool? ?? true,
-      );
+    characterId: json['characterId'] as String?,
+    characters: [
+      for (final c in json['characters'] as List) AssistantCharacter.fromJson(c as Map<String, dynamic>),
+    ],
+    credits: (json['credits'] as num).toInt(),
+    available: json['available'] as bool? ?? true,
+    packs: [
+      for (final p in json['packs'] as List? ?? const []) CreditPack.fromJson(p as Map<String, dynamic>),
+    ],
+    canBuyCredits: json['canBuyCredits'] as bool? ?? false,
+  );
+
+  final List<CreditPack> packs;
+
+  /// Whether credits can be bought (SKR is configured on the server).
+  final bool canBuyCredits;
 
   /// Null until the Manager picks one.
   final String? characterId;
@@ -94,14 +148,16 @@ class AssistantProfile extends Equatable {
   }
 
   AssistantProfile copyWith({String? characterId, int? credits}) => AssistantProfile(
-        characterId: characterId ?? this.characterId,
-        characters: characters,
-        credits: credits ?? this.credits,
-        available: available,
-      );
+    characterId: characterId ?? this.characterId,
+    characters: characters,
+    credits: credits ?? this.credits,
+    available: available,
+    packs: packs,
+    canBuyCredits: canBuyCredits,
+  );
 
   @override
-  List<Object?> get props => [characterId, characters, credits, available];
+  List<Object?> get props => [characterId, characters, credits, available, packs, canBuyCredits];
 }
 
 /// Where the Manager opened the assistant from. Sent with every message so the
@@ -116,10 +172,10 @@ class AssistantContext extends Equatable {
   final String? focusMint;
 
   Map<String, dynamic> toJson() => {
-        'mode': mode.apiValue,
-        'screen': screen,
-        if (focusMint != null) 'focus': {'mint': focusMint},
-      };
+    'mode': mode.apiValue,
+    'screen': screen,
+    if (focusMint != null) 'focus': {'mint': focusMint},
+  };
 
   @override
   List<Object?> get props => [mode, screen, focusMint];
@@ -134,21 +190,21 @@ sealed class AssistantSuggestion extends Equatable {
     final reason = json['reason'] as String? ?? '';
     return switch (json['kind']) {
       'setCaptain' => CaptainSuggestion(
-          slotIndex: json['slotIndex'] as int,
-          symbol: json['symbol'] as String? ?? '',
-          position: json['position'] as String? ?? '',
-          vice: json['vice'] as bool? ?? false,
-          reason: reason,
-        ),
+        slotIndex: json['slotIndex'] as int,
+        symbol: json['symbol'] as String? ?? '',
+        position: json['position'] as String? ?? '',
+        vice: json['vice'] as bool? ?? false,
+        reason: reason,
+      ),
       'fillSlot' => FillSlotSuggestion(
-          slotIndex: json['slotIndex'] as int,
-          position: json['position'] as String? ?? '',
-          mint: json['mint'] as String,
-          symbol: json['symbol'] as String,
-          needsPurchase: json['needsPurchase'] as bool? ?? false,
-          substitutionCost: (json['substitutionCost'] as num?)?.toDouble() ?? 0,
-          reason: reason,
-        ),
+        slotIndex: json['slotIndex'] as int,
+        position: json['position'] as String? ?? '',
+        mint: json['mint'] as String,
+        symbol: json['symbol'] as String,
+        needsPurchase: json['needsPurchase'] as bool? ?? false,
+        substitutionCost: (json['substitutionCost'] as num?)?.toDouble() ?? 0,
+        reason: reason,
+      ),
       'setFormation' => FormationSuggestion(formation: json['formation'] as String, reason: reason),
       _ => null,
     };
@@ -232,12 +288,12 @@ class AssistantMessage extends Equatable {
   final List<SuggestionStatus> statuses;
 
   AssistantMessage withStatus(int index, SuggestionStatus status) => AssistantMessage(
-        role: role,
-        text: text,
-        mood: mood,
-        suggestions: suggestions,
-        statuses: [for (var i = 0; i < suggestions.length; i++) i == index ? status : statuses[i]],
-      );
+    role: role,
+    text: text,
+    mood: mood,
+    suggestions: suggestions,
+    statuses: [for (var i = 0; i < suggestions.length; i++) i == index ? status : statuses[i]],
+  );
 
   Map<String, dynamic> toJson() => {'role': role.name, 'text': text};
 
@@ -254,14 +310,14 @@ class AssistantReply {
   });
 
   factory AssistantReply.fromJson(Map<String, dynamic> json) => AssistantReply(
-        text: json['text'] as String,
-        mood: AssistantMood.fromApi(json['mood']),
-        suggestions: [
-          for (final s in json['suggestions'] as List? ?? const [])
-            ?AssistantSuggestion.fromJson(s as Map<String, dynamic>),
-        ],
-        credits: (json['credits'] as num).toInt(),
-      );
+    text: json['text'] as String,
+    mood: AssistantMood.fromApi(json['mood']),
+    suggestions: [
+      for (final s in json['suggestions'] as List? ?? const [])
+        ?AssistantSuggestion.fromJson(s as Map<String, dynamic>),
+    ],
+    credits: (json['credits'] as num).toInt(),
+  );
 
   final String text;
   final AssistantMood mood;
