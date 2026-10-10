@@ -34,6 +34,114 @@ class $AssetsBrandGen {
   ];
 }
 
+class $AssetsCharactersGen {
+  const $AssetsCharactersGen();
+
+  /// File path: assets/characters/analyst_celebrating.webp
+  AssetGenImage get analystCelebrating =>
+      const AssetGenImage('assets/characters/analyst_celebrating.webp');
+
+  /// File path: assets/characters/analyst_concerned.webp
+  AssetGenImage get analystConcerned =>
+      const AssetGenImage('assets/characters/analyst_concerned.webp');
+
+  /// File path: assets/characters/analyst_neutral.webp
+  AssetGenImage get analystNeutral =>
+      const AssetGenImage('assets/characters/analyst_neutral.webp');
+
+  /// File path: assets/characters/analyst_thinking.webp
+  AssetGenImage get analystThinking =>
+      const AssetGenImage('assets/characters/analyst_thinking.webp');
+
+  /// File path: assets/characters/maverick_celebrating.webp
+  AssetGenImage get maverickCelebrating =>
+      const AssetGenImage('assets/characters/maverick_celebrating.webp');
+
+  /// File path: assets/characters/maverick_concerned.webp
+  AssetGenImage get maverickConcerned =>
+      const AssetGenImage('assets/characters/maverick_concerned.webp');
+
+  /// File path: assets/characters/maverick_neutral.webp
+  AssetGenImage get maverickNeutral =>
+      const AssetGenImage('assets/characters/maverick_neutral.webp');
+
+  /// File path: assets/characters/maverick_thinking.webp
+  AssetGenImage get maverickThinking =>
+      const AssetGenImage('assets/characters/maverick_thinking.webp');
+
+  /// File path: assets/characters/mentor_celebrating.webp
+  AssetGenImage get mentorCelebrating =>
+      const AssetGenImage('assets/characters/mentor_celebrating.webp');
+
+  /// File path: assets/characters/mentor_concerned.webp
+  AssetGenImage get mentorConcerned =>
+      const AssetGenImage('assets/characters/mentor_concerned.webp');
+
+  /// File path: assets/characters/mentor_neutral.webp
+  AssetGenImage get mentorNeutral =>
+      const AssetGenImage('assets/characters/mentor_neutral.webp');
+
+  /// File path: assets/characters/mentor_thinking.webp
+  AssetGenImage get mentorThinking =>
+      const AssetGenImage('assets/characters/mentor_thinking.webp');
+
+  /// File path: assets/characters/scout_celebrating.webp
+  AssetGenImage get scoutCelebrating =>
+      const AssetGenImage('assets/characters/scout_celebrating.webp');
+
+  /// File path: assets/characters/scout_concerned.webp
+  AssetGenImage get scoutConcerned =>
+      const AssetGenImage('assets/characters/scout_concerned.webp');
+
+  /// File path: assets/characters/scout_neutral.webp
+  AssetGenImage get scoutNeutral =>
+      const AssetGenImage('assets/characters/scout_neutral.webp');
+
+  /// File path: assets/characters/scout_thinking.webp
+  AssetGenImage get scoutThinking =>
+      const AssetGenImage('assets/characters/scout_thinking.webp');
+
+  /// File path: assets/characters/veteran_celebrating.webp
+  AssetGenImage get veteranCelebrating =>
+      const AssetGenImage('assets/characters/veteran_celebrating.webp');
+
+  /// File path: assets/characters/veteran_concerned.webp
+  AssetGenImage get veteranConcerned =>
+      const AssetGenImage('assets/characters/veteran_concerned.webp');
+
+  /// File path: assets/characters/veteran_neutral.webp
+  AssetGenImage get veteranNeutral =>
+      const AssetGenImage('assets/characters/veteran_neutral.webp');
+
+  /// File path: assets/characters/veteran_thinking.webp
+  AssetGenImage get veteranThinking =>
+      const AssetGenImage('assets/characters/veteran_thinking.webp');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [
+    analystCelebrating,
+    analystConcerned,
+    analystNeutral,
+    analystThinking,
+    maverickCelebrating,
+    maverickConcerned,
+    maverickNeutral,
+    maverickThinking,
+    mentorCelebrating,
+    mentorConcerned,
+    mentorNeutral,
+    mentorThinking,
+    scoutCelebrating,
+    scoutConcerned,
+    scoutNeutral,
+    scoutThinking,
+    veteranCelebrating,
+    veteranConcerned,
+    veteranNeutral,
+    veteranThinking,
+  ];
+}
+
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
@@ -65,6 +173,7 @@ class $AssetsImagesGen {
 
 abstract final class Assets {
   static const $AssetsBrandGen brand = $AssetsBrandGen();
+  static const $AssetsCharactersGen characters = $AssetsCharactersGen();
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
 }
