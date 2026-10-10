@@ -50,6 +50,14 @@ export interface AppConfig {
    * closes that off.
    */
   catalogueMinLiquidityUsd: number;
+
+  // ── Assistant Manager ──────────────────────────────────────────────────────
+  /** Gemini API key. Empty disables the assistant: its replies fail with 503. */
+  geminiApiKey: string;
+  /** Gemini model used for replies. */
+  geminiModel: string;
+  /** Credits a Manager is given the first time they use the assistant. */
+  assistantTrialCredits: number;
 }
 
 export const CONFIG = Symbol('CONFIG');
@@ -88,5 +96,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
     catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
     catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),
+
+    geminiApiKey: env.GEMINI_API_KEY?.trim() ?? '',
+    geminiModel: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
+    assistantTrialCredits: number(env.ASSISTANT_TRIAL_CREDITS, 5),
   };
 }

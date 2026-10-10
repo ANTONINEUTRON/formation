@@ -17,7 +17,8 @@ import { PriceTickService } from '../../src/scoring/price-tick.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { XStocksService } from '../../src/xstocks/xstocks.service.js';
 import { migrate } from '../../src/scripts/migrate.js';
-import { FakeBalanceSource, FakeClock, FakePriceSource } from '../fakes/fakes.js';
+import { LLM_PROVIDER } from '../../src/assistant/llm.js';
+import { FakeBalanceSource, FakeClock, FakeLlmProvider, FakePriceSource } from '../fakes/fakes.js';
 
 export const BENCHMARK_MINT = 'SPYx-test-mint';
 
@@ -58,6 +59,9 @@ const TABLES = [
   'leagues',
   'notifications',
   'follows',
+  'assistant_profiles',
+  'assistant_credits',
+  'assistant_usage',
   'users',
   'xstocks',
 ];
@@ -68,6 +72,8 @@ export interface Harness {
   clock: FakeClock;
   prices: FakePriceSource;
   balances: FakeBalanceSource;
+  /** Gemini is never called from tests. */
+  llm: FakeLlmProvider;
   rosters: RosterService;
   general: GeneralScoringService;
   leagues: LeaguesService;
@@ -111,8 +117,11 @@ export async function createHarness(): Promise<Harness> {
   const clock = new FakeClock();
   const prices = new FakePriceSource();
   const balances = new FakeBalanceSource();
+  const llm = new FakeLlmProvider();
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(LLM_PROVIDER)
+    .useValue(llm)
     .overrideProvider(CLOCK)
     .useValue(clock)
     .overrideProvider(PRICE_SOURCE)
@@ -135,6 +144,7 @@ export async function createHarness(): Promise<Harness> {
     clock,
     prices,
     balances,
+    llm,
     rosters,
     general: app.get(GeneralScoringService),
     leagues: app.get(LeaguesService),
@@ -151,6 +161,7 @@ export async function createHarness(): Promise<Harness> {
       // Drop the 5-minute stock cache between tests.
       (xstocks as unknown as { cache?: unknown }).cache = undefined;
       for (const stock of TEST_STOCKS) prices.set(stock.mint, 100);
+      llm.reset();
       clock.set(Date.UTC(2026, 0, 5, 12, 0, 0));
     },
 

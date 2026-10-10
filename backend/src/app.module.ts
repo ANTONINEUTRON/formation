@@ -3,6 +3,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AdminController } from './admin/admin.controller.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AssistantController } from './assistant/assistant.controller.js';
+import { AssistantService } from './assistant/assistant.service.js';
+import { CreditsService } from './assistant/credits.service.js';
+import { GeminiProvider } from './assistant/gemini.provider.js';
+import { LLM_PROVIDER } from './assistant/llm.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CoreModule } from './core/core.module.js';
 import { LeagueController } from './league/league.controller.js';
@@ -42,6 +47,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     ManagersController,
     UsersController,
     SwapController,
+    AssistantController,
     // Unauthenticated share previews, read by the ogRender function.
     OgController,
     AdminController,
@@ -61,6 +67,10 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     UsersService,
     SwapService,
     XStocksCatalogueService,
+    AssistantService,
+    CreditsService,
+    // Swapped for a fake in tests.
+    { provide: LLM_PROVIDER, useClass: GeminiProvider },
   ],
 })
 export class AppModule {}

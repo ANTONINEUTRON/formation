@@ -227,9 +227,11 @@ describe('Formation flow (e2e)', () => {
     const bob = await signIn();
     const auth = { authorization: `Bearer ${alice.token}` };
 
-    // The default username is derived from the wallet and is unreadable.
+    // The default username bookends the wallet, and is itself a valid name, so
+    // saving the profile without renaming is accepted.
     const before = await http.get('/users/me').set(auth).expect(200);
-    expect(before.body.username).toContain('…');
+    expect(before.body.username).toMatch(/^\w{4}_\w{4}$/);
+    await http.patch('/users/me').set(auth).send({ username: before.body.username }).expect(200);
     expect(before.body.bio).toBeNull();
     expect(before.body.email).toBeNull();
 

@@ -172,6 +172,30 @@ export interface ClassicScoresTable {
   updated_at: Timestamp;
 }
 
+export interface AssistantProfilesTable {
+  user_id: string;
+  character_id: string;
+  updated_at: Timestamp;
+}
+
+export interface AssistantCreditsTable {
+  user_id: string;
+  balance: Generated<number>;
+  trial_granted: Generated<boolean>;
+  updated_at: Timestamp;
+}
+
+export interface AssistantUsageTable {
+  id: Generated<string>;
+  user_id: string;
+  sport_mode: SportMode;
+  credits: number;
+  tokens_in: Generated<number>;
+  tokens_out: Generated<number>;
+  succeeded: boolean;
+  created_at: Timestamp;
+}
+
 export interface Database {
   users: UsersTable;
   xstocks: XStocksTable;
@@ -187,6 +211,9 @@ export interface Database {
   league_members: LeagueMembersTable;
   notifications: NotificationsTable;
   follows: FollowsTable;
+  assistant_profiles: AssistantProfilesTable;
+  assistant_credits: AssistantCreditsTable;
+  assistant_usage: AssistantUsageTable;
 }
 
 export type User = Selectable<UsersTable>;

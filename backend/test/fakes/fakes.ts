@@ -1,3 +1,5 @@
+import type { LlmProvider, LlmRequest, LlmResponse } from '../../src/assistant/llm.js';
+import { LlmError } from '../../src/assistant/llm.js';
 import type { PriceInfo } from '../../src/core/chain.service.js';
 import type { Clock } from '../../src/core/clock.js';
 import type { BalanceSource, PriceSource } from '../../src/core/sources.js';
@@ -69,5 +71,29 @@ export class FakeBalanceSource implements BalanceSource {
 
   invalidateBalances(): void {
     // Nothing is cached in the fake.
+  }
+}
+
+/**
+ * Stands in for Gemini. Replies with whatever [reply] holds, records every
+ * request so tests can check the context it was given, and fails on demand.
+ */
+export class FakeLlmProvider implements LlmProvider {
+  available = true;
+  fail = false;
+  reply: unknown = { text: 'Looking good, boss.', mood: 'neutral', suggestions: [] };
+  readonly requests: LlmRequest[] = [];
+
+  async generate(request: LlmRequest): Promise<LlmResponse> {
+    this.requests.push(request);
+    if (this.fail) throw new LlmError('fake failure');
+    return { json: this.reply, tokensIn: 100, tokensOut: 20 };
+  }
+
+  reset(): void {
+    this.available = true;
+    this.fail = false;
+    this.reply = { text: 'Looking good, boss.', mood: 'neutral', suggestions: [] };
+    this.requests.length = 0;
   }
 }
