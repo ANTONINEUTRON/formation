@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <title>Formation — we make your portfolio interesting</title>
-  <meta name="description" content="Turn the stocks you already own into a team you can play with. Pick a sport, set your lineup and beat the market — you keep every share.">
+  <title>Formation — turn your stocks into a fantasy team</title>
+  <meta name="description" content="Turn your stocks into a fantasy team. Score when your picks beat the market. Your stocks never leave your wallet — and if you have none yet, buy your first in the app.">
   <link rel="canonical" href="https://formation.titalabs.xyz/">
 
   <!-- Dark chrome on mobile, matching the page's own ground. -->
@@ -18,12 +18,12 @@
        without it, shares fall back to a text-only card. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Formation">
-  <meta property="og:title" content="We make your portfolio interesting">
-  <meta property="og:description" content="Turn the stocks you already own into a team you can play with. Pick a sport, set your lineup and beat the market — you keep every share.">
+  <meta property="og:title" content="Turn your stocks into a fantasy team">
+  <meta property="og:description" content="Score when your picks beat the market. Football, basketball or American football — your stocks never leave your wallet.">
   <meta property="og:url" content="https://formation.titalabs.xyz/">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="We make your portfolio interesting">
-  <meta name="twitter:description" content="Turn the stocks you already own into a team you can play with. Pick a sport, set your lineup and beat the market — you keep every share.">
+  <meta name="twitter:title" content="Turn your stocks into a fantasy team">
+  <meta name="twitter:description" content="Score when your picks beat the market. Football, basketball or American football — your stocks never leave your wallet.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -218,12 +218,32 @@
   .hero__note {
     margin-top: 16px;
     font-family: var(--mono);
-    font-size: 12px;
-    color: var(--chalk-faint);
+    font-size: 12.5px;
+    color: var(--chalk-dim);
     letter-spacing: 0.02em;
+  }
+  .hero__note strong { color: var(--lime); font-weight: 600; }
+  /* The custody promise sits right under the pitch, before the button. */
+  .hero__wallet {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--chalk);
+  }
+  .hero__wallet::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--lime);
+    flex: none;
   }
 
   /* ── Team sheet: the hero object ──────────────────────────────────────── */
+  /* Desktop only: on a phone it pushes the pitch and the button below the fold. */
+  @media (max-width: 900px) { .hero .sheet { display: none; } }
   .sheet {
     background: linear-gradient(170deg, var(--turf-lit), var(--turf) 55%, #0E2619);
     border: 1px solid var(--line);
@@ -549,6 +569,24 @@
     margin-block: 12px 10px;
   }
   .card p { color: var(--chalk-dim); font-size: 15px; }
+  .card--wide {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 8px 32px;
+    align-items: center;
+  }
+  @media (max-width: 800px) { .card--wide { grid-template-columns: 1fr; } }
+  .soon {
+    margin-left: 8px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    vertical-align: 1px;
+  }
 
   /* A notification, rendered as one. */
   .ping {
@@ -809,7 +847,7 @@
       <a href="#scoring">How it works</a>
       <a href="#copy">Copy the best</a>
       <a href="#built">It's live</a>
-      <a class="btn btn--go" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Start</a>
+      <a class="btn btn--go" href="https://firebasestorage.googleapis.com/v0/b/symbal-524b6.firebasestorage.app/o/formation_release%2Fformation_v0.5.apk?alt=media&token=7523437e-870a-46ca-be7b-0482b686da38" data-pick>Start</a>
     </nav>
   </div>
 </header>
@@ -818,16 +856,16 @@
   <div class="glow"></div>
   <div class="wrap hero__in">
     <div>
-      <h1>We make your<br>portfolio <em>interesting</em></h1>
+      <h1>Turn your stocks into a <em>fantasy team</em></h1>
       <p class="hero__sub">
-        The stocks you already own become your team. Pick football, basketball
-        or American football, set your lineup, and see how you stack up against
-        the market
+        If you can pick a team, you can pick a portfolio.
+        <strong>Score when your picks beat the market.</strong>
       </p>
       <div class="hero__cta">
-        <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Start</a>
+        <a class="btn btn--go btn--lg" href="https://firebasestorage.googleapis.com/v0/b/symbal-524b6.firebasestorage.app/o/formation_release%2Fformation_v0.5.apk?alt=media&token=7523437e-870a-46ca-be7b-0482b686da38" data-pick>Start</a>
         <a class="btn btn--ghost btn--lg" href="#scoring">See how it works</a>
       </div>
+      <p class="hero__note"><strong>No stocks yet?</strong> Buy your first in the app</p>
     </div>
 
     <div class="sheet">
@@ -1048,7 +1086,7 @@
       <div class="step">
         <p class="step__n">01</p>
         <h3>Connect your wallet</h3>
-        <p>Your stocks show up on their own. We only look — we never hold them.</p>
+        <p>Any stocks you hold show up on their own. We only look — we never hold them.</p>
       </div>
       <div class="step">
         <p class="step__n">02</p>
@@ -1058,7 +1096,7 @@
       <div class="step">
         <p class="step__n">03</p>
         <h3>Add what's missing</h3>
-        <p>Buy it without leaving the app. It goes straight to your wallet, not ours.</p>
+        <p>Starting from zero? Buy without leaving the app. It goes straight to your wallet, not ours.</p>
       </div>
       <div class="step">
         <p class="step__n">04</p>
@@ -1073,7 +1111,7 @@
   <div class="wrap">
     <div class="sec__head">
       <p class="eyebrow">Learn from the best</p>
-      <h2>Beat them, or just<br>copy their homework</h2>
+      <h2>Beat them, or you can just<br>copy them</h2>
       <p class="sec__lede">
         Every manager's lineup is public, so you can see what the top players
         actually hold — and borrow it.
@@ -1129,6 +1167,22 @@
       </div>
     </div>
 
+    <div class="card card--wide">
+      <div>
+        <p class="eyebrow eyebrow--dim">AI Assistant Manager </p>
+        <h3>A coach in your dugout</h3>
+        <p>
+          Ask why your team is losing points, get a one-tap review of your
+          lineup, and see suggested moves with the reasoning behind them. It
+          advises — you decide, and you sign every trade.
+        </p>
+      </div>
+      <div class="ping">
+        <p class="ping__who">AI Manager · squad review</p>
+        <p class="ping__what"><strong>XOMx</strong> has trailed the market four days running. <strong>PGx</strong> fits the same slot.</p>
+      </div>
+    </div>
+
     <div class="trust">
       <div class="trust__c">
         <h3>You approve every trade</h3>
@@ -1177,12 +1231,13 @@
   <div class="glow"></div>
   <div class="wrap close__in">
     <p class="eyebrow">Ready when you are</p>
-    <h2>Make your portfolio<br>worth watching</h2>
+    <h2>If you can pick a team,<br>you can pick a portfolio</h2>
     <p>
-      You've already picked the stocks. Now give them something to play for.
+      Already hold tokenized stocks? They're your squad. No stocks yet? Buy
+      your first in the app
     </p>
     <div class="close__cta">
-      <a class="btn btn--go btn--lg" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana" data-pick>Start</a>
+      <a class="btn btn--go btn--lg" href="https://firebasestorage.googleapis.com/v0/b/symbal-524b6.firebasestorage.app/o/formation_release%2Fformation_v0.5.apk?alt=media&token=7523437e-870a-46ca-be7b-0482b686da38" data-pick>Start</a>
       <a class="btn btn--ghost btn--lg" href="#scoring">See how it works</a>
     </div>
   </div>
@@ -1191,10 +1246,10 @@
 <footer class="foot">
   <div class="wrap">
     <div class="foot__in">
-      <span class="foot__t">Formation · We make your portfolio interesting</span>
+      <span class="foot__t">Formation · Turn your stocks into a fantasy team</span>
       <nav class="foot__l">
-        <a href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">Android app</a>
-        <a href="https://formation-xstocks.web.app">Web app</a>
+        <a href="https://firebasestorage.googleapis.com/v0/b/symbal-524b6.firebasestorage.app/o/formation_release%2Fformation_v0.5.apk?alt=media&token=7523437e-870a-46ca-be7b-0482b686da38">Android app</a>
+        <a href="https://app.formation.titalabs.xyz">Web app</a>
         <a href="#scoring">How it works</a>
         <a href="https://x.com/formation_sol" aria-label="Formation on X">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -1221,7 +1276,7 @@
       in your own wallet.
     </p>
     <div class="pick__opts">
-      <a class="pick__opt" href="https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana">
+      <a class="pick__opt" href="https://firebasestorage.googleapis.com/v0/b/symbal-524b6.firebasestorage.app/o/formation_release%2Fformation_v0.5.apk?alt=media&token=7523437e-870a-46ca-be7b-0482b686da38">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
         <span>
           <span class="pick__t">Download the Android app</span>
