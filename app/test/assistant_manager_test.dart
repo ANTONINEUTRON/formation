@@ -90,6 +90,77 @@ void main() {
     });
   });
 
+  group('answer cards', () {
+    test('parses every card type the backend sends, and skips unknown ones', () {
+      final reply = AssistantReply.fromJson({
+        'text': 'Here you go.',
+        'mood': 'neutral',
+        'suggestions': [],
+        'credits': 3,
+        'cards': [
+          {
+            'type': 'statBoard',
+            'symbol': 'AAPLx',
+            'name': 'Apple',
+            'tier': 'blue_chip',
+            'logoUrl': null,
+            'priceUsd': 231.4,
+            'change24hPct': 1.2,
+            'sharesHeld': 2,
+            'valueUsd': 462.8,
+            'position': 'GK',
+            'return7dPct': 3.1,
+            'benchmark7dPct': 1.0,
+            'alpha7dPct': 2.1,
+            'chart': {
+              '7D': [
+                {
+                  'symbol': 'AAPLx',
+                  'points': [
+                    [1760000000000, 0],
+                    [1760003600000, 1.5],
+                  ],
+                },
+              ],
+            },
+            'news': {
+              'summary': 'Apple shipped a thing.',
+              'sources': [
+                {'title': 'Example', 'url': 'https://example.com'},
+              ],
+            },
+          },
+          {
+            'type': 'squadBubbles',
+            'bubbles': [
+              {'symbol': 'KOx', 'tier': 'stable', 'position': 'DEF', 'valueUsd': 40, 'alphaPct': -0.4},
+            ],
+          },
+          {'type': 'hologram'},
+        ],
+      });
+
+      expect(reply.cards, hasLength(2));
+      final board = reply.cards.first as StatBoardCard;
+      expect(board.tier, RiskTier.blueChip);
+      expect(board.chart['7D']!.single.points.last.$2, 1.5);
+      expect(board.newsSources.single.url, 'https://example.com');
+      expect((reply.cards.last as SquadBubblesCard).bubbles.single.alphaPct, -0.4);
+    });
+
+    test('the demo answers a question about a stock with a stat board', () async {
+      final repository = FixtureRepository(walletAddress: 'wallet');
+      final cubit = AssistantCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load();
+      await cubit.pickCharacter('analyst');
+      await cubit.send(const AssistantContext(mode: SportMode.football), 'What is AAPLx all about?');
+      final cards = cubit.state.conversation(SportMode.football).last.cards;
+      expect(cards.single, isA<StatBoardCard>());
+      expect((cards.single as StatBoardCard).chart.keys, containsAll(chartRanges));
+    });
+  });
+
   group('buying credits (fixture backend)', () {
     test('quotes a pack in SKR and tops the balance up once paid', () async {
       final repository = FixtureRepository(walletAddress: 'wallet');
@@ -110,24 +181,23 @@ void main() {
   });
 
   group('ApiRepository assistant calls', () {
-    ApiRepository withChat(http.Response Function(http.Request) chat, List<Object?> sent) =>
-        ApiRepository(
-          baseUrl: 'http://localhost:3000',
-          signer: _FakeSigner(),
-          client: MockClient((request) async {
-            final body = switch (request.url.path) {
-              '/auth/challenge' => jsonEncode({'message': 'Sign in'}),
-              '/auth/verify' => jsonEncode({
-                  'token': 't',
-                  'user': {'id': 'u', 'username': 'me', 'walletAddress': 'w'},
-                }),
-              _ => null,
-            };
-            if (body != null) return http.Response(body, 200);
-            sent.add(jsonDecode(request.body));
-            return chat(request);
+    ApiRepository withChat(http.Response Function(http.Request) chat, List<Object?> sent) => ApiRepository(
+      baseUrl: 'http://localhost:3000',
+      signer: _FakeSigner(),
+      client: MockClient((request) async {
+        final body = switch (request.url.path) {
+          '/auth/challenge' => jsonEncode({'message': 'Sign in'}),
+          '/auth/verify' => jsonEncode({
+            'token': 't',
+            'user': {'id': 'u', 'username': 'me', 'walletAddress': 'w'},
           }),
-        );
+          _ => null,
+        };
+        if (body != null) return http.Response(body, 200);
+        sent.add(jsonDecode(request.body));
+        return chat(request);
+      }),
+    );
 
     test('sends the context envelope and parses suggestions', () async {
       final sent = <Object?>[];
@@ -137,7 +207,14 @@ void main() {
             'text': 'Captain AAPLx.',
             'mood': 'happy',
             'suggestions': [
-              {'kind': 'setCaptain', 'slotIndex': 4, 'symbol': 'AAPLx', 'position': 'C', 'vice': false, 'reason': 'steady'},
+              {
+                'kind': 'setCaptain',
+                'slotIndex': 4,
+                'symbol': 'AAPLx',
+                'position': 'C',
+                'vice': false,
+                'reason': 'steady',
+              },
               {'kind': 'somethingNew', 'reason': 'ignored by older apps'},
             ],
             'credits': 3,
@@ -153,7 +230,11 @@ void main() {
       );
 
       expect(sent.single, {
-        'context': {'mode': 'american_football', 'screen': 'draft', 'focus': {'mint': 'mint-1'}},
+        'context': {
+          'mode': 'american_football',
+          'screen': 'draft',
+          'focus': {'mint': 'mint-1'},
+        },
         'messages': [
           {'role': 'manager', 'text': 'Who?'},
         ],
@@ -172,7 +253,9 @@ void main() {
         paths.add(request.url.path);
         return http.Response(
           jsonEncode(switch (request.url.path) {
-            '/assistant/credits/build' => {'transaction': base64Encode([1, 2, 3])},
+            '/assistant/credits/build' => {
+              'transaction': base64Encode([1, 2, 3]),
+            },
             _ => {'credits': 305},
           }),
           200,

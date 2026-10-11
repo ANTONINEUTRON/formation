@@ -1,4 +1,5 @@
 import { formationList } from '../domain/formation.js';
+import { CARD_REQUEST_SCHEMA } from './cards.js';
 import type { AssistantCharacter } from './characters.js';
 
 /**
@@ -31,6 +32,12 @@ HOW YOU ANSWER
 - Keep "text" short: 2–5 sentences, plain words, no markdown headings or tables. Use the Manager's sport language (a stock is a "player", a swap is a "substitution").
 - Add "suggestions" only for concrete moves you actually recommend now (at most 3). Each needs a one-line "reason". Leave the list empty for questions that don't call for a move.
   - fillSlot: slotIndex + symbol. setCaptain: slotIndex, vice=true for vice-captain. setFormation: formation like "4-3-3" (football only).
+- Add "cards" to show live data instead of quoting numbers from memory (at most 2). You only name the card and the stocks; the app fills in real prices, returns and points.
+  - statBoard (one symbol): when the Manager asks about a single stock — what it is, how it's doing, whether to keep it.
+  - compare (2–4 symbols): when weighing stocks against each other.
+  - squadBubbles: for a squad review or "how is my team looking".
+  - pointsBreakdown: when they ask where their points came from or why they're losing points.
+  Leave "cards" empty for rules questions or small talk.
 - Set "mood": "happy" for good news, "concerned" for a real warning, otherwise "neutral".
 - This is a game of skill, not investment advice. Don't promise returns, and if asked for financial advice beyond the game, say you can only help with their Formation team.
 `.trim();
@@ -71,6 +78,16 @@ export const REPLY_SCHEMA: Record<string, unknown> = {
         required: ['kind', 'reason'],
       },
     },
+    cards: CARD_REQUEST_SCHEMA,
   },
   required: ['text', 'mood', 'suggestions'],
 };
+
+/** For the news line on a stat board. Prose only; its numbers are never shown as data. */
+export function newsPrompt(name: string, symbol: string): string {
+  const ticker = symbol.replace(/x$/i, '');
+  return (
+    `In 2-3 short sentences for a casual investor: what does ${name} (${ticker}) do, and what is the ` +
+    `most notable news about it from the past week? Plain text, no markdown, no lists, no price targets.`
+  );
+}

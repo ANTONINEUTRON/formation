@@ -113,6 +113,7 @@ class AssistantCubit extends Cubit<AssistantState> {
         mood: reply.mood,
         suggestions: reply.suggestions,
         statuses: [for (final _ in reply.suggestions) SuggestionStatus.open],
+        cards: reply.cards,
       );
       emit(
         state.copyWith(

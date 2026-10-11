@@ -8,6 +8,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/assistant_manager/ui/cards/answer_cards.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/buy_credits_sheet.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_picker.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
@@ -462,6 +463,11 @@ class _MessageView extends StatelessWidget {
               child: Text(message.text, style: const TextStyle(color: AppColors.textPrimary, height: 1.4)),
             ),
           ),
+          for (final card in message.cards)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: AssistantCardView(card: card),
+            ),
           for (var j = 0; j < message.suggestions.length; j++)
             Padding(
               padding: const EdgeInsets.only(top: 8),

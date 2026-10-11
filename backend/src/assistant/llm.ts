@@ -22,10 +22,25 @@ export interface LlmResponse {
   tokensOut: number;
 }
 
+export interface SearchSource {
+  title: string;
+  url: string;
+}
+
+/** A short answer written from live web results, with where it came from. */
+export interface SearchResult {
+  text: string;
+  sources: SearchSource[];
+  tokensIn: number;
+  tokensOut: number;
+}
+
 export interface LlmProvider {
   /** False when no key is configured, so callers can refuse before charging. */
   readonly available: boolean;
   generate(request: LlmRequest): Promise<LlmResponse>;
+  /** Answers [prompt] from a live web search. Plain text, never trusted for numbers. */
+  search(prompt: string, maxOutputTokens: number): Promise<SearchResult>;
 }
 
 export const LLM_PROVIDER = Symbol('LLM_PROVIDER');

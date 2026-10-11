@@ -29,12 +29,17 @@ import type { CreditPack } from './packs.js';
 import { PurchasesService } from './purchases.service.js';
 import { LLM_PROVIDER, LlmError } from './llm.js';
 import type { LlmMessage, LlmProvider } from './llm.js';
-import { REPLY_SCHEMA, systemPrompt } from './prompt.js';
+import { CardsService } from './cards.js';
+import type { CardDto } from './cards.js';
+import { REPLY_SCHEMA, newsPrompt, systemPrompt } from './prompt.js';
 import { validateSuggestions } from './suggestions.js';
 import type { RosterFacts, Suggestion } from './suggestions.js';
 
 /** Credits one reply costs. */
 const REPLY_COST = 1;
+/** Extra credits for live news on a stat board (a search-grounded call). */
+const NEWS_COST = 1;
+const NEWS_MAX_TOKENS = 300;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 1_000;
 const MAX_OUTPUT_TOKENS = 1_024;
@@ -59,6 +64,8 @@ export interface AssistantReplyDto {
   text: string;
   mood: 'neutral' | 'happy' | 'concerned';
   suggestions: Suggestion[];
+  /** Interactive panels, every number filled in from Formation's own data. */
+  cards: CardDto[];
   credits: number;
 }
 
@@ -80,6 +87,7 @@ export class AssistantService {
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
     private readonly credits: CreditsService,
     private readonly purchases: PurchasesService,
+    private readonly cards: CardsService,
     private readonly rosters: RosterService,
     private readonly general: GeneralScoringService,
     private readonly xstocks: XStocksService,
@@ -172,12 +180,39 @@ export class AssistantService {
       ),
       substitutionsToday,
     };
+    const cards = await this.cards.build(json.cards, { roster, stocks, held });
+    const credits = await this.addNews(user.id, input.mode, cards, balance);
+
     return {
       text: typeof json.text === 'string' && json.text.trim() ? json.text.trim() : '…',
       mood: json.mood === 'happy' || json.mood === 'concerned' ? json.mood : 'neutral',
       suggestions: validateSuggestions(json.suggestions, facts),
-      credits: balance,
+      cards,
+      credits,
     };
+  }
+
+  /**
+   * Adds the latest news to the first stat board, from a live web search.
+   * It costs one more credit, taken only if the Manager has one and refunded
+   * if the search fails; without it the card simply has no news line.
+   * Returns the balance after.
+   */
+  private async addNews(userId: string, mode: SportMode, cards: CardDto[], balance: number): Promise<number> {
+    const board = cards.find((c) => c.type === 'statBoard');
+    if (!board || board.type !== 'statBoard') return balance;
+    const charged = await this.credits.charge(userId, NEWS_COST);
+    if (charged === null) return balance;
+    try {
+      const result = await this.llm.search(newsPrompt(board.name, board.symbol), NEWS_MAX_TOKENS);
+      board.news = { summary: result.text, sources: result.sources };
+      await this.logUsage(userId, mode, NEWS_COST, result.tokensIn, result.tokensOut, true);
+      return charged;
+    } catch (e) {
+      this.logger.warn(`News search failed: ${e instanceof LlmError ? e.message : String(e)}`);
+      await this.logUsage(userId, mode, 0, 0, 0, false);
+      return this.credits.refund(userId, NEWS_COST);
+    }
   }
 
   private async characterOf(userId: string): Promise<AssistantCharacter> {

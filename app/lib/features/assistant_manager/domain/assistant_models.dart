@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:formation/features/assistant_manager/domain/assistant_cards.dart';
 import 'package:formation/features/shared/domain/models.dart';
+
+export 'package:formation/features/assistant_manager/domain/assistant_cards.dart';
 
 /// How a character is drawn at a given moment. Every pose shares one canvas
 /// with the feet on the same line, so switching never makes the figure jump.
@@ -277,6 +280,7 @@ class AssistantMessage extends Equatable {
     this.mood = AssistantMood.neutral,
     this.suggestions = const [],
     this.statuses = const [],
+    this.cards = const [],
   });
 
   final AssistantRole role;
@@ -287,18 +291,22 @@ class AssistantMessage extends Equatable {
   /// One per suggestion, in the same order.
   final List<SuggestionStatus> statuses;
 
+  /// Interactive panels in an assistant reply.
+  final List<AssistantCard> cards;
+
   AssistantMessage withStatus(int index, SuggestionStatus status) => AssistantMessage(
     role: role,
     text: text,
     mood: mood,
     suggestions: suggestions,
     statuses: [for (var i = 0; i < suggestions.length; i++) i == index ? status : statuses[i]],
+    cards: cards,
   );
 
   Map<String, dynamic> toJson() => {'role': role.name, 'text': text};
 
   @override
-  List<Object?> get props => [role, text, mood, suggestions, statuses];
+  List<Object?> get props => [role, text, mood, suggestions, statuses, cards];
 }
 
 class AssistantReply {
@@ -307,6 +315,7 @@ class AssistantReply {
     required this.mood,
     required this.suggestions,
     required this.credits,
+    this.cards = const [],
   });
 
   factory AssistantReply.fromJson(Map<String, dynamic> json) => AssistantReply(
@@ -316,11 +325,15 @@ class AssistantReply {
       for (final s in json['suggestions'] as List? ?? const [])
         ?AssistantSuggestion.fromJson(s as Map<String, dynamic>),
     ],
+    cards: [
+      for (final c in json['cards'] as List? ?? const []) ?AssistantCard.fromJson(c as Map<String, dynamic>),
+    ],
     credits: (json['credits'] as num).toInt(),
   );
 
   final String text;
   final AssistantMood mood;
   final List<AssistantSuggestion> suggestions;
+  final List<AssistantCard> cards;
   final int credits;
 }

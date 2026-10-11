@@ -891,9 +891,110 @@ class FixtureRepository implements FormationRepository {
                   'scoring on the next price update.',
           mood: suggestions.isEmpty ? AssistantMood.neutral : AssistantMood.happy,
           suggestions: suggestions,
+          cards: _fixtureCards(messages.last.text, roster),
           credits: _assistantCredits,
         );
       });
+
+  /// Cards the demo answers with, picked from the question's wording.
+  List<AssistantCard> _fixtureCards(String question, Roster roster) {
+    final q = question.toLowerCase();
+    final named = _stocks.where((s) => q.contains(s.symbol.toLowerCase())).toList();
+    ChartData chart(List<String> symbols) => {
+          for (final (range, days) in [('1D', 1), ('7D', 7), ('30D', 30)])
+            range: [for (final s in symbols) _fixtureSeries(s, days)],
+        };
+
+    if (named.length >= 2) {
+      final picks = named.take(4).toList();
+      return [
+        CompareCard(
+          items: [
+            for (final s in picks)
+              CompareItem(
+                symbol: s.symbol,
+                name: s.companyName,
+                tier: s.tier,
+                priceUsd: s.priceUsd,
+                change24hPct: s.change24hPct,
+                return7dPct: _fixtureSeries(s.symbol, 7).points.last.$2,
+              ),
+          ],
+          chart: chart([...picks.map((s) => s.symbol), benchmarkLabel]),
+        ),
+      ];
+    }
+    if (named.length == 1) {
+      final s = named.single;
+      final ret = _fixtureSeries(s.symbol, 7).points.last.$2;
+      final bench = _fixtureSeries(benchmarkLabel, 7).points.last.$2;
+      final held = _held[s.mint] ?? 0;
+      final slot = roster.slots.where((r) => r.stock?.mint == s.mint).firstOrNull;
+      return [
+        StatBoardCard(
+          symbol: s.symbol,
+          name: s.companyName,
+          tier: s.tier,
+          logoUrl: s.logoUrl,
+          priceUsd: s.priceUsd,
+          change24hPct: s.change24hPct,
+          sharesHeld: held > 0 ? held : null,
+          valueUsd: held > 0 ? held * s.priceUsd : null,
+          position: slot?.position.label,
+          return7dPct: ret,
+          benchmark7dPct: bench,
+          alpha7dPct: ret - bench,
+          chart: chart([s.symbol, benchmarkLabel]),
+          newsSummary: '${s.companyName} is in the news this week (demo text; the live app '
+              'searches the web for this).',
+          newsSources: const [NewsSource(title: 'Demo source', url: 'https://example.com')],
+        ),
+      ];
+    }
+    final session = roster.session;
+    if (q.contains('point') && session != null && session.slots.isNotEmpty) {
+      return [
+        PointsBreakdownCard(
+          bars: [for (final s in session.slots) PointsBar(symbol: s.symbol, position: s.role, points: s.total)],
+          teamPoints: 0,
+          total: session.points,
+        ),
+      ];
+    }
+    if ((q.contains('review') || q.contains('squad')) && roster.holdsAny) {
+      final scores = {for (final s in session?.slots ?? const <SlotScore>[]) s.slotIndex: s};
+      return [
+        SquadBubblesCard(
+          bubbles: [
+            for (var i = 0; i < roster.slots.length; i++)
+              if (roster.slots[i].stock case final stock?)
+                SquadBubble(
+                  symbol: stock.symbol,
+                  tier: stock.tier,
+                  position: roster.slots[i].position.label,
+                  valueUsd: roster.slots[i].valueUsd,
+                  alphaPct: scores[i] == null ? null : scores[i]!.alpha * 100,
+                ),
+          ],
+        ),
+      ];
+    }
+    return const [];
+  }
+
+  /// A deterministic made-up % path for [symbol] over [days], for demo charts.
+  ChartSeries _fixtureSeries(String symbol, int days) {
+    final rng = Random(symbol.hashCode ^ days);
+    final now = DateTime.now();
+    const steps = 48;
+    var pct = 0.0;
+    final points = <(DateTime, double)>[];
+    for (var i = 0; i <= steps; i++) {
+      if (i > 0) pct += (rng.nextDouble() - 0.47) * 0.6 * days / 7;
+      points.add((now.subtract(Duration(minutes: (days * 24 * 60 * (steps - i) / steps).round())), pct));
+    }
+    return ChartSeries(symbol: symbol, points: points);
+  }
 
   // ── Demo controls ──────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { LlmProvider, LlmRequest, LlmResponse } from '../../src/assistant/llm.js';
+import type { LlmProvider, LlmRequest, LlmResponse, SearchResult } from '../../src/assistant/llm.js';
 import { LlmError } from '../../src/assistant/llm.js';
 import type { ObservedPayment, SkrPayments, TransferRequest } from '../../src/assistant/skr-payments.js';
 import type { PriceInfo } from '../../src/core/chain.service.js';
@@ -91,9 +91,25 @@ export class FakeLlmProvider implements LlmProvider {
     return { json: this.reply, tokensIn: 100, tokensOut: 20 };
   }
 
+  failSearch = false;
+  readonly searches: string[] = [];
+
+  async search(prompt: string): Promise<SearchResult> {
+    this.searches.push(prompt);
+    if (this.failSearch) throw new LlmError('fake search failure');
+    return {
+      text: 'Shares rose after strong quarterly results.',
+      sources: [{ title: 'Example News', url: 'https://news.example.com/story' }],
+      tokensIn: 50,
+      tokensOut: 30,
+    };
+  }
+
   reset(): void {
     this.available = true;
     this.fail = false;
+    this.failSearch = false;
+    this.searches.length = 0;
     this.reply = { text: 'Looking good, boss.', mood: 'neutral', suggestions: [] };
     this.requests.length = 0;
   }
