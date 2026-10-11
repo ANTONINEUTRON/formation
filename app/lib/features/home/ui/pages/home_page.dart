@@ -2,7 +2,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:formation/core/layout/breakpoints.dart';
+import 'package:formation/core/route/app_route.dart';
+import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/onboarding/data/onboarding_prefs.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/sport/ui/pages/sport_page.dart';
@@ -28,6 +34,42 @@ class _HomePageState extends State<HomePage> {
 
   void _onTabSelected(int index) {
     setState(() => _currentIndex = index);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _welcome());
+  }
+
+  /// Right after connecting: save the Assistant Manager picked during the
+  /// intro, and offer a brand-new Manager their free starter squad (once per
+  /// device, and only while every team is still empty).
+  Future<void> _welcome() async {
+    final prefs = OnboardingPrefs();
+    final assistant = context.read<AssistantCubit>();
+    final repository = context.read<FormationRepository>();
+    final router = context.router;
+
+    await assistant.load();
+    final profile = assistant.state.profile;
+    if (profile == null) return;
+
+    final pending = await prefs.pendingCharacter();
+    if (pending != null) {
+      if (profile.characterId == null) await assistant.pickCharacter(pending);
+      await prefs.clearPendingCharacter();
+    }
+
+    if (profile.starterDraftsLeft < 2 || await prefs.starterOffered()) return;
+    try {
+      final rosters = await Future.wait(_modes.map(repository.getRoster));
+      if (!rosters.every((r) => r.isEmpty)) return;
+    } catch (_) {
+      return; // offline or signed out; it'll be offered next time
+    }
+    await prefs.markStarterOffered();
+    if (mounted) await router.push(const StarterSquadRoute());
   }
 
   @override

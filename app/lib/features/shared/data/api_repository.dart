@@ -468,6 +468,21 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
+  Future<StarterSquad> draftStarterSquad(SportMode mode, {required double budgetUsd, String? style}) async {
+    final json = await _request('POST', '/assistant/starter', body: {
+      'mode': mode.apiValue,
+      'budgetUsd': budgetUsd,
+      'style': ?style,
+    });
+    return StarterSquad.fromJson(json as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> dismissStarterSquad() async {
+    await _request('POST', '/assistant/starter/dismiss');
+  }
+
+  @override
   Future<CreditQuote> quoteCredits(CreditPack pack) async {
     final json = await _request('POST', '/assistant/credits/quote', body: {'packId': pack.id});
     return CreditQuote.fromJson(pack, json as Map<String, dynamic>);

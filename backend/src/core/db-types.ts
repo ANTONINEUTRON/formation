@@ -13,6 +13,8 @@ export interface UsersTable {
   /** Private. Never exposed through ManagerDto or any public endpoint. */
   email: string | null;
   is_seed: Generated<boolean>;
+  /** Free starter-squad drafts used: two allowed (draft + one regenerate). */
+  starter_drafts: Generated<number>;
   created_at: Timestamp;
 }
 

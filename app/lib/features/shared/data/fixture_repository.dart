@@ -751,40 +751,10 @@ class FixtureRepository implements FormationRepository {
 
   // ── Assistant Manager (canned, but reads the real fixture roster) ──────────
 
-  static const _assistantCharacters = [
-    AssistantCharacter(
-      id: 'veteran',
-      name: 'The Veteran',
-      tagline: 'Calm, old-school, protects what you have.',
-      style: 'safe',
-    ),
-    AssistantCharacter(
-      id: 'analyst',
-      name: 'The Analyst',
-      tagline: 'Numbers first. Every call comes with the data.',
-      style: 'balanced',
-    ),
-    AssistantCharacter(
-      id: 'maverick',
-      name: 'The Maverick',
-      tagline: 'Bold, playful, backs momentum.',
-      style: 'bold',
-    ),
-    AssistantCharacter(
-      id: 'mentor',
-      name: 'The Mentor',
-      tagline: 'Encouraging. Explains the rules as you go.',
-      style: 'balanced',
-    ),
-    AssistantCharacter(
-      id: 'scout',
-      name: 'The Scout',
-      tagline: 'Always hunting the next name worth a look.',
-      style: 'balanced',
-    ),
-  ];
+  static const _assistantCharacters = presetCharacters;
   String? _assistantCharacterId;
   int _assistantCredits = 5;
+  int _starterDraftsLeft = 2;
 
   AssistantProfile get _assistantProfile => AssistantProfile(
         characterId: _assistantCharacterId,
@@ -797,7 +767,66 @@ class FixtureRepository implements FormationRepository {
           CreditPack(id: 'credits-1000', credits: 1000, usd: 15),
         ],
         canBuyCredits: true,
+        starterDraftsLeft: _starterDraftsLeft,
       );
+
+  @override
+  Future<StarterSquad> draftStarterSquad(SportMode mode, {required double budgetUsd, String? style}) =>
+      _delay(() {
+        if (_starterDraftsLeft <= 0) {
+          throw const ValidationException(message: 'Your free starter squad has already been used');
+        }
+        final formation = mode == SportMode.football ? (_starterDraftsLeft == 2 ? '4-4-2' : '4-3-3') : null;
+        final shape = rosterShape(mode, formation);
+        if (budgetUsd < shape.length) {
+          throw ValidationException(message: 'A squad needs a budget of at least \$${shape.length}');
+        }
+        _starterDraftsLeft--;
+
+        // Held stocks first, then the rest; a regenerate shuffles the order.
+        final pool = [..._stocks.where((s) => s.symbol != _benchmarkSymbol)];
+        if (_starterDraftsLeft == 0) pool.shuffle(Random(3));
+        pool.sort((a, b) => ((_held[b.mint] ?? 0) > 0 ? 1 : 0) - ((_held[a.mint] ?? 0) > 0 ? 1 : 0));
+        final used = <String>{};
+        final chosen = <(int, XStock)>[];
+        for (var i = 0; i < shape.length; i++) {
+          final stock = pool.where((s) => !used.contains(s.mint) && shape[i].accepts(s)).firstOrNull;
+          if (stock == null) continue;
+          used.add(stock.mint);
+          chosen.add((i, stock));
+        }
+        final toBuy = chosen.where((c) => (_held[c.$2.mint] ?? 0) <= 0).length;
+        final each = toBuy == 0 ? 0.0 : (budgetUsd / toBuy * 100).floor() / 100;
+
+        return StarterSquad(
+          mode: mode,
+          formation: formation,
+          captainSlot: mode == SportMode.americanFootball ? null : chosen.first.$1,
+          viceCaptainSlot: mode == SportMode.football ? chosen[1].$1 : null,
+          picks: [
+            for (final (i, s) in chosen)
+              StarterPick(
+                slotIndex: i,
+                position: shape[i].label,
+                mint: s.mint,
+                symbol: s.symbol,
+                name: s.companyName,
+                tier: s.tier,
+                priceUsd: s.priceUsd,
+                reason: (_held[s.mint] ?? 0) > 0 ? 'You already hold it.' : 'A solid ${s.tier.label.toLowerCase()} pick.',
+                needsPurchase: (_held[s.mint] ?? 0) <= 0,
+                amountUsd: (_held[s.mint] ?? 0) > 0 ? 0 : each,
+              ),
+          ],
+          text: 'Here is a balanced first squad (demo). Swap anything you like before confirming.',
+          budgetUsd: budgetUsd,
+          skrUsd: _fixtureSkrUsd,
+          draftsLeft: _starterDraftsLeft,
+        );
+      });
+
+  @override
+  Future<void> dismissStarterSquad() => _delay(() => _starterDraftsLeft = 0);
 
   /// SKR at a made-up $0.02, so the demo shows realistic amounts.
   static const _fixtureSkrUsd = 0.02;

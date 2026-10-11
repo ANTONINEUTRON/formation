@@ -5,6 +5,8 @@ import { AssistantService } from './assistant.service.js';
 import type { AssistantProfileDto, AssistantReplyDto } from './assistant.service.js';
 import { PurchasesService } from './purchases.service.js';
 import type { CreditQuoteDto } from './purchases.service.js';
+import { StarterService } from './starter.js';
+import type { StarterSquadDto } from './starter.js';
 
 /**
  * The Assistant Manager. The user is the Manager; the assistant advises and
@@ -17,6 +19,7 @@ export class AssistantController {
   constructor(
     private readonly assistant: AssistantService,
     private readonly purchases: PurchasesService,
+    private readonly starterSquads: StarterService,
   ) {}
 
   /** The chosen character (null until picked), the presets, and the credit balance. */
@@ -43,6 +46,20 @@ export class AssistantController {
   @Post('chat')
   chat(@Body() body: unknown, @CurrentUser() user: AuthUser): Promise<AssistantReplyDto> {
     return this.assistant.chat(user, body);
+  }
+
+  // ── Free starter squad ─────────────────────────────────────────────────────
+
+  /** {"mode": "basketball", "budgetUsd": 10, "style": "safe"} -> a complete squad to review. Free, twice. */
+  @Post('starter')
+  starter(@Body() body: unknown, @CurrentUser() user: AuthUser): Promise<StarterSquadDto> {
+    return this.starterSquads.draft(user, body);
+  }
+
+  /** The Manager will build their own team; the free draft is used up. */
+  @Post('starter/dismiss')
+  dismissStarter(@CurrentUser() user: AuthUser): Promise<{ draftsLeft: number }> {
+    return this.starterSquads.dismiss(user);
   }
 
   // ── Buying credits with SKR ────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
+import 'package:formation/features/assistant_manager/ui/pages/starter_squad_page.dart';
 import 'package:formation/features/draft/ui/pages/draft_board_page.dart';
 import 'package:formation/features/leagues/ui/pages/league_detail_page.dart';
 import 'package:formation/features/managers/ui/pages/manager_profile_page.dart';
@@ -40,7 +41,10 @@ class AppRouter extends RootStackRouter {
         AutoRoute(page: ProfileRoute.page, path: '/profile'),
         AutoRoute(page: NotificationsRoute.page, path: '/notifications'),
 
-        // Transaction History
+        // A new Manager's free starter squad, drafted by their Assistant Manager
+    AutoRoute(page: StarterSquadRoute.page, path: '/starter-squad'),
+
+    // Transaction History
         AutoRoute(page: TransactionHistoryRoute.page, path: '/transactions'),
       ];
 

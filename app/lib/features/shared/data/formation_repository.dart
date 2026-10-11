@@ -112,6 +112,13 @@ abstract class FormationRepository {
   /// [ValidationException] with [outOfCreditsCode] when there are none.
   Future<AssistantReply> askAssistant(AssistantContext context, List<AssistantMessage> messages);
 
+  /// The Assistant Manager drafts a complete starter squad for [mode]. Free,
+  /// once plus one regenerate.
+  Future<StarterSquad> draftStarterSquad(SportMode mode, {required double budgetUsd, String? style});
+
+  /// The Manager will build their own team; the free starter draft is used up.
+  Future<void> dismissStarterSquad();
+
   /// Prices [pack] in SKR at the live rate, held for a couple of minutes.
   Future<CreditQuote> quoteCredits(CreditPack pack);
 

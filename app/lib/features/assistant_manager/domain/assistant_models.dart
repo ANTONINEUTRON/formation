@@ -4,6 +4,7 @@ import 'package:formation/features/assistant_manager/domain/assistant_cards.dart
 import 'package:formation/features/shared/domain/models.dart';
 
 export 'package:formation/features/assistant_manager/domain/assistant_cards.dart';
+export 'package:formation/features/assistant_manager/domain/starter_squad.dart';
 
 /// How a character is drawn at a given moment. Every pose shares one canvas
 /// with the feet on the same line, so switching never makes the figure jump.
@@ -115,6 +116,7 @@ class AssistantProfile extends Equatable {
     required this.available,
     this.packs = const [],
     this.canBuyCredits = false,
+    this.starterDraftsLeft = 0,
   });
 
   factory AssistantProfile.fromJson(Map<String, dynamic> json) => AssistantProfile(
@@ -128,9 +130,13 @@ class AssistantProfile extends Equatable {
       for (final p in json['packs'] as List? ?? const []) CreditPack.fromJson(p as Map<String, dynamic>),
     ],
     canBuyCredits: json['canBuyCredits'] as bool? ?? false,
+    starterDraftsLeft: json['starterDraftsLeft'] as int? ?? 0,
   );
 
   final List<CreditPack> packs;
+
+  /// Free starter-squad drafts left: 2 for a brand-new Manager.
+  final int starterDraftsLeft;
 
   /// Whether credits can be bought (SKR is configured on the server).
   final bool canBuyCredits;
@@ -150,17 +156,26 @@ class AssistantProfile extends Equatable {
     return null;
   }
 
-  AssistantProfile copyWith({String? characterId, int? credits}) => AssistantProfile(
+  AssistantProfile copyWith({String? characterId, int? credits, int? starterDraftsLeft}) => AssistantProfile(
     characterId: characterId ?? this.characterId,
     characters: characters,
     credits: credits ?? this.credits,
     available: available,
     packs: packs,
     canBuyCredits: canBuyCredits,
+    starterDraftsLeft: starterDraftsLeft ?? this.starterDraftsLeft,
   );
 
   @override
-  List<Object?> get props => [characterId, characters, credits, available, packs, canBuyCredits];
+  List<Object?> get props => [
+    characterId,
+    characters,
+    credits,
+    available,
+    packs,
+    canBuyCredits,
+    starterDraftsLeft,
+  ];
 }
 
 /// Where the Manager opened the assistant from. Sent with every message so the

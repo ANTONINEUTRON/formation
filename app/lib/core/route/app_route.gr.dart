@@ -258,6 +258,22 @@ class ProfileRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [StarterSquadPage]
+class StarterSquadRoute extends PageRouteInfo<void> {
+  const StarterSquadRoute({List<PageRouteInfo>? children})
+    : super(StarterSquadRoute.name, initialChildren: children);
+
+  static const String name = 'StarterSquadRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const StarterSquadPage();
+    },
+  );
+}
+
+/// generated route for
 /// [TransactionHistoryPage]
 class TransactionHistoryRoute extends PageRouteInfo<void> {
   const TransactionHistoryRoute({List<PageRouteInfo>? children})

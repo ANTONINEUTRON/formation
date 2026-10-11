@@ -27,6 +27,7 @@ import type { AssistantCharacter } from './characters.js';
 import { CreditsService } from './credits.service.js';
 import type { CreditPack } from './packs.js';
 import { PurchasesService } from './purchases.service.js';
+import { StarterService } from './starter.js';
 import { LLM_PROVIDER, LlmError } from './llm.js';
 import type { LlmMessage, LlmProvider } from './llm.js';
 import { CardsService } from './cards.js';
@@ -58,6 +59,8 @@ export interface AssistantProfileDto {
   /** Credit packs for sale, and whether buying them (with SKR) is switched on. */
   packs: CreditPack[];
   canBuyCredits: boolean;
+  /** Free starter-squad drafts left (0, 1 or 2). */
+  starterDraftsLeft: number;
 }
 
 export interface AssistantReplyDto {
@@ -88,19 +91,21 @@ export class AssistantService {
     private readonly credits: CreditsService,
     private readonly purchases: PurchasesService,
     private readonly cards: CardsService,
+    private readonly starter: StarterService,
     private readonly rosters: RosterService,
     private readonly general: GeneralScoringService,
     private readonly xstocks: XStocksService,
   ) {}
 
   async profile(user: AuthUser): Promise<AssistantProfileDto> {
-    const [row, credits] = await Promise.all([
+    const [row, credits, starterDraftsLeft] = await Promise.all([
       this.db
         .selectFrom('assistant_profiles')
         .select('character_id')
         .where('user_id', '=', user.id)
         .executeTakeFirst(),
       this.credits.balance(user.id),
+      this.starter.draftsLeft(user.id),
     ]);
     return {
       characterId: characterById(row?.character_id)?.id ?? null,
@@ -109,6 +114,7 @@ export class AssistantService {
       available: this.llm.available,
       packs: this.purchases.packs,
       canBuyCredits: this.purchases.enabled,
+      starterDraftsLeft,
     };
   }
 

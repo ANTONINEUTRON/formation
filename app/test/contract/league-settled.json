@@ -1,31 +1,31 @@
 {
-  "id": "a848a12f-e942-4998-8b8f-855c80368516",
+  "id": "85ba3dc8-79da-4a30-96d6-3e467fef38e2",
   "name": "Alice vs Bob",
   "mode": "football",
   "visibility": "private",
-  "joinCode": "3FA5AE29",
+  "joinCode": "80BFB37D",
   "startsAt": "2026-01-05T12:31:00.000Z",
   "endsAt": "2026-01-05T13:31:00.000Z",
   "status": "final",
   "maxMembers": 2,
   "memberCount": 2,
-  "createdBy": "D4Et_wg9V",
+  "createdBy": "8oeC_2PwU",
   "joined": true,
   "joinable": false,
   "standings": [
     {
       "rank": 1,
-      "userId": "5bf4a857-69dd-4556-b75d-fe578575352a",
-      "username": "HNQo_2qcs",
-      "walletAddress": "HNQovXeWDtU7AnGppCv8DgmxG6TgqPuenbUYBGUr2qcs",
+      "userId": "64bfb5a8-bc4e-41ec-a33c-ed7cfe2d04e8",
+      "username": "AW6W_Zcuy",
+      "walletAddress": "AW6WsqEXURkxzRQCqsPhZfKSXRXG2RHE2kjqDbNRZcuy",
       "points": 24,
       "isCurrentUser": false
     },
     {
       "rank": 2,
-      "userId": "f14e5449-fcf8-43ce-8a23-8ab9cf6b7abb",
-      "username": "D4Et_wg9V",
-      "walletAddress": "D4EtLLG7chbLq56S7uw8j32DDo3EtNbcN6Pd2kvQwg9V",
+      "userId": "7ebf3e64-6cb7-4a6d-9988-fb2720150c54",
+      "username": "8oeC_2PwU",
+      "walletAddress": "8oeCLER8SmX4ySRNE1oEqkMcUpum62VtvgGC4umE2PwU",
       "points": 21,
       "isCurrentUser": true
     }

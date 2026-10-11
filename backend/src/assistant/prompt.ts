@@ -83,6 +83,48 @@ export const REPLY_SCHEMA: Record<string, unknown> = {
   required: ['text', 'mood', 'suggestions'],
 };
 
+/** Drafting a new Manager's first squad. */
+export function starterPrompt(
+  character: AssistantCharacter,
+  style: 'safe' | 'balanced' | 'bold',
+  context: unknown,
+): string {
+  return [
+    `You are ${character.name}, a new Manager's Assistant Manager. ${character.voice}`,
+    `Draft their first squad, leaning ${style}. Rules:
+- Fill every position with a different stock from the CONTEXT catalogue whose tier matches that position (FLEX takes any tier).
+- Prefer stocks the Manager already holds ("held") where they fit: they cost nothing to play.
+- Football: choose a formation first; slots are numbered GK=0, then defenders, midfielders, forwards in order.
+- Give each pick a one-line "reason" a beginner understands. Pick a captainSlot (and viceCaptainSlot in football).
+- "text": two or three warm sentences introducing the squad. No promises of returns; this is a game of skill.`,
+    RULES,
+    `CONTEXT\n${JSON.stringify(context)}`,
+  ].join('\n\n');
+}
+
+export const STARTER_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    text: { type: 'string' },
+    formation: { type: 'string' },
+    captainSlot: { type: 'integer' },
+    viceCaptainSlot: { type: 'integer' },
+    picks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          slotIndex: { type: 'integer' },
+          symbol: { type: 'string' },
+          reason: { type: 'string' },
+        },
+        required: ['slotIndex', 'symbol'],
+      },
+    },
+  },
+  required: ['text', 'picks'],
+};
+
 /** For the news line on a stat board. Prose only; its numbers are never shown as data. */
 export function newsPrompt(name: string, symbol: string): string {
   const ticker = symbol.replace(/x$/i, '');
