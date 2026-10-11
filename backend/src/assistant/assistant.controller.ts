@@ -1,8 +1,23 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Res,
+  StreamableFile,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard, CurrentUser } from '../auth/auth.guard.js';
 import type { AuthUser } from '../domain/dto.js';
 import { AssistantService } from './assistant.service.js';
 import type { AssistantProfileDto, AssistantReplyDto } from './assistant.service.js';
+import { AvatarService, MAX_PHOTO_BYTES } from './avatars.js';
+import type { UploadedPhoto } from './avatars.js';
 import { PurchasesService } from './purchases.service.js';
 import type { CreditQuoteDto } from './purchases.service.js';
 import { StarterService } from './starter.js';
@@ -20,6 +35,7 @@ export class AssistantController {
     private readonly assistant: AssistantService,
     private readonly purchases: PurchasesService,
     private readonly starterSquads: StarterService,
+    private readonly avatars: AvatarService,
   ) {}
 
   /** The chosen character (null until picked), the presets, and the credit balance. */
@@ -60,6 +76,36 @@ export class AssistantController {
   @Post('starter/dismiss')
   dismissStarter(@CurrentUser() user: AuthUser): Promise<{ draftsLeft: number }> {
     return this.starterSquads.dismiss(user);
+  }
+
+  // ── Custom avatar from a photo ─────────────────────────────────────────────
+
+  /**
+   * multipart/form-data: photo (JPEG/PNG/WebP, 5 MB max), personality (a
+   * preset id), name (optional), consent ("true"). The photo is never stored.
+   */
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('photo', { limits: { fileSize: MAX_PHOTO_BYTES } }))
+  createAvatar(
+    @UploadedFile() photo: UploadedPhoto | undefined,
+    @Body() body: { personality?: unknown; name?: unknown; consent?: unknown },
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ credits: number }> {
+    return this.avatars.create(user, photo, body ?? {});
+  }
+
+  /** The Manager's own custom avatar in one pose, as an image. */
+  @Get('avatar/:pose')
+  async avatar(
+    @Param('pose') pose: string,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: { setHeader(name: string, value: string): void },
+  ): Promise<StreamableFile> {
+    const image = await this.avatars.image(user, pose);
+    res.setHeader('Content-Type', image.mime);
+    // Private to this Manager; the app busts the cache with avatarVersion.
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    return new StreamableFile(image.data);
   }
 
   // ── Buying credits with SKR ────────────────────────────────────────────────

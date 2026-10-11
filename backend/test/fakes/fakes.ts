@@ -1,4 +1,4 @@
-import type { LlmProvider, LlmRequest, LlmResponse, SearchResult } from '../../src/assistant/llm.js';
+import type { ImageData, LlmProvider, LlmRequest, LlmResponse, SearchResult } from '../../src/assistant/llm.js';
 import { LlmError } from '../../src/assistant/llm.js';
 import type { ObservedPayment, SkrPayments, TransferRequest } from '../../src/assistant/skr-payments.js';
 import type { PriceInfo } from '../../src/core/chain.service.js';
@@ -105,10 +105,22 @@ export class FakeLlmProvider implements LlmProvider {
     };
   }
 
+  failImage = false;
+  readonly imagePrompts: string[] = [];
+
+  /** Echoes a tiny PNG named after the request, so tests can tell poses apart. */
+  async editImage(prompt: string, image: ImageData): Promise<ImageData> {
+    this.imagePrompts.push(prompt);
+    if (this.failImage) throw new LlmError('fake image failure');
+    return { mime: 'image/png', data: Buffer.concat([image.data.subarray(0, 4), Buffer.from(`#${this.imagePrompts.length}`)]) };
+  }
+
   reset(): void {
     this.available = true;
     this.fail = false;
     this.failSearch = false;
+    this.failImage = false;
+    this.imagePrompts.length = 0;
     this.searches.length = 0;
     this.reply = { text: 'Looking good, boss.', mood: 'neutral', suggestions: [] };
     this.requests.length = 0;

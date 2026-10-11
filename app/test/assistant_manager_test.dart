@@ -136,16 +136,18 @@ void main() {
               {'symbol': 'KOx', 'tier': 'stable', 'position': 'DEF', 'valueUsd': 40, 'alphaPct': -0.4},
             ],
           },
+          {'type': 'html', 'title': 'Tier matrix', 'html': '<!doctype html><p>hi</p>', 'height': 200},
           {'type': 'hologram'},
         ],
       });
 
-      expect(reply.cards, hasLength(2));
+      expect(reply.cards, hasLength(3));
+      expect((reply.cards[2] as HtmlCard).height, 200);
       final board = reply.cards.first as StatBoardCard;
       expect(board.tier, RiskTier.blueChip);
       expect(board.chart['7D']!.single.points.last.$2, 1.5);
       expect(board.newsSources.single.url, 'https://example.com');
-      expect((reply.cards.last as SquadBubblesCard).bubbles.single.alphaPct, -0.4);
+      expect((reply.cards[1] as SquadBubblesCard).bubbles.single.alphaPct, -0.4);
     });
 
     test('the demo answers a question about a stock with a stat board', () async {
@@ -158,6 +160,78 @@ void main() {
       final cards = cubit.state.conversation(SportMode.football).last.cards;
       expect(cards.single, isA<StatBoardCard>());
       expect((cards.single as StatBoardCard).chart.keys, containsAll(chartRanges));
+    });
+  });
+
+  group('custom avatar', () {
+    test('drawing one makes it the active character and loads its poses', () async {
+      final repository = FixtureRepository(walletAddress: 'w');
+      final cubit = AssistantCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.load();
+      expect(cubit.state.profile!.avatarCost, 0);
+
+      final photo = Uint8List.fromList([1, 2, 3]);
+      final error = await cubit.createAvatar(
+        photo: photo,
+        mimeType: 'image/png',
+        personality: 'maverick',
+        name: 'Coach Ade',
+      );
+
+      expect(error, isNull);
+      final profile = cubit.state.profile!;
+      expect(profile.character!.isCustom, isTrue);
+      expect(profile.character!.name, 'Coach Ade');
+      expect(profile.character!.style, 'bold');
+      expect(profile.avatarCost, 20); // the second one costs credits
+      expect(cubit.state.avatarImages.keys, containsAll(AssistantPose.values));
+    });
+
+    test('uploads the photo as multipart with the personality and consent', () async {
+      http.BaseRequest? sent;
+      var multipart = '';
+      final repository = ApiRepository(
+        baseUrl: 'http://localhost:3000',
+        signer: _FakeSigner(),
+        client: MockClient.streaming((request, body) async {
+          final path = request.url.path;
+          if (path == '/auth/challenge') {
+            return http.StreamedResponse(Stream.value(utf8.encode(jsonEncode({'message': 'Sign in'}))), 200);
+          }
+          if (path == '/auth/verify') {
+            return http.StreamedResponse(
+              Stream.value(
+                utf8.encode(
+                  jsonEncode({
+                    'token': 't',
+                    'user': {'id': 'u', 'username': 'me', 'walletAddress': 'w'},
+                  }),
+                ),
+              ),
+              200,
+            );
+          }
+          sent = request;
+          multipart = latin1.decode(await body.toBytes());
+          return http.StreamedResponse(Stream.value(utf8.encode(jsonEncode({'credits': 5}))), 200);
+        }),
+      );
+
+      final credits = await repository.createAvatar(
+        photo: Uint8List.fromList([137, 80, 78, 71]),
+        mimeType: 'image/png',
+        personality: 'scout',
+      );
+      expect(credits, 5);
+      expect(multipart, contains('name="personality"'));
+      expect(multipart, contains('scout'));
+      expect(multipart, contains('name="consent"'));
+      expect(multipart, contains('filename="photo.png"'));
+      expect(multipart.toLowerCase(), contains('content-type: image/png'));
+      expect(sent!.url.path, '/assistant/avatar');
+      expect(sent!.headers['authorization'], 'Bearer t');
+      expect(sent!.headers['content-type'], startsWith('multipart/form-data'));
     });
   });
 

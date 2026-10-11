@@ -7,6 +7,8 @@ import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import type { RosterDto, XStockDto } from '../domain/dto.js';
+import { sanitizeHtmlCard } from './html-card.js';
+import type { HtmlCardDto } from './html-card.js';
 import type { SearchSource } from './llm.js';
 
 /** At most this many cards per reply. */
@@ -29,6 +31,7 @@ export interface Series {
 export type SeriesSet = Record<Range, Series[]>;
 
 export type CardDto =
+  | HtmlCardDto
   | {
       type: 'statBoard';
       symbol: string;
@@ -70,8 +73,12 @@ export const CARD_REQUEST_SCHEMA = {
   items: {
     type: 'object',
     properties: {
-      type: { type: 'string', enum: ['statBoard', 'compare', 'squadBubbles', 'pointsBreakdown'] },
+      type: { type: 'string', enum: ['statBoard', 'compare', 'squadBubbles', 'pointsBreakdown', 'html'] },
       symbols: { type: 'array', items: { type: 'string' } },
+      // Only for type "html".
+      title: { type: 'string' },
+      html: { type: 'string' },
+      height: { type: 'integer' },
     },
     required: ['type'],
   },
@@ -126,6 +133,9 @@ export class CardsService {
           break;
         case 'pointsBreakdown':
           card = this.pointsBreakdown(facts);
+          break;
+        case 'html':
+          card = sanitizeHtmlCard(request);
           break;
       }
       const key = card ? `${card.type}:${stocks.map((s) => s.mint).join(',')}` : '';

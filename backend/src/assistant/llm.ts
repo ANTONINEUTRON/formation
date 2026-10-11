@@ -41,6 +41,13 @@ export interface LlmProvider {
   generate(request: LlmRequest): Promise<LlmResponse>;
   /** Answers [prompt] from a live web search. Plain text, never trusted for numbers. */
   search(prompt: string, maxOutputTokens: number): Promise<SearchResult>;
+  /** Draws a new image from [image] as [prompt] describes. */
+  editImage(prompt: string, image: ImageData): Promise<ImageData>;
+}
+
+export interface ImageData {
+  mime: string;
+  data: Buffer;
 }
 
 export const LLM_PROVIDER = Symbol('LLM_PROVIDER');

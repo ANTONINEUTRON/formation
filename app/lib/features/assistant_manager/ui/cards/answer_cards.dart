@@ -7,6 +7,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_cards.dart';
 import 'package:formation/features/assistant_manager/ui/cards/card_frame.dart';
 import 'package:formation/features/assistant_manager/ui/cards/line_chart.dart';
+import 'package:formation/features/assistant_manager/ui/cards/sandboxed_html.dart';
 
 /// Draws whichever card a reply carried.
 class AssistantCardView extends StatelessWidget {
@@ -20,6 +21,14 @@ class AssistantCardView extends StatelessWidget {
     final CompareCard c => CompareView(card: c),
     final SquadBubblesCard c => SquadBubblesView(card: c),
     final PointsBreakdownCard c => PointsBreakdownView(card: c),
+    final HtmlCard c => CardFrame(
+      title: c.title,
+      icon: Icons.auto_awesome_mosaic_outlined,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SandboxedHtml(html: c.html, height: c.height),
+      ),
+    ),
   };
 }
 

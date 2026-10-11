@@ -59,6 +59,7 @@ sealed class AssistantCard extends Equatable {
     'compare' => CompareCard.fromJson(json),
     'squadBubbles' => SquadBubblesCard.fromJson(json),
     'pointsBreakdown' => PointsBreakdownCard.fromJson(json),
+    'html' => HtmlCard.fromJson(json),
     _ => null,
   };
 }
@@ -246,4 +247,23 @@ class PointsBreakdownCard extends AssistantCard {
 
   @override
   List<Object?> get props => [bars, teamPoints, total];
+}
+
+/// A small page the model wrote when no native card fits. Sanitised on the
+/// server (no network, strict CSP) and shown in a sandbox, display only.
+class HtmlCard extends AssistantCard {
+  const HtmlCard({required this.title, required this.html, required this.height});
+
+  factory HtmlCard.fromJson(Map<String, dynamic> json) => HtmlCard(
+    title: json['title'] as String? ?? 'Custom view',
+    html: json['html'] as String,
+    height: (json['height'] as num?)?.toDouble() ?? 320,
+  );
+
+  final String title;
+  final String html;
+  final double height;
+
+  @override
+  List<Object?> get props => [title, html, height];
 }

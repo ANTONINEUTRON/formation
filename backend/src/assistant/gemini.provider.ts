@@ -3,10 +3,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { LlmError } from './llm.js';
-import type { LlmProvider, LlmRequest, LlmResponse, SearchResult, SearchSource } from './llm.js';
+import type { ImageData, LlmProvider, LlmRequest, LlmResponse, SearchResult, SearchSource } from './llm.js';
 
 /** Replies longer than this are cut off rather than left hanging. */
 const TIMEOUT_MS = 30_000;
+const IMAGE_TIMEOUT_MS = 90_000;
 
 @Injectable()
 export class GeminiProvider implements LlmProvider {
@@ -54,6 +55,32 @@ export class GeminiProvider implements LlmProvider {
       tokensIn: response.usageMetadata?.promptTokenCount ?? 0,
       tokensOut: response.usageMetadata?.candidatesTokenCount ?? 0,
     };
+  }
+
+  /** Image in, image out, through the image model (GEMINI_IMAGE_MODEL). */
+  async editImage(prompt: string, image: ImageData): Promise<ImageData> {
+    if (!this.client) throw new LlmError('No Gemini API key is configured');
+    let response;
+    try {
+      response = await this.client.models.generateContent({
+        model: this.config.geminiImageModel,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ inlineData: { mimeType: image.mime, data: image.data.toString('base64') } }, { text: prompt }],
+          },
+        ],
+        config: { responseModalities: ['IMAGE'], abortSignal: AbortSignal.timeout(IMAGE_TIMEOUT_MS) },
+      });
+    } catch (e) {
+      throw new LlmError(`Gemini image request failed: ${String(e)}`);
+    }
+    const part = response.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+    if (!part?.inlineData?.data) {
+      // No image usually means the safety filters declined the photo.
+      throw new LlmError('Gemini returned no image');
+    }
+    return { mime: part.inlineData.mimeType ?? 'image/png', data: Buffer.from(part.inlineData.data, 'base64') };
   }
 
   /**

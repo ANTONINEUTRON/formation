@@ -165,6 +165,35 @@ describe('assistant', () => {
     expect(h.llm.searches).toHaveLength(1); // only the failed attempt
   });
 
+  it('sends a sanitised HTML card for one extra credit, or drops it when there is none', async () => {
+    await assistant.setCharacter(manager, 'mentor');
+    h.llm.reply = {
+      text: 'Here is how the tiers line up.',
+      mood: 'neutral',
+      suggestions: [],
+      cards: [
+        {
+          type: 'html',
+          title: 'Tier matrix',
+          height: 200,
+          html: '<table><tr><td>GK</td><td>Blue chip</td></tr></table><img src="https://tracker.example/p.gif">',
+        },
+      ],
+    };
+    const reply = await assistant.chat(manager, ask('Show me the tiers'));
+    const card = reply.cards[0];
+    if (card?.type !== 'html') throw new Error('expected an html card');
+    expect(card.html).toContain('<td>Blue chip</td>');
+    expect(card.html).not.toContain('tracker.example');
+    expect(card.html).toContain("default-src 'none'");
+    expect(reply.credits).toBe(3); // reply + html
+
+    await h.db.updateTable('assistant_credits').set({ balance: 1 }).execute();
+    const short = await assistant.chat(manager, ask('Again'));
+    expect(short.cards).toEqual([]);
+    expect(short.credits).toBe(0);
+  });
+
   it('rejects a conversation that does not end with the Manager', async () => {
     await assistant.setCharacter(manager, 'maverick');
     await expect(

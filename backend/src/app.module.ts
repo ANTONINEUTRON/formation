@@ -7,6 +7,7 @@ import { AssistantController } from './assistant/assistant.controller.js';
 import { AssistantService } from './assistant/assistant.service.js';
 import { CardsService } from './assistant/cards.js';
 import { StarterService } from './assistant/starter.js';
+import { AvatarService } from './assistant/avatars.js';
 import { CreditsService } from './assistant/credits.service.js';
 import { GeminiProvider } from './assistant/gemini.provider.js';
 import { LLM_PROVIDER } from './assistant/llm.js';
@@ -76,6 +77,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     PurchasesService,
     CardsService,
     StarterService,
+    AvatarService,
     // Both swapped for fakes in tests.
     { provide: LLM_PROVIDER, useClass: GeminiProvider },
     { provide: SKR_PAYMENTS, useClass: SolanaSkrPayments },

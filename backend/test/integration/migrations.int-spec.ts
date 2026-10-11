@@ -24,6 +24,7 @@ describe('migrations', () => {
       `.execute(db);
       const tables = rows.map((r) => r.table_name).sort();
       expect(tables).toEqual([
+        'assistant_avatars',
         'assistant_credits',
         'assistant_profiles',
         'assistant_usage',

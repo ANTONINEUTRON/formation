@@ -11,6 +11,7 @@ import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.d
 import 'package:formation/features/assistant_manager/ui/cards/answer_cards.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/buy_credits_sheet.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_picker.dart';
+import 'package:formation/features/assistant_manager/ui/widgets/create_avatar_sheet.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/glass_panel.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/suggestion_card.dart';
@@ -106,6 +107,14 @@ class _AssistantSheetState extends State<AssistantSheet> {
             child: CharacterPicker(
               characters: profile.characters,
               currentId: profile.characterId,
+              onCreateFromPhoto: () async {
+                final cubit = context.read<AssistantCubit>();
+                await CreateAvatarSheet.show(context);
+                // A new drawing becomes the active character straight away.
+                if (mounted && cubit.state.profile?.character?.isCustom == true) {
+                  setState(() => _changingCharacter = false);
+                }
+              },
               onPicked: (id) async {
                 await context.read<AssistantCubit>().pickCharacter(id);
                 if (mounted) setState(() => _changingCharacter = false);

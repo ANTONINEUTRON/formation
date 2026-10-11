@@ -24,6 +24,7 @@ import { GeneralScoringService } from '../scoring/general-scoring.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { CHARACTERS, characterById } from './characters.js';
 import type { AssistantCharacter } from './characters.js';
+import { AvatarService, CUSTOM_ID } from './avatars.js';
 import { CreditsService } from './credits.service.js';
 import type { CreditPack } from './packs.js';
 import { PurchasesService } from './purchases.service.js';
@@ -41,9 +42,12 @@ const REPLY_COST = 1;
 /** Extra credits for live news on a stat board (a search-grounded call). */
 const NEWS_COST = 1;
 const NEWS_MAX_TOKENS = 300;
+/** Extra credits for a generated HTML card. */
+const HTML_COST = 1;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 1_000;
-const MAX_OUTPUT_TOKENS = 1_024;
+// Room for an HTML card when the model writes one.
+const MAX_OUTPUT_TOKENS = 8_192;
 
 /** Screens the app can open the assistant from. */
 const SCREENS = ['team', 'draft', 'league', 'leagues', 'stock', 'profile', 'manager'] as const;
@@ -61,6 +65,10 @@ export interface AssistantProfileDto {
   canBuyCredits: boolean;
   /** Free starter-squad drafts left (0, 1 or 2). */
   starterDraftsLeft: number;
+  /** When the Manager's custom avatar was drawn (for image caching); null if none. */
+  avatarVersion: number | null;
+  /** Credits the next custom avatar costs: 0 for the first. */
+  avatarCost: number;
 }
 
 export interface AssistantReplyDto {
@@ -92,34 +100,43 @@ export class AssistantService {
     private readonly purchases: PurchasesService,
     private readonly cards: CardsService,
     private readonly starter: StarterService,
+    private readonly avatars: AvatarService,
     private readonly rosters: RosterService,
     private readonly general: GeneralScoringService,
     private readonly xstocks: XStocksService,
   ) {}
 
   async profile(user: AuthUser): Promise<AssistantProfileDto> {
-    const [row, credits, starterDraftsLeft] = await Promise.all([
+    const [row, credits, starterDraftsLeft, avatarVersion, avatarCost] = await Promise.all([
       this.db
         .selectFrom('assistant_profiles')
-        .select('character_id')
+        .select(['character_id', 'personality', 'custom_name'])
         .where('user_id', '=', user.id)
         .executeTakeFirst(),
       this.credits.balance(user.id),
       this.starter.draftsLeft(user.id),
+      this.avatars.drawnAt(user.id),
+      this.avatars.cost(user.id),
     ]);
+    const custom = avatarVersion === null ? null : AvatarService.customCharacter(row?.personality ?? null, row?.custom_name ?? null);
+    const characters = [...CHARACTERS, ...(custom ? [custom] : [])];
     return {
-      characterId: characterById(row?.character_id)?.id ?? null,
-      characters: CHARACTERS.map(({ id, name, tagline, style }) => ({ id, name, tagline, style })),
+      characterId: characters.find((c) => c.id === row?.character_id)?.id ?? null,
+      characters: characters.map(({ id, name, tagline, style }) => ({ id, name, tagline, style })),
       credits,
       available: this.llm.available,
       packs: this.purchases.packs,
       canBuyCredits: this.purchases.enabled,
       starterDraftsLeft,
+      avatarVersion,
+      avatarCost,
     };
   }
 
   async setCharacter(user: AuthUser, value: unknown): Promise<AssistantProfileDto> {
-    const character = characterById(requireString(value, 'characterId'));
+    const id = requireString(value, 'characterId');
+    const character =
+      id === CUSTOM_ID && (await this.avatars.drawnAt(user.id)) !== null ? { id: CUSTOM_ID } : characterById(id);
     if (!character) throw new BadRequestException('Unknown Assistant Manager');
     await this.db
       .insertInto('assistant_profiles')
@@ -186,8 +203,15 @@ export class AssistantService {
       ),
       substitutionsToday,
     };
-    const cards = await this.cards.build(json.cards, { roster, stocks, held });
-    const credits = await this.addNews(user.id, input.mode, cards, balance);
+    let cards = await this.cards.build(json.cards, { roster, stocks, held });
+    let credits = balance;
+    // A generated HTML view is a much longer reply: one more credit, or it's dropped.
+    if (cards.some((c) => c.type === 'html')) {
+      const charged = await this.credits.charge(user.id, HTML_COST);
+      if (charged === null) cards = cards.filter((c) => c.type !== 'html');
+      else credits = charged;
+    }
+    credits = await this.addNews(user.id, input.mode, cards, credits);
 
     return {
       text: typeof json.text === 'string' && json.text.trim() ? json.text.trim() : '…',
@@ -224,10 +248,13 @@ export class AssistantService {
   private async characterOf(userId: string): Promise<AssistantCharacter> {
     const row = await this.db
       .selectFrom('assistant_profiles')
-      .select('character_id')
+      .select(['character_id', 'personality', 'custom_name'])
       .where('user_id', '=', userId)
       .executeTakeFirst();
-    const character = characterById(row?.character_id);
+    const character =
+      row?.character_id === CUSTOM_ID
+        ? AvatarService.customCharacter(row.personality, row.custom_name)
+        : characterById(row?.character_id);
     if (!character) throw new BadRequestException('Pick your Assistant Manager first');
     return character;
   }

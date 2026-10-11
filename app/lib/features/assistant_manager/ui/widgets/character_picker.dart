@@ -7,10 +7,19 @@ import 'package:formation/features/assistant_manager/ui/widgets/character_view.d
 /// "Pick your Assistant Manager": the five characters, swiped one at a time,
 /// each standing in its neutral pose with its name, line and leaning.
 class CharacterPicker extends StatefulWidget {
-  const CharacterPicker({required this.characters, required this.onPicked, this.currentId, super.key});
+  const CharacterPicker({
+    required this.characters,
+    required this.onPicked,
+    this.onCreateFromPhoto,
+    this.currentId,
+    super.key,
+  });
 
   final List<AssistantCharacter> characters;
   final Future<void> Function(String characterId) onPicked;
+
+  /// Opens "Create from photo"; hidden when null.
+  final VoidCallback? onCreateFromPhoto;
 
   /// Set when changing an existing choice, so the picker opens on it.
   final String? currentId;
@@ -119,6 +128,12 @@ class _CharacterPickerState extends State<CharacterPicker> {
             ),
           ),
         ),
+        if (widget.onCreateFromPhoto != null)
+          TextButton.icon(
+            onPressed: _busy ? null : widget.onCreateFromPhoto,
+            icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+            label: const Text('Or create your own from a photo'),
+          ),
       ],
     );
   }

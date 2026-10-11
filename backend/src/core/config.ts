@@ -58,6 +58,10 @@ export interface AppConfig {
   geminiApiKey: string;
   /** Gemini model used for replies. */
   geminiModel: string;
+  /** Gemini model that draws custom Assistant Managers from a photo. */
+  geminiImageModel: string;
+  /** Credits for each custom avatar after the first, which is free. */
+  assistantAvatarCredits: number;
   /** Credits a Manager is given the first time they use the assistant. */
   assistantTrialCredits: number;
   /** Credit packs for sale, from ASSISTANT_PACKS. */
@@ -108,6 +112,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
     geminiApiKey: env.GEMINI_API_KEY?.trim() ?? '',
     geminiModel: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
+    geminiImageModel: env.GEMINI_IMAGE_MODEL?.trim() || 'gemini-2.5-flash-image',
+    assistantAvatarCredits: number(env.ASSISTANT_AVATAR_CREDITS, 20),
     assistantTrialCredits: number(env.ASSISTANT_TRIAL_CREDITS, 5),
     assistantPacks: parsePacks(env.ASSISTANT_PACKS),
     assistantTreasury: (env.ASSISTANT_TREASURY ?? env.JUPITER_FEE_ACCOUNT_SKR ?? '').trim(),

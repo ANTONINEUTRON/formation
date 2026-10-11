@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/domain/entity/notification.dart';
@@ -751,14 +752,32 @@ class FixtureRepository implements FormationRepository {
 
   // ── Assistant Manager (canned, but reads the real fixture roster) ──────────
 
-  static const _assistantCharacters = presetCharacters;
   String? _assistantCharacterId;
   int _assistantCredits = 5;
   int _starterDraftsLeft = 2;
 
+  /// The demo "draws" a custom avatar by using the photo for every pose.
+  Uint8List? _avatarPhoto;
+  int? _avatarVersion;
+  String _avatarPersonality = 'mentor';
+  String? _avatarName;
+
+  List<AssistantCharacter> get _assistantCharacters => [
+        ...presetCharacters,
+        if (_avatarPhoto != null)
+          AssistantCharacter(
+            id: AssistantCharacter.customId,
+            name: _avatarName ?? 'Your Assistant Manager',
+            tagline: 'Your own Assistant Manager.',
+            style: presetCharacters.firstWhere((c) => c.id == _avatarPersonality).style,
+          ),
+      ];
+
   AssistantProfile get _assistantProfile => AssistantProfile(
         characterId: _assistantCharacterId,
         characters: _assistantCharacters,
+        avatarVersion: _avatarVersion,
+        avatarCost: _avatarPhoto == null ? 0 : 20,
         credits: _assistantCredits,
         available: true,
         packs: const [
@@ -827,6 +846,34 @@ class FixtureRepository implements FormationRepository {
 
   @override
   Future<void> dismissStarterSquad() => _delay(() => _starterDraftsLeft = 0);
+
+  @override
+  Future<int> createAvatar({
+    required Uint8List photo,
+    required String mimeType,
+    required String personality,
+    String? name,
+  }) =>
+      _delay(() {
+        final cost = _avatarPhoto == null ? 0 : 20;
+        if (_assistantCredits < cost) {
+          throw ValidationException(message: 'A new avatar costs $cost credits', code: outOfCreditsCode);
+        }
+        _assistantCredits -= cost;
+        _avatarPhoto = photo;
+        _avatarPersonality = personality;
+        _avatarName = (name == null || name.isEmpty) ? null : name;
+        _avatarVersion = DateTime.now().millisecondsSinceEpoch;
+        _assistantCharacterId = AssistantCharacter.customId;
+        return _assistantCredits;
+      });
+
+  @override
+  Future<Uint8List> avatarImage(AssistantPose pose) => _delay(() {
+        final photo = _avatarPhoto;
+        if (photo == null) throw const NotFoundException(message: 'No custom avatar yet');
+        return photo;
+      });
 
   /// SKR at a made-up $0.02, so the demo shows realistic amounts.
   static const _fixtureSkrUsd = 0.02;

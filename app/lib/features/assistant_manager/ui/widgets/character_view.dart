@@ -1,11 +1,64 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
+import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
 
 /// Source art is 848×1264 with the feet on the same line in every pose.
 const _artAspect = 848 / 1264;
+
+/// The picture for [character] in [pose]: the bundled art for a preset, or
+/// the drawing fetched for a custom one (a placeholder until it arrives).
+Widget _art(
+  BuildContext context,
+  AssistantCharacter character,
+  AssistantPose pose, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  Alignment alignment = Alignment.center,
+}) {
+  final key = ValueKey('${character.id}_${pose.name}');
+  if (!character.isCustom) {
+    return Image.asset(
+      character.image(pose),
+      key: key,
+      width: width,
+      height: height,
+      fit: fit,
+      alignment: alignment,
+      gaplessPlayback: true,
+    );
+  }
+  Uint8List? bytes;
+  try {
+    final images = context.select<AssistantCubit, Map<AssistantPose, Uint8List>>((c) => c.state.avatarImages);
+    bytes = images[pose] ?? images[AssistantPose.neutral];
+  } on ProviderNotFoundException {
+    bytes = null; // outside the signed-in app (onboarding) there is no custom character
+  }
+  if (bytes == null) {
+    return SizedBox(
+      key: key,
+      width: width,
+      height: height,
+      child: const Center(child: Icon(Icons.person, color: AppColors.textMuted)),
+    );
+  }
+  return Image.memory(
+    bytes,
+    key: key,
+    width: width,
+    height: height,
+    fit: fit,
+    alignment: alignment,
+    gaplessPlayback: true,
+  );
+}
 
 /// The character, full height, idling with a slow bob and cross-fading between
 /// poses. A lime glow sits behind it so it reads against the glass.
@@ -19,17 +72,15 @@ class CharacterFigure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final still = MediaQuery.disableAnimationsOf(context);
-    final figure = AnimatedSwitcher(
+    Widget figure = AnimatedSwitcher(
       duration: const Duration(milliseconds: 280),
-      child: Image.asset(
-        character.image(pose),
-        key: ValueKey('${character.id}_${pose.name}'),
-        height: height,
-        width: height * _artAspect,
-        fit: BoxFit.contain,
-        gaplessPlayback: true,
-      ),
+      child: _art(context, character, pose, height: height, width: height * _artAspect),
     );
+    // A drawn avatar keeps its dark backdrop (it isn't cut out like the
+    // presets), so it's framed rather than left as a hard-edged rectangle.
+    if (character.isCustom) {
+      figure = ClipRRect(borderRadius: BorderRadius.circular(18), child: figure);
+    }
 
     return SizedBox(
       height: height,
@@ -90,13 +141,13 @@ class CharacterHead extends StatelessWidget {
           offset: Offset(0, -size * 0.12),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 280),
-            child: Image.asset(
-              character.image(pose),
-              key: ValueKey('${character.id}_${pose.name}'),
+            child: _art(
+              context,
+              character,
+              pose,
               width: artWidth,
               fit: BoxFit.fitWidth,
               alignment: Alignment.topCenter,
-              gaplessPlayback: true,
             ),
           ),
         ),

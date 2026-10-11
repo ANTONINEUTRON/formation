@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -118,6 +120,19 @@ abstract class FormationRepository {
 
   /// The Manager will build their own team; the free starter draft is used up.
   Future<void> dismissStarterSquad();
+
+  /// Draws a custom Assistant Manager from [photo], with the voice of the
+  /// preset [personality]. Free the first time, then credits. The photo isn't
+  /// kept. Returns the credit balance after.
+  Future<int> createAvatar({
+    required Uint8List photo,
+    required String mimeType,
+    required String personality,
+    String? name,
+  });
+
+  /// The Manager's own custom avatar in [pose].
+  Future<Uint8List> avatarImage(AssistantPose pose);
 
   /// Prices [pack] in SKR at the live rate, held for a couple of minutes.
   Future<CreditQuote> quoteCredits(CreditPack pack);

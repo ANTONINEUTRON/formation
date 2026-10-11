@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:solana/base58.dart';
 
 import 'package:formation/core/constants/app_constants.dart';
@@ -141,13 +142,25 @@ class ApiRepository implements FormationRepository {
         ...headers,
       });
     if (body != null) request.body = jsonEncode(body);
+    return _decode(method, path, await _send(request, auth: auth));
+  }
+
+  /// Sends [request] and turns transport failures and error statuses into
+  /// exceptions a player can read. Shared by JSON, upload and image calls.
+  Future<http.Response> _send(
+    http.BaseRequest request, {
+    bool auth = true,
+    Duration timeout = AppConstants.apiTimeout,
+  }) async {
+    final method = request.method;
+    final path = request.url.path;
 
     // Transport failures: no server, no DNS, no signal. The player only needs
     // to know it couldn't reach us; the cause is logged.
     final http.Response response;
     try {
       response = await http.Response.fromStream(
-        await _http.send(request).timeout(AppConstants.apiTimeout),
+        await _http.send(request).timeout(timeout),
       );
     } on TimeoutException catch (e, s) {
       AppLog.error('$method $path timed out', e, s);
@@ -161,17 +174,6 @@ class ApiRepository implements FormationRepository {
       );
     }
 
-    // A proxy or captive portal can return HTML where JSON is expected.
-    Object? decoded;
-    try {
-      decoded = response.body.isEmpty ? null : jsonDecode(response.body);
-    } on FormatException catch (e, s) {
-      AppLog.error('$method $path returned a non-JSON body', e, s);
-      throw const NetworkException(
-        message: 'Formation sent something unexpected. Please try again.',
-      );
-    }
-
     // A rejected token is worth nothing on the next request either, so drop
     // the stored copy too and let the wallet mint a fresh one.
     if (response.statusCode == 401 && auth) {
@@ -179,9 +181,27 @@ class ApiRepository implements FormationRepository {
       _sessions.clear().ignore();
     }
     if (response.statusCode >= 400) {
+      Object? decoded;
+      try {
+        decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+      } on FormatException {
+        decoded = null;
+      }
       throw _failure(method, path, response.statusCode, decoded);
     }
-    return decoded;
+    return response;
+  }
+
+  Object? _decode(String method, String path, http.Response response) {
+    // A proxy or captive portal can return HTML where JSON is expected.
+    try {
+      return response.body.isEmpty ? null : jsonDecode(response.body);
+    } on FormatException catch (e, s) {
+      AppLog.error('$method $path returned a non-JSON body', e, s);
+      throw const NetworkException(
+        message: 'Formation sent something unexpected. Please try again.',
+      );
+    }
   }
 
   /// Turns an error response into an exception whose message is safe to show.
@@ -480,6 +500,39 @@ class ApiRepository implements FormationRepository {
   @override
   Future<void> dismissStarterSquad() async {
     await _request('POST', '/assistant/starter/dismiss');
+  }
+
+  @override
+  Future<int> createAvatar({
+    required Uint8List photo,
+    required String mimeType,
+    required String personality,
+    String? name,
+  }) async {
+    await _ensureSignedIn();
+    final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/assistant/avatar'))
+      ..headers['authorization'] = 'Bearer $_token'
+      ..fields.addAll({'personality': personality, 'consent': 'true', if (name != null && name.isNotEmpty) 'name': name})
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'photo',
+          photo,
+          filename: 'photo.${mimeType.split('/').last}',
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+    // Four images are drawn, one after another; give it room.
+    final response = await _send(request, timeout: const Duration(minutes: 5));
+    final json = _decode('POST', '/assistant/avatar', response) as Map<String, dynamic>;
+    return (json['credits'] as num).toInt();
+  }
+
+  @override
+  Future<Uint8List> avatarImage(AssistantPose pose) async {
+    await _ensureSignedIn();
+    final request = http.Request('GET', Uri.parse('$_baseUrl/assistant/avatar/${pose.name}'))
+      ..headers['authorization'] = 'Bearer $_token';
+    return (await _send(request)).bodyBytes;
   }
 
   @override

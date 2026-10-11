@@ -176,8 +176,21 @@ export interface ClassicScoresTable {
 
 export interface AssistantProfilesTable {
   user_id: string;
+  /** A preset id, or 'custom' for one drawn from the Manager's photo. */
   character_id: string;
+  /** For 'custom': which preset's voice and leaning it borrows. */
+  personality: string | null;
+  custom_name: string | null;
+  free_avatar_used: Generated<boolean>;
   updated_at: Timestamp;
+}
+
+export interface AssistantAvatarsTable {
+  user_id: string;
+  pose: 'neutral' | 'thinking' | 'celebrating' | 'concerned';
+  mime: string;
+  image: Buffer;
+  created_at: Timestamp;
 }
 
 export interface AssistantCreditsTable {
@@ -240,6 +253,7 @@ export interface Database {
   assistant_usage: AssistantUsageTable;
   credit_quotes: CreditQuotesTable;
   credit_purchases: CreditPurchasesTable;
+  assistant_avatars: AssistantAvatarsTable;
 }
 
 export type User = Selectable<UsersTable>;

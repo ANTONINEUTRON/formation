@@ -74,6 +74,7 @@ const TABLES = [
   'assistant_usage',
   'credit_purchases',
   'credit_quotes',
+  'assistant_avatars',
   'users',
   'xstocks',
 ];

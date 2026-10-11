@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -16,9 +18,13 @@ class AssistantState extends Equatable {
     this.conversations = const {},
     this.error,
     this.outOfCredits = false,
+    this.avatarImages = const {},
   });
 
   final AssistantProfile? profile;
+
+  /// The custom avatar's poses, fetched once per drawing.
+  final Map<AssistantPose, Uint8List> avatarImages;
   final bool loading;
 
   /// A reply is on its way; the character shows its thinking pose.
@@ -41,6 +47,7 @@ class AssistantState extends Equatable {
     String? error,
     bool clearError = false,
     bool? outOfCredits,
+    Map<AssistantPose, Uint8List>? avatarImages,
   }) => AssistantState(
     profile: profile ?? this.profile,
     loading: loading ?? this.loading,
@@ -49,10 +56,20 @@ class AssistantState extends Equatable {
     conversations: conversations ?? this.conversations,
     error: clearError ? null : error ?? this.error,
     outOfCredits: outOfCredits ?? this.outOfCredits,
+    avatarImages: avatarImages ?? this.avatarImages,
   );
 
   @override
-  List<Object?> get props => [profile, loading, sending, pose, conversations, error, outOfCredits];
+  List<Object?> get props => [
+    profile,
+    loading,
+    sending,
+    pose,
+    conversations,
+    error,
+    outOfCredits,
+    avatarImages,
+  ];
 }
 
 /// The Assistant Manager for the whole session.
@@ -72,9 +89,50 @@ class AssistantCubit extends Cubit<AssistantState> {
     emit(state.copyWith(loading: true, clearError: true));
     try {
       final profile = await _repository.getAssistant();
+      final drawingChanged = profile.avatarVersion != state.profile?.avatarVersion;
       emit(state.copyWith(profile: profile, loading: false, outOfCredits: profile.credits <= 0));
+      if (profile.avatarVersion != null && (drawingChanged || state.avatarImages.isEmpty)) {
+        await _loadAvatar();
+      }
     } catch (e) {
       emit(state.copyWith(loading: false, error: errorText(e)));
+    }
+  }
+
+  Future<void> _loadAvatar() async {
+    final images = <AssistantPose, Uint8List>{};
+    for (final pose in AssistantPose.values) {
+      images[pose] = await _repository.avatarImage(pose);
+    }
+    emit(state.copyWith(avatarImages: images));
+  }
+
+  /// Draws a custom Assistant Manager from [photo] and switches to it.
+  /// Returns an error message, or null on success.
+  Future<String?> createAvatar({
+    required Uint8List photo,
+    required String mimeType,
+    required String personality,
+    String? name,
+  }) async {
+    try {
+      final credits = await _repository.createAvatar(
+        photo: photo,
+        mimeType: mimeType,
+        personality: personality,
+        name: name,
+      );
+      emit(
+        state.copyWith(
+          profile: state.profile?.copyWith(credits: credits),
+          avatarImages: const {},
+        ),
+      );
+      await load();
+      emit(state.copyWith(pose: AssistantPose.celebrating));
+      return null;
+    } catch (e) {
+      return errorText(e);
     }
   }
 

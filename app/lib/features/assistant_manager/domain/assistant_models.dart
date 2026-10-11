@@ -57,7 +57,13 @@ class AssistantCharacter extends Equatable {
   /// 'safe', 'balanced' or 'bold'.
   final String style;
 
-  /// Asset for [pose]; ids match the files in assets/characters/.
+  /// The id of the one drawn from the Manager's photo.
+  static const customId = 'custom';
+
+  bool get isCustom => id == customId;
+
+  /// Asset for [pose]; ids match the files in assets/characters/. A custom
+  /// character has no asset — its images come from [AssistantState.avatarImages].
   String image(AssistantPose pose) => 'assets/characters/${id}_${pose.name}.webp';
 
   @override
@@ -117,6 +123,8 @@ class AssistantProfile extends Equatable {
     this.packs = const [],
     this.canBuyCredits = false,
     this.starterDraftsLeft = 0,
+    this.avatarVersion,
+    this.avatarCost = 0,
   });
 
   factory AssistantProfile.fromJson(Map<String, dynamic> json) => AssistantProfile(
@@ -131,7 +139,15 @@ class AssistantProfile extends Equatable {
     ],
     canBuyCredits: json['canBuyCredits'] as bool? ?? false,
     starterDraftsLeft: json['starterDraftsLeft'] as int? ?? 0,
+    avatarVersion: (json['avatarVersion'] as num?)?.toInt(),
+    avatarCost: (json['avatarCost'] as num?)?.toInt() ?? 0,
   );
+
+  /// When the Manager's custom avatar was drawn; null if they have none.
+  final int? avatarVersion;
+
+  /// Credits the next custom avatar costs: 0 for the first.
+  final int avatarCost;
 
   final List<CreditPack> packs;
 
@@ -164,6 +180,8 @@ class AssistantProfile extends Equatable {
     packs: packs,
     canBuyCredits: canBuyCredits,
     starterDraftsLeft: starterDraftsLeft ?? this.starterDraftsLeft,
+    avatarVersion: avatarVersion,
+    avatarCost: avatarCost,
   );
 
   @override
@@ -175,6 +193,8 @@ class AssistantProfile extends Equatable {
     packs,
     canBuyCredits,
     starterDraftsLeft,
+    avatarVersion,
+    avatarCost,
   ];
 }
 

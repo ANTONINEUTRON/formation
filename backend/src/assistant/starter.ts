@@ -21,6 +21,7 @@ import { DEFAULT_FORMATION, parseSportMode, rosterShape } from '../domain/sport.
 import type { SportMode } from '../domain/sport.js';
 import { requireNumber, requireString } from '../domain/validate.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
+import { AvatarService, CUSTOM_ID } from './avatars.js';
 import { characterById } from './characters.js';
 import type { AdviceStyle } from './characters.js';
 import { LLM_PROVIDER, LlmError } from './llm.js';
@@ -148,9 +149,16 @@ export class StarterService {
     const [stocks, held, profile] = await Promise.all([
       this.xstocks.list(),
       this.balances.getBalances(user.walletAddress),
-      this.db.selectFrom('assistant_profiles').select('character_id').where('user_id', '=', user.id).executeTakeFirst(),
+      this.db
+        .selectFrom('assistant_profiles')
+        .select(['character_id', 'personality', 'custom_name'])
+        .where('user_id', '=', user.id)
+        .executeTakeFirst(),
     ]);
-    const character = characterById(profile?.character_id) ?? characterById('mentor')!;
+    const character =
+      profile?.character_id === CUSTOM_ID
+        ? AvatarService.customCharacter(profile.personality, profile.custom_name)
+        : (characterById(profile?.character_id) ?? characterById('mentor')!);
     const style = requestedStyle ?? character.style;
     const catalogue = stocks.filter((s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint);
     const isHeld = (mint: string) => (held.get(mint) ?? 0) > 0;
