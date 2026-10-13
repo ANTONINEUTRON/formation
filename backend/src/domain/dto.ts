@@ -20,6 +20,11 @@ export interface XStockDto {
   /** Percent, e.g. 1.5 = +1.5%. */
   change24hPct: number;
   logoUrl: string | null;
+  /**
+   * Why it isn't scoring right now, e.g. "stale price"; null when it is. It
+   * stays listed, draftable and tradable either way.
+   */
+  notScoring: string | null;
 }
 
 export interface RosterSlotDto {

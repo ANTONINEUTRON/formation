@@ -350,6 +350,7 @@ function buildContext(
               priceUsd: slot.stock.priceUsd,
               change24hPct: slot.stock.change24hPct,
               sharesHeld: slot.balance,
+              notScoring: slot.stock.notScoring ?? undefined,
               sessionAlphaPct: score ? pct(score.alpha) : undefined,
               sessionPoints: score?.total,
             }
@@ -359,6 +360,7 @@ function buildContext(
     bench: roster.bench.map((b) => ({
       symbol: b.stock.symbol,
       tier: b.stock.tier,
+      notScoring: b.stock.notScoring ?? undefined,
       sharesHeld: b.balance,
       eligibleSlots: b.eligibleSlots,
     })),
@@ -382,6 +384,7 @@ function buildContext(
       priceUsd: s.priceUsd,
       change24hPct: s.change24hPct,
       held: (held.get(s.mint) ?? 0) > 0 || undefined,
+      notScoring: s.notScoring ?? undefined,
     })),
   };
 }

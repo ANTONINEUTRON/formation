@@ -4,6 +4,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/draft/ui/widgets/jersey.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
+import 'package:formation/features/shared/ui/widgets/not_scoring_badge.dart';
 
 /// A tappable roster position on the formation board: the sport's jersey in
 /// the pick's tier colour with its ticker on the chest, or a dashed outline
@@ -96,6 +97,19 @@ class PositionSlotChip extends StatelessWidget {
                     top: -4,
                     right: -4,
                     child: ArmbandBadge(label: armband!, size: size * 0.38),
+                  ),
+                // A price that can't be trusted right now: kept, but banking nothing.
+                if (stock?.notScoring != null)
+                  Positioned(
+                    bottom: 0,
+                    right: -2,
+                    child: Tooltip(
+                      message: 'Not scoring: ${stock!.notScoring}',
+                      child: Container(
+                        decoration: const BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
+                        child: Icon(Icons.pause_circle, size: size * 0.32, color: NotScoringBadge.color),
+                      ),
+                    ),
                   ),
               ],
             ),

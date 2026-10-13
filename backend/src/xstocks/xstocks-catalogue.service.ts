@@ -120,6 +120,8 @@ export class XStocksCatalogueService implements OnModuleInit {
           // quote into shares, so a wrong value misreports what a player buys.
           decimals: t.decimals,
           logo_url: t.icon ?? null,
+          // Scoring eligibility reads it; listing doesn't depend on it.
+          liquidity_usd: typeof t.liquidity === 'number' ? t.liquidity : null,
         },
       ];
     });
@@ -133,7 +135,9 @@ export class XStocksCatalogueService implements OnModuleInit {
           company_name: eb.ref('excluded.company_name'),
           decimals: eb.ref('excluded.decimals'),
           logo_url: eb.ref('excluded.logo_url'),
-          // tier is deliberately not updated: it is game balance, and a stock
+          liquidity_usd: eb.ref('excluded.liquidity_usd'),
+          // asset_class isn't touched either: it's set once, by whoever lists
+          // a new kind of asset. And tier is deliberately not updated: it is game balance, and a stock
           // silently changing tier would invalidate rosters built around it.
         })),
       )

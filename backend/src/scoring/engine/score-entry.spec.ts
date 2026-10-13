@@ -180,3 +180,101 @@ describe('scoreEntry', () => {
     expect(eventsOnly.slots[0].total).toBe(11);
   });
 });
+
+describe('scoreEntry: scoring integrity', () => {
+  const TICK: ScoreWindow = { start: 0, end: HOUR, sessionMinutes: 24 * 60 };
+
+  it("a pick that isn't scoring banks nothing and gives up the armband", () => {
+    // JNJx crashed 41% on a broken price; it's flagged, so it costs nothing.
+    const result = scoreEntry({
+      ...input(
+        [
+          { slotIndex: 1, role: 'DEF', mint: 'JNJx', endPrice: 58.6 },
+          { slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 102 },
+        ],
+        { captainSlot: 1, viceCaptainSlot: 9 },
+      ),
+      notScoring: { JNJx: 'price not updating' },
+    });
+
+    const jnj = result.slots.find((s) => s.mint === 'JNJx')!;
+    expect(jnj).toMatchObject({ total: 0, base: 0, events: [], notScoring: 'price not updating' });
+    // The vice-captain takes the armband.
+    expect(result.slots.find((s) => s.mint === 'TSLAx')!.multiplier).toBe(2);
+  });
+
+  it('caps base points per tick and per session', () => {
+    const picks = [{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 108 }];
+    const base = (caps: Parameters<typeof scoreEntry>[0]['caps']) =>
+      scoreEntry({ ...input(picks, { window: TICK }), parts: { base: true, events: false }, caps })
+        .slots[0].base;
+
+    expect(base(undefined)).toBe(80);
+    expect(base({ tickBase: 50 })).toBe(50);
+    // 120 already banked today: only 30 more fit under 150.
+    expect(base({ sessionBase: 150, sessionBaseUsed: { TSLAx: 120 } })).toBe(30);
+    // A loss still banks in full when the room is on the upside.
+    const loss = [{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 95 }];
+    expect(
+      scoreEntry({
+        ...input(loss, { window: TICK }),
+        parts: { base: true, events: false },
+        caps: { sessionBase: 150, sessionBaseUsed: { TSLAx: 160 } },
+      }).slots[0].base,
+    ).toBe(-50);
+  });
+
+  it('caps role events per session and shows the cut', () => {
+    // +31% is ten goals: 40 points for a forward, plus an assist.
+    const result = scoreEntry({
+      ...input([{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 131 }]),
+      parts: { base: false, events: true },
+      caps: { sessionEvents: 30 },
+    });
+    const slot = result.slots[0];
+    expect(slot.total).toBe(30);
+    expect(slot.events.at(-1)).toEqual({ code: 'cap', label: 'Daily cap', points: -13 });
+  });
+
+  it('holds an implausible jump within a tick, banking nothing', () => {
+    const result = scoreEntry({
+      ...input([{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 140 }], { window: TICK }),
+      parts: { base: true, events: false },
+      guard: { maxMove: 0.1 },
+    });
+    expect(result.slots[0].base).toBe(0);
+    expect(result.slots[0].guard).toMatchObject({ held: true, state: { pending: 1, price: 100 } });
+  });
+
+  it('confirms a jump that persists into the next tick, clamped to 10%', () => {
+    const base = input([{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 140 }], {
+      window: TICK,
+    });
+    const result = scoreEntry({
+      ...base,
+      snapshot: { ...base.snapshot, slots: [{ ...base.snapshot.slots[0], pending: 1 }] },
+      parts: { base: true, events: false },
+      guard: { maxMove: 0.1 },
+    });
+    expect(result.slots[0].base).toBe(100);
+    expect(result.slots[0].guard).toMatchObject({ held: false, jumps: 1 });
+  });
+
+  it('measures an asset of another class against its own benchmark', () => {
+    // Gold +3% while the S&P falls 2%: alpha comes from gold's benchmark.
+    const base = input([{ slotIndex: 5, role: 'MID', mint: 'GOLDTOKEN', endPrice: 103 }], {
+      benchmarkEnd: 98,
+      extraTicks: { GLDx: [[WEEK.end, 102]] },
+    });
+    const result = scoreEntry({
+      ...base,
+      snapshot: {
+        ...base.snapshot,
+        slots: [{ ...base.snapshot.slots[0], benchmarkMint: 'GLDx', benchmarkPrice: 100 }],
+      },
+      parts: { base: true, events: false },
+    });
+    expect(result.slots[0].alpha).toBeCloseTo(0.01);
+    expect(result.slots[0].base).toBe(10);
+  });
+});

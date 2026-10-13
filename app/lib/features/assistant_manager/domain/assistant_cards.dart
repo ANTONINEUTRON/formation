@@ -81,6 +81,7 @@ class StatBoardCard extends AssistantCard {
     required this.chart,
     this.newsSummary,
     this.newsSources = const [],
+    this.notScoring,
   });
 
   factory StatBoardCard.fromJson(Map<String, dynamic> json) {
@@ -98,6 +99,7 @@ class StatBoardCard extends AssistantCard {
       return7dPct: _num(json['return7dPct']),
       benchmark7dPct: _num(json['benchmark7dPct']),
       alpha7dPct: _num(json['alpha7dPct']),
+      notScoring: json['notScoring'] as String?,
       chart: _chart(json['chart']),
       newsSummary: news?['summary'] as String?,
       newsSources: [
@@ -119,6 +121,9 @@ class StatBoardCard extends AssistantCard {
   final double? return7dPct;
   final double? benchmark7dPct;
   final double? alpha7dPct;
+
+  /// Why it isn't scoring right now; null when it is.
+  final String? notScoring;
   final ChartData chart;
   final String? newsSummary;
   final List<NewsSource> newsSources;

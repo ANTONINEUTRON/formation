@@ -37,6 +37,16 @@ export interface AppConfig {
   sessionAnchor: Date;
   /** Benchmark every pick is scored against (SPYx). */
   benchmarkMint: string;
+  /**
+   * Largest move against the benchmark one tick can bank (0.1 = 10%). A bigger
+   * one is held for a tick, then banked clamped to this if it persists.
+   */
+  maxTickMove: number;
+  /**
+   * Pool depth, in USD, an asset needs to score. It stays listed and tradable
+   * below it; it just banks nothing. 0 turns the check off.
+   */
+  scoringMinLiquidityUsd: number;
 
   // ── Catalogue ──────────────────────────────────────────────────────────────
   /** Hours between refreshes of the xStocks catalogue. 0 disables it. */
@@ -106,6 +116,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionAnchor: new Date(env.SESSION_ANCHOR ?? '2026-01-05T00:00:00.000Z'),
     // SPYx
     benchmarkMint: env.BENCHMARK_MINT ?? 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
+    maxTickMove: number(env.MAX_TICK_MOVE, 0.1),
+    scoringMinLiquidityUsd: number(env.SCORING_MIN_LIQUIDITY_USD, 1_000),
 
     catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
     catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),

@@ -10,6 +10,7 @@ import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/draft/ui/cubits/draft_state.dart';
 import 'package:formation/features/draft/ui/widgets/buy_stock_sheet.dart';
 import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/ui/widgets/not_scoring_badge.dart';
 
 /// Searchable, tier-filtered list of xStocks for one roster slot.
 class StockPickerSheet extends StatefulWidget {
@@ -139,9 +140,18 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
                                 ],
                               ],
                             ),
-                            subtitle: Text(
-                              held > 0 ? '${stock.companyName} · held ${formatShares(held)} sh' : stock.companyName,
-                              style: TextStyle(color: held > 0 ? AppColors.success : AppColors.textSecondary, fontSize: 12),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  held > 0 ? '${stock.companyName} · held ${formatShares(held)} sh' : stock.companyName,
+                                  style: TextStyle(color: held > 0 ? AppColors.success : AppColors.textSecondary, fontSize: 12),
+                                ),
+                                if (stock.notScoring != null) ...[
+                                  const SizedBox(height: 3),
+                                  NotScoringBadge(reason: stock.notScoring!),
+                                ],
+                              ],
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

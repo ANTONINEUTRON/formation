@@ -27,6 +27,7 @@ import { OgController, OgRateLimitGuard } from './og/og.controller.js';
 import { OgService } from './og/og.service.js';
 import { RosterController, WalletController } from './roster/roster.controller.js';
 import { RosterService } from './roster/roster.service.js';
+import { AssetScoringService } from './scoring/asset-scoring.service.js';
 import { EntryScoringService } from './scoring/entry-scoring.service.js';
 import { GeneralScoringService } from './scoring/general-scoring.service.js';
 import { PriceTickService } from './scoring/price-tick.service.js';
@@ -59,6 +60,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
   ],
   providers: [
     AppService,
+    AssetScoringService,
     EntryScoringService,
     GeneralScoringService,
     PriceTickService,

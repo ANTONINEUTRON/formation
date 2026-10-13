@@ -75,6 +75,8 @@ const TABLES = [
   'credit_purchases',
   'credit_quotes',
   'assistant_avatars',
+  'asset_scoring_status',
+  'scoring_anomalies',
   'users',
   'xstocks',
 ];

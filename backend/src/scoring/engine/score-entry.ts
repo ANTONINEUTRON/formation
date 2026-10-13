@@ -10,17 +10,30 @@ import {
 import { americanFootballRules } from './rules/american-football.js';
 import { basketballRules } from './rules/basketball.js';
 import { footballRules } from './rules/football.js';
+import { guardSeries } from './guard.js';
 import type {
   EntryBreakdown,
+  PriceTick,
+  ScoreCaps,
+  ScoreEvent,
   ScoreInput,
   ScoreParts,
+  SessionReturn,
   SlotContext,
   SlotScore,
+  SnapshotSlot,
   SportRules,
 } from './types.js';
 
 /** Base scoring: 1 point per 0.1% a pick beats the benchmark. */
 const POINTS_PER_ALPHA = 1_000;
+
+/**
+ * The general league's limits on one pick (SCORING_PLAN.md §1.3). A tick is at
+ * most a 10% relative move after the guard, so the tick cap rarely bites; the
+ * session caps stop a single pick running away with a day.
+ */
+export const GENERAL_CAPS = { tickBase: 100, sessionBase: 150, sessionEvents: 60 } as const;
 
 /**
  * Substitutions per day that cost nothing. Substituting is free for the player
@@ -66,20 +79,39 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
     window,
     exits = {},
     parts = BOTH,
+    notScoring = {},
+    guard,
+    caps,
   } = input;
   const rules = rulesFor(snapshot.mode);
   const captaincy = captaincyRules(snapshot.mode);
 
-  const benchmarkTicks = prices.get(benchmarkMint) ?? [];
-  const benchmarkClose = priceAt(benchmarkTicks, window.end, snapshot.benchmarkPrice);
-  const benchmarkReturn = changeBetween(snapshot.benchmarkPrice, benchmarkClose);
-  const benchmarkSessions = sessionReturns(benchmarkTicks, window, snapshot.benchmarkPrice);
+  // Most picks share the snapshot's benchmark; an asset of another class
+  // carries its own. Each distinct benchmark is worked out once.
+  const benchmarks = new Map<string, Benchmark>();
+  const benchmarkOf = (slot: SnapshotSlot): Benchmark => {
+    const mint = slot.benchmarkMint ?? benchmarkMint;
+    const start = slot.benchmarkMint ? (slot.benchmarkPrice ?? 0) : snapshot.benchmarkPrice;
+    const key = `${mint}@${start}`;
+    let found = benchmarks.get(key);
+    if (!found) {
+      const ticks = prices.get(mint) ?? [];
+      found = {
+        start,
+        ticks,
+        return: changeBetween(start, priceAt(ticks, window.end, start)),
+        sessions: sessionReturns(ticks, window, start),
+      };
+      benchmarks.set(key, found);
+    }
+    return found;
+  };
 
   const captainSlot = effectiveCaptain(input);
 
   const contexts: SlotContext[] = [];
   const slots: SlotScore[] = snapshot.slots.map((slot) => {
-    const ticks = prices.get(slot.mint) ?? [];
+    let ticks = prices.get(slot.mint) ?? [];
     const endBalance = endBalances[slot.mint] ?? 0;
     const exit = exits[slot.mint];
     // A sold pick still counts: it is scored up to its exit price. Only a slot
@@ -102,9 +134,30 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
       total: 0,
     };
     if (!counted) return base;
+    // Kept on the team, but a price that can't be trusted scores nothing.
+    const reason = notScoring[slot.mint];
+    if (reason) return { ...base, notScoring: reason };
+
+    const benchmark = benchmarkOf(slot);
+    let guarded: SlotScore['guard'];
+    if (guard) {
+      // Ticks after the window opened only: the opening price is the seed.
+      const result = guardSeries(
+        ticks.filter((t) => t.at > window.start),
+        benchmark.ticks,
+        { price: slot.startPrice, benchmark: benchmark.start, pending: slot.pending ?? 0 },
+        guard.maxMove,
+      );
+      ticks = result.ticks;
+      guarded = { held: result.held, jumps: result.jumps.length, state: result.state };
+    }
 
     // Substituted picks stop at the sale; the rest run to the window end.
-    const close = exit ? exit.price : priceAt(ticks, window.end, slot.startPrice);
+    const close = exit
+      ? guard
+        ? priceAt(ticks, exit.at, slot.startPrice)
+        : exit.price
+      : priceAt(ticks, window.end, slot.startPrice);
     const ownReturn = changeBetween(slot.startPrice, close);
     // Events only see the part of the window the pick was actually held for,
     // so a stock's moves after it was sold can't score for its old owner.
@@ -112,16 +165,18 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
     const context: SlotContext = {
       role: slot.role,
       ownReturn,
-      alpha: ownReturn - benchmarkReturn,
+      alpha: ownReturn - benchmark.return,
       startPrice: slot.startPrice,
       lowestRelative: lowestRelative(ticks, heldWindow, slot.startPrice),
       sessions: sessionReturns(ticks, heldWindow, slot.startPrice),
-      benchmarkSessions,
+      benchmarkSessions: benchmark.sessions,
     };
     contexts.push(context);
 
-    const events = parts.events ? rules.slotEvents(context) : [];
-    const basePoints = parts.base ? round1(context.alpha * POINTS_PER_ALPHA) : 0;
+    const events = parts.events ? capEvents(rules.slotEvents(context), caps?.sessionEvents) : [];
+    const basePoints = parts.base
+      ? round1(capBase(context.alpha * POINTS_PER_ALPHA, caps, slot.mint))
+      : 0;
     const multiplier = slot.slotIndex === captainSlot ? captaincy.multiplier : 1;
     const eventPoints = events.reduce((sum, e) => sum + e.points, 0);
 
@@ -133,6 +188,7 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
       events,
       multiplier,
       total: round1((basePoints + eventPoints) * multiplier),
+      ...(guarded ? { guard: guarded } : {}),
     };
   });
 
@@ -153,12 +209,51 @@ export function substitutionCost(count: number): number {
   return paid === 0 ? 0 : -paid * SUBSTITUTION_COST;
 }
 
-/** The captain, or the vice-captain when the captain isn't counted. */
-function effectiveCaptain({ snapshot, endBalances }: ScoreInput): number | null {
+interface Benchmark {
+  start: number;
+  ticks: PriceTick[];
+  return: number;
+  sessions: SessionReturn[];
+}
+
+/** Clamps a pick's base points to the per-tick and per-session caps. */
+function capBase(points: number, caps: ScoreCaps | undefined, mint: string): number {
+  if (!caps) return points;
+  let capped = points;
+  if (caps.tickBase !== undefined) {
+    capped = Math.max(-caps.tickBase, Math.min(caps.tickBase, capped));
+  }
+  if (caps.sessionBase !== undefined) {
+    // Room left this session. Never forces a move the other way, even if a
+    // pick somehow banked past the cap already.
+    const used = caps.sessionBaseUsed?.[mint] ?? 0;
+    const upper = Math.max(0, caps.sessionBase - used);
+    const lower = Math.min(0, -caps.sessionBase - used);
+    capped = Math.max(lower, Math.min(upper, capped));
+  }
+  return capped;
+}
+
+/**
+ * Caps a pick's role events for a session. The events stay listed, and a
+ * "Daily cap" line takes off the excess, so the breakdown still adds up.
+ */
+function capEvents(events: ScoreEvent[], cap: number | undefined): ScoreEvent[] {
+  if (cap === undefined) return events;
+  const sum = events.reduce((total, e) => total + e.points, 0);
+  if (Math.abs(sum) <= cap) return events;
+  return [...events, { code: 'cap', label: 'Daily cap', points: round1(Math.sign(sum) * cap - sum) }];
+}
+
+/**
+ * The captain, or the vice-captain when the captain isn't counted or isn't
+ * scoring.
+ */
+function effectiveCaptain({ snapshot, endBalances, notScoring = {} }: ScoreInput): number | null {
   const counted = (slotIndex: number | null) => {
     if (slotIndex === null) return false;
     const slot = snapshot.slots.find((s) => s.slotIndex === slotIndex);
-    if (!slot) return false;
+    if (!slot || notScoring[slot.mint]) return false;
     return Math.min(slot.startBalance, endBalances[slot.mint] ?? 0) > 0 && slot.startPrice > 0;
   };
   if (counted(snapshot.captainSlot)) return snapshot.captainSlot;

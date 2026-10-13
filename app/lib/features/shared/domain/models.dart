@@ -49,6 +49,7 @@ class XStock extends Equatable {
     required this.priceUsd,
     this.change24hPct = 0,
     this.logoUrl,
+    this.notScoring,
   });
 
   factory XStock.fromJson(Map<String, dynamic> json) => XStock(
@@ -59,6 +60,7 @@ class XStock extends Equatable {
         priceUsd: _double(json['priceUsd']),
         change24hPct: _double(json['change24hPct']),
         logoUrl: json['logoUrl'] as String?,
+        notScoring: json['notScoring'] as String?,
       );
 
   final String symbol;
@@ -69,8 +71,14 @@ class XStock extends Equatable {
   final double change24hPct;
   final String? logoUrl;
 
+  /// Why it isn't scoring right now, e.g. 'stale price'; null when it is.
+  /// It stays draftable and tradable either way.
+  final String? notScoring;
+
+  bool get isScoring => notScoring == null;
+
   @override
-  List<Object?> get props => [mint, priceUsd, change24hPct];
+  List<Object?> get props => [mint, priceUsd, change24hPct, notScoring];
 }
 
 /// A position in a roster shape, e.g. 'PG' or 'GK'.
@@ -158,9 +166,13 @@ class SlotScore extends Equatable {
     required this.events,
     required this.multiplier,
     required this.total,
+    this.notScoring,
+    this.held = false,
   });
 
   factory SlotScore.fromJson(Map<String, dynamic> json) => SlotScore(
+        notScoring: json['notScoring'] as String?,
+        held: (json['guard'] as Map<String, dynamic>?)?['held'] == true,
         slotIndex: json['slotIndex'] as int,
         role: json['role'] as String,
         mint: json['mint'] as String,
@@ -191,8 +203,15 @@ class SlotScore extends Equatable {
   final double multiplier;
   final double total;
 
+  /// Why the pick isn't scoring, e.g. 'stale price'; null when it is.
+  final String? notScoring;
+
+  /// Its price jumped implausibly on the last tick: held until the next one
+  /// confirms it.
+  final bool held;
+
   @override
-  List<Object?> get props => [slotIndex, mint, total, counted];
+  List<Object?> get props => [slotIndex, mint, total, counted, notScoring, held];
 }
 
 /// The current session of the always-running general league. Points bank on

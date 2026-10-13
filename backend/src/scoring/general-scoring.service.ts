@@ -11,7 +11,12 @@ import type { SportMode } from '../domain/sport.js';
 import type { SessionDto } from '../domain/dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EntryScoringService } from './entry-scoring.service.js';
-import { FREE_SUBSTITUTIONS_PER_DAY, substitutionCost } from './engine/score-entry.js';
+import { round1 } from './engine/metrics.js';
+import {
+  FREE_SUBSTITUTIONS_PER_DAY,
+  GENERAL_CAPS,
+  substitutionCost,
+} from './engine/score-entry.js';
 import type { EntryBreakdown, LineupSnapshot, SlotExits } from './engine/types.js';
 
 const BASE_ONLY = { base: true, events: false };
@@ -71,36 +76,67 @@ export class GeneralScoringService {
     // No entry means no held stock is in the lineup yet; it joins on a later tick.
     if (!entry) return;
 
-    await this.bankAlpha(candidate, mode, entry, now);
+    const alpha = await this.bankAlpha(candidate, mode, entry, now);
     await this.rollUpEvents(candidate, mode, entry, now);
-    await this.reSnapshot(candidate, mode, now);
+    await this.reSnapshot(candidate, mode, entry, now, alpha);
   }
 
-  /** Base alpha earned since the last bank, added to the running total. */
+  /**
+   * True when [now] is the first bank of a new session. Ticks land a few
+   * minutes past the hour, never exactly on a boundary, so this compares the
+   * sessions of this bank and the last one rather than testing for equality.
+   */
+  private opensSession(entry: GeneralEntry, now: number): boolean {
+    return this.sessionStart(now) > this.sessionStart(new Date(entry.last_banked_at).getTime());
+  }
+
+  /**
+   * Base alpha earned since the last bank, added to the running total. Each
+   * pick is capped per tick and per session (GENERAL_CAPS).
+   */
   private async bankAlpha(
     candidate: Candidate,
     mode: SportMode,
     entry: GeneralEntry,
     now: number,
-  ): Promise<void> {
+  ): Promise<EntryBreakdown | undefined> {
     const start = new Date(entry.last_banked_at).getTime();
-    if (now <= start) return;
+    if (now <= start) return undefined;
 
     const snapshot = parse<LineupSnapshot>(entry.snapshot);
-    if (!snapshot) return;
+    if (!snapshot) return undefined;
+    // The cap resets with the session; this tick counts toward the new one.
+    const used = this.opensSession(entry, now)
+      ? {}
+      : (parse<Record<string, number>>(entry.session_base) ?? {});
     const { breakdown } = await this.scoring.score(
       snapshot,
       candidate.wallet,
       this.scoring.window(new Date(start), new Date(now)),
-      { exits: parse<SlotExits>(entry.exits) ?? {}, parts: BASE_ONLY, at: now },
+      {
+        exits: parse<SlotExits>(entry.exits) ?? {},
+        parts: BASE_ONLY,
+        at: now,
+        caps: {
+          tickBase: GENERAL_CAPS.tickBase,
+          sessionBase: GENERAL_CAPS.sessionBase,
+          sessionBaseUsed: used,
+        },
+      },
     );
+    const sessionBase = { ...used };
+    for (const slot of breakdown.slots) {
+      if (slot.base !== 0) sessionBase[slot.mint] = round1((sessionBase[slot.mint] ?? 0) + slot.base);
+    }
+
     await this.award(candidate.userId, mode, 'alpha', breakdown.total, now);
     await this.db
       .updateTable('general_entries')
-      .set({ last_breakdown: JSON.stringify(breakdown) })
+      .set({ last_breakdown: JSON.stringify(breakdown), session_base: JSON.stringify(sessionBase) })
       .where('user_id', '=', candidate.userId)
       .where('sport_mode', '=', mode)
       .execute();
+    return breakdown;
   }
 
   /**
@@ -135,7 +171,11 @@ export class GeneralScoringService {
         snapshot,
         candidate.wallet,
         this.scoring.window(new Date(lastEvents), new Date(currentSession)),
-        { parts: EVENTS_ONLY, at: currentSession },
+        {
+          parts: EVENTS_ONLY,
+          at: currentSession,
+          caps: { sessionEvents: GENERAL_CAPS.sessionEvents },
+        },
       );
       await this.award(candidate.userId, mode, 'events', breakdown.total, now, {
         slots: breakdown.slots.filter((s) => s.events.length > 0),
@@ -163,12 +203,21 @@ export class GeneralScoringService {
 
   /**
    * Re-locks the current lineup as the baseline for the next interval, which
-   * is what makes a substitution take effect from the next tick.
+   * is what makes a substitution take effect from the next tick. A pick whose
+   * jump was held this tick keeps its old baseline, so the next tick can tell
+   * whether the jump was real.
    */
-  private async reSnapshot(candidate: Candidate, mode: SportMode, now: number): Promise<void> {
-    const snapshot = await this.scoring.lockLineup(candidate.userId, candidate.wallet, mode);
-    if (!snapshot) return;
-    const openingSession = this.sessionStart(now) === now;
+  private async reSnapshot(
+    candidate: Candidate,
+    mode: SportMode,
+    entry: GeneralEntry,
+    now: number,
+    alpha: EntryBreakdown | undefined,
+  ): Promise<void> {
+    const locked = await this.scoring.lockLineup(candidate.userId, candidate.wallet, mode);
+    if (!locked) return;
+    const snapshot = carryHeldBaselines(locked, alpha);
+    const openingSession = this.opensSession(entry, now);
 
     await this.db
       .updateTable('general_entries')
@@ -188,7 +237,7 @@ export class GeneralScoringService {
   async award(
     userId: string,
     mode: SportMode,
-    kind: 'alpha' | 'events' | 'substitution',
+    kind: 'alpha' | 'events' | 'substitution' | 'correction',
     points: number,
     at: number,
     detail?: unknown,
@@ -343,6 +392,34 @@ export class GeneralScoringService {
       .execute();
     return rows.map((row) => ({ userId: row.user_id, wallet: row.wallet_address }));
   }
+}
+
+/**
+ * For each pick whose jump was held on this tick, keeps its pre-jump baseline
+ * (moved with the benchmark) and the pending direction in the next snapshot,
+ * instead of the fresh price.
+ */
+export function carryHeldBaselines(
+  next: LineupSnapshot,
+  breakdown: EntryBreakdown | undefined,
+): LineupSnapshot {
+  const held = new Map(
+    (breakdown?.slots ?? []).flatMap((s) => (s.guard?.held ? [[s.mint, s.guard.state] as const] : [])),
+  );
+  if (held.size === 0) return next;
+  return {
+    ...next,
+    slots: next.slots.map((slot) => {
+      const state = held.get(slot.mint);
+      const benchmarkNow = slot.benchmarkPrice ?? next.benchmarkPrice;
+      if (!state || state.benchmark <= 0 || benchmarkNow <= 0) return slot;
+      return {
+        ...slot,
+        startPrice: state.price * (benchmarkNow / state.benchmark),
+        pending: state.pending,
+      };
+    }),
+  };
 }
 
 /** jsonb arrives parsed from pg, but stay tolerant of string columns. */

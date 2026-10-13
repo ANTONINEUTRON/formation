@@ -48,6 +48,8 @@ export type CardDto =
       return7dPct: number | null;
       benchmark7dPct: number | null;
       alpha7dPct: number | null;
+      /** Why it isn't scoring right now; null when it is. */
+      notScoring: string | null;
       chart: SeriesSet;
       news?: { summary: string; sources: SearchSource[] };
     }
@@ -167,6 +169,7 @@ export class CardsService {
       return7dPct: ret,
       benchmark7dPct: bench,
       alpha7dPct: ret !== null && bench !== null ? round(ret - bench) : null,
+      notScoring: stock.notScoring ?? null,
       chart,
     };
   }

@@ -4,6 +4,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
+import 'package:formation/features/shared/ui/widgets/not_scoring_badge.dart';
 
 /// One row of the team: position, stock, holding, and how it is scoring.
 class RosterSlotCard extends StatelessWidget {
@@ -85,6 +86,20 @@ class RosterSlotCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                           ),
+                          if ((score?.notScoring ?? stock.notScoring) != null) ...[
+                            const SizedBox(height: 4),
+                            NotScoringBadge(reason: (score?.notScoring ?? stock.notScoring)!),
+                          ] else if (score?.held ?? false) ...[
+                            const SizedBox(height: 4),
+                            const Tooltip(
+                              message: 'Its price jumped more than 10% against the market. '
+                                  'Nothing banks until the next tick confirms the move.',
+                              child: Text(
+                                'Big move: checking next tick',
+                                style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
               ),

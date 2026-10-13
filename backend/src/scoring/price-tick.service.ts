@@ -9,6 +9,7 @@ import type { Db } from '../core/db.js';
 import { PRICE_SOURCE } from '../core/sources.js';
 import type { PriceSource } from '../core/sources.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
+import { AssetScoringService } from './asset-scoring.service.js';
 import { GeneralScoringService } from './general-scoring.service.js';
 
 /**
@@ -27,6 +28,7 @@ export class PriceTickService implements OnModuleInit {
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
     private readonly general: GeneralScoringService,
+    private readonly assetScoring: AssetScoringService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -58,6 +60,15 @@ export class PriceTickService implements OnModuleInit {
         .values(values)
         .onConflict((oc) => oc.columns(['mint', 'captured_at']).doNothing())
         .execute();
+    }
+
+    // Decide which assets score before anything banks, so a price that broke
+    // on this very tick already counts for nothing.
+    try {
+      await this.assetScoring.refresh(capturedAt.getTime());
+    } catch (e) {
+      // Banking on yesterday's statuses beats not banking at all.
+      this.logger.error(`Scoring eligibility failed: ${String(e)}`);
     }
 
     // Points bank here, on every tick — nothing waits for a window to close.

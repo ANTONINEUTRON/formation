@@ -25,6 +25,29 @@ export interface XStocksTable {
   tier: 'blue_chip' | 'stable' | 'balanced' | 'growth' | 'momentum';
   decimals: Generated<number>;
   logo_url: string | null;
+  /** Decides the benchmark (domain/assets.ts). */
+  asset_class: Generated<string>;
+  /** Pool depth in USD from the last catalogue refresh; null if unknown. */
+  liquidity_usd: number | null;
+}
+
+/** Whether an asset is scoring right now (scoring/engine/eligibility.ts). */
+export interface AssetScoringStatusTable {
+  mint: string;
+  eligible: boolean;
+  reason: string | null;
+  since: Timestamp;
+  passing_since: Timestamp | null;
+  checked_at: Timestamp;
+  metrics: ColumnType<unknown, unknown, unknown>;
+}
+
+export interface ScoringAnomaliesTable {
+  id: Generated<string>;
+  mint: string;
+  at: Timestamp;
+  kind: 'jump' | 'status';
+  detail: ColumnType<unknown, unknown, unknown>;
 }
 
 export interface RostersTable {
@@ -95,6 +118,12 @@ export interface GeneralEntriesTable {
     EntryBreakdown | string | null,
     EntryBreakdown | string | null
   >;
+  /** Base points each pick (by mint) has banked this session, for the cap. */
+  session_base: ColumnType<
+    Record<string, number>,
+    Record<string, number> | string | undefined,
+    Record<string, number> | string
+  >;
   updated_at: Timestamp;
 }
 
@@ -103,7 +132,7 @@ export interface PointsLedgerTable {
   id: Generated<string>;
   user_id: string;
   sport_mode: SportMode;
-  kind: 'alpha' | 'events' | 'substitution';
+  kind: 'alpha' | 'events' | 'substitution' | 'correction';
   points: number;
   detail: ColumnType<unknown, unknown, unknown>;
   at: Timestamp;
@@ -254,6 +283,8 @@ export interface Database {
   credit_quotes: CreditQuotesTable;
   credit_purchases: CreditPurchasesTable;
   assistant_avatars: AssistantAvatarsTable;
+  asset_scoring_status: AssetScoringStatusTable;
+  scoring_anomalies: ScoringAnomaliesTable;
 }
 
 export type User = Selectable<UsersTable>;

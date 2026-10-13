@@ -6,6 +6,7 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
 import type { BalanceSource, PriceSource } from '../core/sources.js';
+import { benchmarkMintFor, DEFAULT_ASSET_CLASS } from '../domain/assets.js';
 import { rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { priceAt } from './engine/metrics.js';
@@ -14,6 +15,7 @@ import type {
   EntryBreakdown,
   LineupSnapshot,
   PriceBook,
+  ScoreCaps,
   ScoreParts,
   ScoreWindow,
   SlotExits,
@@ -26,6 +28,8 @@ import { XStocksService } from '../xstocks/xstocks.service.js';
  * leagues can run for months) read a per-session summary instead.
  */
 const FULL_HISTORY_MS = 8 * 24 * 3_600_000;
+
+const isSummarised = (window: ScoreWindow) => window.end - window.start > FULL_HISTORY_MS;
 
 /**
  * Turns database state into scoring-engine input: locks lineups, loads price
@@ -79,19 +83,39 @@ export class EntryScoringService {
 
     const stocks = await this.xstocks.byMint();
     const mints = slots.map((s) => s.token_mint);
+    // Each pick's class benchmark; only assets outside US equities differ.
+    const mintBySymbol = new Map([...stocks.values()].map((s) => [s.symbol, s.mint]));
+    const benchmarkOf = new Map(
+      mints.map((mint) => [
+        mint,
+        benchmarkMintFor(
+          stocks.get(mint)?.asset_class ?? DEFAULT_ASSET_CLASS,
+          mintBySymbol,
+          this.config.benchmarkMint,
+        ),
+      ]),
+    );
     const [balances, prices] = await Promise.all([
       this.balances.getBalances(wallet, { fresh: true }),
-      this.prices.getPrices([...mints, this.config.benchmarkMint], { fresh: true }),
+      this.prices.getPrices([...new Set([...mints, ...benchmarkOf.values(), this.config.benchmarkMint])], {
+        fresh: true,
+      }),
     ]);
 
-    const snapshotSlots: SnapshotSlot[] = slots.map((slot) => ({
-      slotIndex: slot.slot_index,
-      role: shape[slot.slot_index]?.label ?? '',
-      mint: slot.token_mint,
-      symbol: stocks.get(slot.token_mint)?.symbol ?? slot.token_mint,
-      startBalance: balances.get(slot.token_mint) ?? 0,
-      startPrice: prices.get(slot.token_mint)?.usdPrice ?? 0,
-    }));
+    const snapshotSlots: SnapshotSlot[] = slots.map((slot) => {
+      const benchmark = benchmarkOf.get(slot.token_mint) ?? this.config.benchmarkMint;
+      return {
+        slotIndex: slot.slot_index,
+        role: shape[slot.slot_index]?.label ?? '',
+        mint: slot.token_mint,
+        symbol: stocks.get(slot.token_mint)?.symbol ?? slot.token_mint,
+        startBalance: balances.get(slot.token_mint) ?? 0,
+        startPrice: prices.get(slot.token_mint)?.usdPrice ?? 0,
+        ...(benchmark === this.config.benchmarkMint
+          ? {}
+          : { benchmarkMint: benchmark, benchmarkPrice: prices.get(benchmark)?.usdPrice ?? 0 }),
+      };
+    });
 
     return {
       mode,
@@ -115,8 +139,7 @@ export class EntryScoringService {
   async priceBook(mints: string[], window: ScoreWindow): Promise<PriceBook> {
     const wanted = [...new Set([...mints, this.config.benchmarkMint])];
     if (wanted.length === 0) return new Map();
-    const rows =
-      window.end - window.start > FULL_HISTORY_MS
+    const rows = isSummarised(window)
         ? await this.sessionTicks(wanted, window)
         : await this.db
             .selectFrom('price_ticks')
@@ -186,16 +209,25 @@ export class EntryScoringService {
       exits = {},
       parts,
       at = Date.now(),
-    }: { fresh?: boolean; exits?: SlotExits; parts?: ScoreParts; at?: number } = {},
+      caps,
+    }: {
+      fresh?: boolean;
+      exits?: SlotExits;
+      parts?: ScoreParts;
+      at?: number;
+      caps?: ScoreCaps;
+    } = {},
   ): Promise<{
     breakdown: EntryBreakdown;
     endBalances: Record<string, number>;
     exits: SlotExits;
   }> {
     const mints = snapshot.slots.map((s) => s.mint);
-    const [balances, prices] = await Promise.all([
+    const benchmarks = snapshot.slots.flatMap((s) => (s.benchmarkMint ? [s.benchmarkMint] : []));
+    const [balances, prices, notScoring] = await Promise.all([
       this.balances.getBalances(wallet, { fresh }),
-      this.priceBook(mints, window),
+      this.priceBook([...mints, ...benchmarks], window),
+      this.xstocks.notScoring(),
     ]);
     const endBalances = Object.fromEntries(mints.map((m) => [m, balances.get(m) ?? 0]));
     const observedAt = Math.min(Math.max(at, window.start), window.end);
@@ -212,6 +244,12 @@ export class EntryScoringService {
         window,
         exits: nextExits,
         parts,
+        notScoring,
+        // The guard works tick by tick, so it needs every tick. Long windows
+        // read a per-session summary instead, where a day apart is no "jump";
+        // there, eligibility alone keeps broken prices out.
+        guard: isSummarised(window) ? undefined : { maxMove: this.config.maxTickMove },
+        caps,
       }),
     };
   }
