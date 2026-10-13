@@ -19,11 +19,13 @@ import { XStocksService } from '../../src/xstocks/xstocks.service.js';
 import { migrate } from '../../src/scripts/migrate.js';
 import { LLM_PROVIDER } from '../../src/assistant/llm.js';
 import { SKR_PAYMENTS } from '../../src/assistant/skr-payments.js';
+import { PUSH_SENDER } from '../../src/notifications/fcm.js';
 import {
   FakeBalanceSource,
   FakeClock,
   FakeLlmProvider,
   FakePriceSource,
+  FakePushSender,
   FakeSkrPayments,
 } from '../fakes/fakes.js';
 
@@ -81,6 +83,9 @@ const TABLES = [
   'live_events',
   'weekly_stats',
   'skill_ratings',
+  'device_tokens',
+  'push_preferences',
+  'push_log',
   'badges',
   'season_results',
   'seasons',
@@ -99,6 +104,8 @@ export interface Harness {
   llm: FakeLlmProvider;
   /** Nor is the chain, for credit purchases. */
   skrPayments: FakeSkrPayments;
+  /** Nor FCM. */
+  pushes: FakePushSender;
   rosters: RosterService;
   general: GeneralScoringService;
   leagues: LeaguesService;
@@ -147,6 +154,7 @@ export async function createHarness(): Promise<Harness> {
   const balances = new FakeBalanceSource();
   const llm = new FakeLlmProvider();
   const skrPayments = new FakeSkrPayments();
+  const pushes = new FakePushSender();
   process.env.SKR_MINT = TEST_SKR.mint;
   process.env.SKR_DECIMALS = String(TEST_SKR.decimals);
   process.env.ASSISTANT_TREASURY = TEST_SKR.treasury;
@@ -156,6 +164,8 @@ export async function createHarness(): Promise<Harness> {
     .useValue(llm)
     .overrideProvider(SKR_PAYMENTS)
     .useValue(skrPayments)
+    .overrideProvider(PUSH_SENDER)
+    .useValue(pushes)
     .overrideProvider(CLOCK)
     .useValue(clock)
     .overrideProvider(PRICE_SOURCE)
@@ -180,6 +190,7 @@ export async function createHarness(): Promise<Harness> {
     balances,
     llm,
     skrPayments,
+    pushes,
     rosters,
     general: app.get(GeneralScoringService),
     leagues: app.get(LeaguesService),
@@ -198,6 +209,7 @@ export async function createHarness(): Promise<Harness> {
       for (const stock of TEST_STOCKS) prices.set(stock.mint, 100);
       llm.reset();
       skrPayments.reset();
+      pushes.reset();
       prices.set(TEST_SKR.mint, 0.02);
       // Tuesday 6 January 2026, 10am ET: match week 1 of season 1 is under way.
       clock.set(Date.UTC(2026, 0, 6, 15, 0, 0));

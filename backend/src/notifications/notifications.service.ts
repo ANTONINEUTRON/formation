@@ -5,6 +5,7 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import type { NotificationKind } from '../core/db-types.js';
 import type { NotificationDto } from '../domain/dto.js';
+import { PushService } from './push.service.js';
 
 const INBOX_SIZE = 50;
 
@@ -29,6 +30,7 @@ export class NotificationsService {
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly devices: PushService,
   ) {}
 
   async list(userId: string): Promise<NotificationDto[]> {
@@ -85,7 +87,11 @@ export class NotificationsService {
     await this.pushMany([notification]);
   }
 
-  /** Writes a batch, e.g. one per member when a league settles. */
+  /**
+   * Writes a batch, e.g. one per member when a league settles, and pushes it
+   * to their devices as their settings allow. Everything that notifies also
+   * pushes; the inbox always gets it, push or not.
+   */
   async pushMany(notifications: NewNotification[]): Promise<void> {
     if (notifications.length === 0) return;
     await this.db
@@ -101,5 +107,6 @@ export class NotificationsService {
         })),
       )
       .execute();
+    await this.devices.deliver(notifications);
   }
 }

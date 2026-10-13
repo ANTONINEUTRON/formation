@@ -22,7 +22,11 @@ import { LeaguesService } from './leagues/leagues.service.js';
 import { ManagersController } from './managers/managers.controller.js';
 import { ManagersService } from './managers/managers.service.js';
 import { NotificationsController } from './notifications/notifications.controller.js';
+import { CONFIG } from './core/config.js';
+import type { AppConfig } from './core/config.js';
+import { FcmPushSender, parseServiceAccount, PUSH_SENDER } from './notifications/fcm.js';
 import { NotificationsService } from './notifications/notifications.service.js';
+import { PushService } from './notifications/push.service.js';
 import { OgController, OgRateLimitGuard } from './og/og.controller.js';
 import { OgService } from './og/og.service.js';
 import { RosterController, WalletController } from './roster/roster.controller.js';
@@ -35,6 +39,8 @@ import { MatchWeekService } from './scoring/match-week.service.js';
 import { PriceTickService } from './scoring/price-tick.service.js';
 import { SeasonService } from './scoring/season.service.js';
 import { SkillService } from './scoring/skill.service.js';
+import { LedgerService } from './scoring/ledger.service.js';
+import { PortfolioService } from './scoring/portfolio.service.js';
 import { SwapController } from './swap/swap.controller.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
@@ -68,6 +74,8 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     AssetScoringService,
     SeasonService,
     SkillService,
+    LedgerService,
+    PortfolioService,
     MatchWeekService,
     EntryScoringService,
     GeneralScoringService,
@@ -88,9 +96,15 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     CardsService,
     StarterService,
     AvatarService,
-    // Both swapped for fakes in tests.
+    PushService,
+    // Swapped for fakes in tests.
     { provide: LLM_PROVIDER, useClass: GeminiProvider },
     { provide: SKR_PAYMENTS, useClass: SolanaSkrPayments },
+    {
+      provide: PUSH_SENDER,
+      useFactory: (config: AppConfig) => new FcmPushSender(parseServiceAccount(config.fcmServiceAccount)),
+      inject: [CONFIG],
+    },
   ],
 })
 export class AppModule {}

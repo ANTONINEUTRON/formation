@@ -55,7 +55,7 @@ export class OgService {
     const standing = rank === null ? 'Unranked' : `Rank #${rank}`;
     return {
       title: `${user.username} on Formation`,
-      description: `${standing} · ${points.toLocaleString('en-US')} pts in the ${SPORT_LABELS[mode]} league. Beat the market, climb the table.`,
+      description: `${standing} · ${points.toLocaleString('en-US')} pts in the ${SPORT_LABELS[mode]} league. Beat the market, balance your team, stay consistent.`,
     };
   }
 

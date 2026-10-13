@@ -17,6 +17,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { GOAL_CODES } from './engine/skill.js';
 import type { SlotScore } from './engine/types.js';
+import { PortfolioService } from './portfolio.service.js';
 import { SkillService } from './skill.service.js';
 
 /**
@@ -35,6 +36,7 @@ export class MatchWeekService {
     private readonly notifications: NotificationsService,
     private readonly xstocks: XStocksService,
     private readonly skill: SkillService,
+    private readonly portfolio: PortfolioService,
   ) {}
 
   /** Runs after each tick has banked. */
@@ -124,6 +126,8 @@ export class MatchWeekService {
   private async fullTime(week: MatchWeek, now: number): Promise<void> {
     if (!(await this.claim(week, 'full_time_done_at', now))) return;
     await this.settleFixtures(now);
+    // The balance bonus banks at full time, so it's part of the week's stats.
+    await this.portfolio.awardBalanceBonus(week);
     await this.skill.computeWeek(week, now);
 
     const messages = [];

@@ -326,6 +326,11 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
+  Future<PortfolioHealth> getPortfolioHealth(SportMode mode) async => PortfolioHealth.fromJson(
+        await _request('GET', '/match-week/${mode.apiValue}/health') as Map<String, dynamic>,
+      );
+
+  @override
   Future<List<PayToken>> getPayTokens() async {
     final list = await _request('GET', '/swap/tokens') as List;
     return list.cast<Map<String, dynamic>>().map(PayToken.fromJson).toList();
@@ -469,6 +474,42 @@ class ApiRepository implements FormationRepository {
   Future<void> markAllNotificationsRead() async {
     await _request('POST', '/notifications/read-all');
     _notify();
+  }
+
+  @override
+  Future<void> registerPushDevice({required String token, required String platform, String? timeZone}) async {
+    await _request('POST', '/notifications/devices', body: {
+      'token': token,
+      'platform': platform,
+      'timeZone': ?timeZone,
+    });
+  }
+
+  @override
+  Future<void> unregisterPushDevice(String token) async {
+    await _request('DELETE', '/notifications/devices/${Uri.encodeComponent(token)}');
+  }
+
+  @override
+  Future<PushSettings> getPushSettings() async =>
+      PushSettings.fromJson(await _request('GET', '/notifications/settings') as Map<String, dynamic>);
+
+  @override
+  Future<PushSettings> savePushSettings({
+    Map<String, bool>? categories,
+    bool? quietEnabled,
+    int? quietStart,
+    int? quietEnd,
+    String? timeZone,
+  }) async {
+    final json = await _request('PUT', '/notifications/settings', body: {
+      'categories': ?categories,
+      'quietEnabled': ?quietEnabled,
+      'quietStart': ?quietStart,
+      'quietEnd': ?quietEnd,
+      'timeZone': ?timeZone,
+    });
+    return PushSettings.fromJson(json as Map<String, dynamic>);
   }
 
   // ── Assistant Manager ──────────────────────────────────────────────────────

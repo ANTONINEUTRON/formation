@@ -10,6 +10,7 @@ import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
 import 'package:formation/features/notifications/ui/widgets/notification_tile.dart';
+import 'package:formation/features/notifications/ui/widgets/push_settings_sheet.dart';
 import 'package:formation/features/shared/domain/load_status.dart';
 
 /// Notification inbox. Tapping one marks it read and, when it carries a
@@ -55,6 +56,11 @@ class _NotificationsView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
+          IconButton(
+            tooltip: 'Push settings',
+            icon: const Icon(Icons.tune),
+            onPressed: () => PushSettingsSheet.show(context),
+          ),
           BlocBuilder<NotificationsCubit, NotificationsState>(
             buildWhen: (a, b) => a.items != b.items,
             builder: (context, state) {

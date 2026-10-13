@@ -50,6 +50,9 @@ export interface AppConfig {
   scoringMinLiquidityUsd: number;
   /** ET date in the week season 1 kicks off; seasons run 12 match weeks from it. */
   seasonAnchor: string;
+  /** Points at full time for a team spanning [teamBalanceSectors]+ sectors. 0 turns it off. */
+  teamBalanceBonus: number;
+  teamBalanceSectors: number;
 
   // ── Catalogue ──────────────────────────────────────────────────────────────
   /** Hours between refreshes of the xStocks catalogue. 0 disables it. */
@@ -84,6 +87,13 @@ export interface AppConfig {
    * fee account; empty disables buying credits.
    */
   assistantTreasury: string;
+
+  // ── Push ───────────────────────────────────────────────────────────────────
+  /**
+   * Firebase service account key (raw or base64 JSON) for FCM. Empty turns
+   * pushes off; the in-app inbox works either way.
+   */
+  fcmServiceAccount: string;
 }
 
 export const CONFIG = Symbol('CONFIG');
@@ -122,6 +132,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     maxTickMove: number(env.MAX_TICK_MOVE, 0.1),
     scoringMinLiquidityUsd: number(env.SCORING_MIN_LIQUIDITY_USD, 1_000),
     seasonAnchor: env.SEASON_ANCHOR?.trim() || DEFAULT_SEASON_ANCHOR,
+    teamBalanceBonus: number(env.TEAM_BALANCE_BONUS, 5),
+    teamBalanceSectors: number(env.TEAM_BALANCE_SECTORS, 4),
 
     catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
     catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),
@@ -133,5 +145,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     assistantTrialCredits: number(env.ASSISTANT_TRIAL_CREDITS, 5),
     assistantPacks: parsePacks(env.ASSISTANT_PACKS),
     assistantTreasury: (env.ASSISTANT_TREASURY ?? env.JUPITER_FEE_ACCOUNT_SKR ?? '').trim(),
+
+    fcmServiceAccount: env.FCM_SERVICE_ACCOUNT?.trim() ?? '',
   };
 }

@@ -37,6 +37,9 @@ abstract class FormationRepository {
   /// (live until Friday full time) or a past [week].
   Future<MatchWeekResult> getMatchWeekResult(SportMode mode, {int? week});
 
+  /// The Assistant Manager's portfolio health card for this match week.
+  Future<PortfolioHealth> getPortfolioHealth(SportMode mode);
+
   /// Standings for [mode] over [period], defaulting to this season.
   Future<List<LeaderboardEntry>> getLeaderboard(
     SportMode mode, {
@@ -106,6 +109,22 @@ abstract class FormationRepository {
   Future<void> markNotificationRead(String id);
 
   Future<void> markAllNotificationsRead();
+
+  /// Registers this device's FCM token so the Manager's notifications push.
+  Future<void> registerPushDevice({required String token, required String platform, String? timeZone});
+
+  Future<void> unregisterPushDevice(String token);
+
+  Future<PushSettings> getPushSettings();
+
+  /// Updates whichever of these are given.
+  Future<PushSettings> savePushSettings({
+    Map<String, bool>? categories,
+    bool? quietEnabled,
+    int? quietStart,
+    int? quietEnd,
+    String? timeZone,
+  });
 
   // ── Assistant Manager ──────────────────────────────────────────────────────
 

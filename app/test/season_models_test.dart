@@ -179,6 +179,33 @@ void main() {
     expect(skill.form.last, 'W');
   });
 
+  test('the portfolio health card parses sectors, tiers, balance and lessons', () {
+    final health = PortfolioHealth.fromJson({
+      'mode': 'basketball',
+      'week': 3,
+      'weekOfSeason': 3,
+      'season': 1,
+      'points': -12.5,
+      'tiers': [
+        {'tier': 'growth', 'count': 2},
+        {'tier': 'blue_chip', 'count': 1},
+      ],
+      'sectors': [
+        {'sector': 'technology', 'label': 'Technology', 'sharePct': 61},
+        {'sector': 'financials', 'label': 'Financials', 'sharePct': 39},
+      ],
+      'balance': {'sectors': 2, 'needed': 4, 'bonus': 5, 'earned': false},
+      'carried': {'symbol': 'NVDAx', 'points': 14},
+      'dragged': null,
+      'lessons': ['61% of your team is in technology.'],
+    });
+    expect(health.isBalanced, isFalse);
+    expect(health.tiers['growth'], 2);
+    expect(health.sectors.first.label, 'Technology');
+    expect(health.carried!.symbol, 'NVDAx');
+    expect(health.dragged, isNull);
+  });
+
   test('fixture mode serves a result card', () async {
     final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
     final result = await repo.getMatchWeekResult(SportMode.football);

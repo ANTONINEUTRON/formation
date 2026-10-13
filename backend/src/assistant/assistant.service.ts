@@ -15,6 +15,7 @@ import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE } from '../core/sources.js';
 import type { BalanceSource } from '../core/sources.js';
 import type { AuthUser, RosterDto } from '../domain/dto.js';
+import { sectorLabel, sectorOf } from '../domain/sectors.js';
 import { parseSportMode, rosterShape, slotTierLabel } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { requireString } from '../domain/validate.js';
@@ -350,6 +351,7 @@ function buildContext(
               priceUsd: slot.stock.priceUsd,
               change24hPct: slot.stock.change24hPct,
               sharesHeld: slot.balance,
+              sector: sectorName(slot.stock.symbol),
               notScoring: slot.stock.notScoring ?? undefined,
               sessionAlphaPct: score ? pct(score.alpha) : undefined,
               sessionPoints: score?.total,
@@ -384,7 +386,13 @@ function buildContext(
       priceUsd: s.priceUsd,
       change24hPct: s.change24hPct,
       held: (held.get(s.mint) ?? 0) > 0 || undefined,
+      sector: sectorName(s.symbol),
       notScoring: s.notScoring ?? undefined,
     })),
   };
+}
+
+function sectorName(symbol: string): string | undefined {
+  const sector = sectorOf(symbol);
+  return sector ? sectorLabel(sector) : undefined;
 }

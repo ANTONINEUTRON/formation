@@ -332,6 +332,129 @@ class Skill extends Equatable {
   List<Object?> get props => [rating, weeks, alphaPerWeekPct, hitRatePct, form];
 }
 
+/// The Assistant Manager's weekly portfolio health card (SCORING_PLAN.md
+/// Phase 5): balance, explained in football terms.
+class PortfolioHealth extends Equatable {
+  const PortfolioHealth({
+    required this.weekOfSeason,
+    required this.season,
+    required this.points,
+    required this.tiers,
+    required this.sectors,
+    required this.balanceSectors,
+    required this.balanceNeeded,
+    required this.balanceBonus,
+    required this.balanceEarned,
+    required this.carried,
+    required this.dragged,
+    required this.lessons,
+  });
+
+  factory PortfolioHealth.fromJson(Map<String, dynamic> json) {
+    final balance = json['balance'] as Map<String, dynamic>? ?? const {};
+    ({String symbol, double points})? pick(Object? v) =>
+        v is Map ? (symbol: v['symbol'] as String, points: _num(v['points'])) : null;
+    return PortfolioHealth(
+      weekOfSeason: json['weekOfSeason'] as int? ?? 1,
+      season: json['season'] as int? ?? 1,
+      points: _num(json['points']),
+      tiers: {
+        for (final t in json['tiers'] as List? ?? const [])
+          (t as Map)['tier'] as String: t['count'] as int,
+      },
+      sectors: [
+        for (final s in json['sectors'] as List? ?? const [])
+          (label: (s as Map)['label'] as String, sharePct: s['sharePct'] as int),
+      ],
+      balanceSectors: balance['sectors'] as int? ?? 0,
+      balanceNeeded: balance['needed'] as int? ?? 4,
+      balanceBonus: balance['bonus'] as int? ?? 0,
+      balanceEarned: balance['earned'] as bool? ?? false,
+      carried: pick(json['carried']),
+      dragged: pick(json['dragged']),
+      lessons: [for (final l in json['lessons'] as List? ?? const []) l as String],
+    );
+  }
+
+  final int weekOfSeason;
+  final int season;
+  final double points;
+
+  /// Tier api value -> picks in it.
+  final Map<String, int> tiers;
+
+  /// Share of the team's value by sector, biggest first.
+  final List<({String label, int sharePct})> sectors;
+  final int balanceSectors;
+  final int balanceNeeded;
+  final int balanceBonus;
+  final bool balanceEarned;
+  final ({String symbol, double points})? carried;
+  final ({String symbol, double points})? dragged;
+  final List<String> lessons;
+
+  bool get isBalanced => balanceSectors >= balanceNeeded;
+
+  @override
+  List<Object?> get props => [weekOfSeason, points, sectors, lessons, balanceEarned];
+}
+
+/// What a Manager wants pushed, and when not to (SCORING_PLAN.md Phase 4).
+class PushSettings extends Equatable {
+  const PushSettings({
+    required this.available,
+    required this.devices,
+    required this.categories,
+    required this.quietEnabled,
+    required this.quietStart,
+    required this.quietEnd,
+    required this.timeZone,
+    required this.dailyBudget,
+  });
+
+  factory PushSettings.fromJson(Map<String, dynamic> json) => PushSettings(
+        available: json['available'] as bool? ?? false,
+        devices: json['devices'] as int? ?? 0,
+        categories: {
+          for (final e in (json['categories'] as Map<String, dynamic>? ?? const {}).entries)
+            e.key: e.value as bool,
+        },
+        quietEnabled: json['quietEnabled'] as bool? ?? true,
+        quietStart: json['quietStart'] as int? ?? 22 * 60,
+        quietEnd: json['quietEnd'] as int? ?? 8 * 60,
+        timeZone: json['timeZone'] as String? ?? 'UTC',
+        dailyBudget: json['dailyBudget'] as int? ?? 10,
+      );
+
+  /// The order and wording the settings screen shows.
+  static const categoryLabels = {
+    'match_week': ('Match week', 'Kick-off, half-time and your full-time result'),
+    'goals': ('Live goals', 'When a pick scores, at most once a pick a day'),
+    'not_scoring': ('Not scoring', "When your captain's price can't be trusted"),
+    'season': ('Season finale', 'Where you finished, and the new season'),
+    'points': ('Daily points', "Yesterday's role events"),
+    'leagues': ('Leagues', 'Starts, results and new members'),
+    'social': ('Managers', 'New followers and moves by Managers you follow'),
+  };
+
+  /// False when the server has no FCM credentials.
+  final bool available;
+  final int devices;
+  final Map<String, bool> categories;
+  final bool quietEnabled;
+
+  /// Minutes after local midnight.
+  final int quietStart;
+  final int quietEnd;
+  final String timeZone;
+  final int dailyBudget;
+
+  bool isOn(String category) => categories[category] ?? true;
+
+  @override
+  List<Object?> get props => [available, devices, categories, quietEnabled, quietStart, quietEnd, timeZone];
+}
+
 /// A finished season on a manager's profile.
 class SeasonResult extends Equatable {
   const SeasonResult({required this.season, required this.points, required this.rank, required this.players});

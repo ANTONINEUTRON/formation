@@ -205,6 +205,46 @@ export interface LeagueTableRowDto {
   form: ('W' | 'D' | 'L')[];
 }
 
+/**
+ * The Assistant Manager's weekly portfolio health card: balance, framed as
+ * football. Never "profit": beat the market, balance your team, stay
+ * consistent.
+ */
+export interface PortfolioHealthDto {
+  mode: SportMode;
+  week: number;
+  weekOfSeason: number;
+  season: number;
+  /** Points banked this match week. */
+  points: number;
+  tiers: { tier: RiskTier; count: number }[];
+  /** Share of the team's value in each sector, biggest first. */
+  sectors: { sector: string; label: string; sharePct: number }[];
+  /** The team balance bonus: how many sectors, how many it takes. */
+  balance: { sectors: number; needed: number; bonus: number; earned: boolean };
+  carried: { symbol: string; points: number } | null;
+  dragged: { symbol: string; points: number } | null;
+  /** Plain-language takeaways. */
+  lessons: string[];
+}
+
+/** A player's push settings. */
+export interface PushSettingsDto {
+  /** False when the server has no FCM credentials: nothing is pushed. */
+  available: boolean;
+  /** Devices registered for this player. */
+  devices: number;
+  /** match_week, goals, not_scoring, season, points, leagues, social. */
+  categories: Record<string, boolean>;
+  quietEnabled: boolean;
+  /** Minutes after local midnight. */
+  quietStart: number;
+  quietEnd: number;
+  timeZone: string;
+  /** Most pushes in any 24 hours; the in-app inbox still gets everything. */
+  dailyBudget: number;
+}
+
 /** Skill, made visible: on profiles and the Skill board. */
 export interface SkillDto {
   /** 0–100; 50 matches the market. Risk-adjusted, so steady beats lucky. */

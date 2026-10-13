@@ -5,7 +5,13 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { benchmarkMintFor } from '../domain/assets.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
-import { assessAsset, ELIGIBILITY_WINDOW_MS, nextStatus } from './engine/eligibility.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import {
+  assessAsset,
+  ELIGIBILITY_WINDOW_MS,
+  nextStatus,
+  NOT_SCORING_LABELS,
+} from './engine/eligibility.js';
 import type { NotScoringReason, ScoringStatus } from './engine/eligibility.js';
 import type { PriceTick } from './engine/types.js';
 
@@ -24,6 +30,7 @@ export class AssetScoringService {
     @Inject(DB) private readonly db: Db,
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly xstocks: XStocksService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Re-assesses every listed asset as of [now]. */
@@ -58,8 +65,16 @@ export class AssetScoringService {
     );
     const mintBySymbol = new Map(rows.map((r) => [r.symbol, r.mint]));
 
-    const statuses = [];
-    const anomalies = [];
+    const statuses: {
+      mint: string;
+      eligible: boolean;
+      reason: NotScoringReason | null;
+      since: Date;
+      passing_since: Date | null;
+      checked_at: Date;
+      metrics: string;
+    }[] = [];
+    const anomalies: { mint: string; at: Date; kind: 'jump' | 'status'; detail: string | null }[] = [];
     for (const row of rows) {
       const benchmark = benchmarkMintFor(row.asset_class, mintBySymbol, this.config.benchmarkMint);
       // A benchmark is the yardstick, not a pick being judged against it.
@@ -127,6 +142,44 @@ export class AssetScoringService {
 
     // Scoring and the API read status through the catalogue cache.
     this.xstocks.invalidate();
+
+    const byMint = new Map(statuses.map((s) => [s.mint, s]));
+    for (const { mint, kind } of anomalies) {
+      const status = byMint.get(mint);
+      if (kind !== 'status' || !status || status.eligible) continue;
+      await this.warnCaptains(mint, rows.find((r) => r.mint === mint)?.symbol ?? mint, status.reason);
+    }
     return { notScoring: statuses.filter((s) => !s.eligible).length };
+  }
+
+  /**
+   * "Your captain isn't scoring": the armband doubles nothing on a price that
+   * can't be trusted, so the Managers who gave it one hear about it once.
+   */
+  private async warnCaptains(mint: string, symbol: string, reason: NotScoringReason | null): Promise<void> {
+    const captains = await this.db
+      .selectFrom('rosters')
+      .innerJoin('roster_slots', (join) =>
+        join
+          .onRef('roster_slots.roster_id', '=', 'rosters.id')
+          .onRef('roster_slots.slot_index', '=', 'rosters.captain_slot'),
+      )
+      .innerJoin('users', 'users.id', 'rosters.user_id')
+      .select(['rosters.user_id as user_id', 'rosters.sport_mode as mode'])
+      .where('roster_slots.token_mint', '=', mint)
+      .where('users.is_seed', '=', false)
+      .execute();
+    const why = reason ? NOT_SCORING_LABELS[reason] : 'unreliable price';
+    await this.notifications.pushMany(
+      captains.map((c) => ({
+        userId: c.user_id,
+        kind: 'not_scoring' as const,
+        title: `Your captain isn't scoring: ${why}`,
+        body:
+          `${symbol} banks nothing until its price has been reliable for a day. ` +
+          'Hand the armband to another pick?',
+        data: { mode: c.mode, mint },
+      })),
+    );
   }
 }

@@ -4,6 +4,26 @@ import type { ObservedPayment, SkrPayments, TransferRequest } from '../../src/as
 import type { PriceInfo } from '../../src/core/chain.service.js';
 import type { Clock } from '../../src/core/clock.js';
 import type { BalanceSource, PriceSource } from '../../src/core/sources.js';
+import type { PushMessage, PushResult, PushSender } from '../../src/notifications/fcm.js';
+
+/** Records pushes instead of calling FCM. Tokens in [invalid] answer as gone. */
+export class FakePushSender implements PushSender {
+  enabled = true;
+  readonly sent: { token: string; message: PushMessage }[] = [];
+  readonly invalid = new Set<string>();
+
+  async send(token: string, message: PushMessage): Promise<PushResult> {
+    if (this.invalid.has(token)) return 'invalid_token';
+    this.sent.push({ token, message });
+    return 'sent';
+  }
+
+  reset(): void {
+    this.enabled = true;
+    this.sent.length = 0;
+    this.invalid.clear();
+  }
+}
 
 /** Clock the tests move by hand. */
 export class FakeClock implements Clock {

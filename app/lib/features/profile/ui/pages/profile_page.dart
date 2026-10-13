@@ -6,6 +6,7 @@ import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/features/notifications/ui/widgets/push_settings_sheet.dart';
 import 'package:formation/features/profile/ui/cubits/profile_cubit.dart';
 import 'package:formation/features/profile/ui/cubits/profile_state.dart';
 import 'package:formation/features/profile/ui/widgets/action_tile.dart';
@@ -156,6 +157,11 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.receipt_long_outlined,
               title: 'Transaction history',
               onTap: () => context.router.push(const TransactionHistoryRoute()),
+            ),
+            ActionTile(
+              icon: Icons.notifications_active_outlined,
+              title: 'Push notifications',
+              onTap: () => PushSettingsSheet.show(context),
             ),
           ],
         ),

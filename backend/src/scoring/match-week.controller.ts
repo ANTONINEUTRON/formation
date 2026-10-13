@@ -2,15 +2,17 @@ import { BadRequestException, Controller, Get, Inject, Param, Query, UseGuards }
 import { AuthGuard, CurrentUser } from '../auth/auth.guard.js';
 import { CLOCK } from '../core/clock.js';
 import type { Clock } from '../core/clock.js';
-import type { AuthUser, MatchWeekResultDto } from '../domain/dto.js';
+import type { AuthUser, MatchWeekResultDto, PortfolioHealthDto } from '../domain/dto.js';
 import { parseSportMode } from '../domain/sport.js';
 import { MatchWeekService } from './match-week.service.js';
+import { PortfolioService } from './portfolio.service.js';
 
 @Controller('match-week')
 @UseGuards(AuthGuard)
 export class MatchWeekController {
   constructor(
     private readonly matchWeeks: MatchWeekService,
+    private readonly portfolio: PortfolioService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -29,5 +31,11 @@ export class MatchWeekController {
       throw new BadRequestException('week must be a positive whole number');
     }
     return this.matchWeeks.result(user.id, parseSportMode(mode), this.clock.now(), number);
+  }
+
+  /** The Assistant Manager's portfolio health card for this match week. */
+  @Get(':mode/health')
+  health(@Param('mode') mode: string, @CurrentUser() user: AuthUser): Promise<PortfolioHealthDto> {
+    return this.portfolio.health(user.id, parseSportMode(mode), this.clock.now());
   }
 }

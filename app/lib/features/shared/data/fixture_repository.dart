@@ -322,6 +322,38 @@ class FixtureRepository implements FormationRepository {
   }
 
   @override
+  Future<PortfolioHealth> getPortfolioHealth(SportMode mode) => _delay(() {
+        final picks = [for (final s in _rosters[mode]!.slots) if (s.stock != null) s.stock!];
+        final tiers = <String, int>{};
+        for (final p in picks) {
+          tiers[p.tier.apiValue] = (tiers[p.tier.apiValue] ?? 0) + 1;
+        }
+        final slots = [...?_sessions[mode]?.slots]..sort((a, b) => b.total.compareTo(a.total));
+        return PortfolioHealth(
+          weekOfSeason: _matchWeek(DateTime.now()).weekOfSeason,
+          season: _matchWeek(DateTime.now()).season,
+          points: _sessions[mode]?.points ?? 0,
+          tiers: tiers,
+          // Demo split; the backend works it out from the curated sector map.
+          sectors: const [
+            (label: 'Technology', sharePct: 46),
+            (label: 'Financials', sharePct: 22),
+            (label: 'Consumer staples', sharePct: 18),
+            (label: 'Health care', sharePct: 14),
+          ],
+          balanceSectors: 4,
+          balanceNeeded: 4,
+          balanceBonus: 5,
+          balanceEarned: false,
+          carried: slots.isEmpty || slots.first.total <= 0 ? null : (symbol: slots.first.symbol, points: slots.first.total),
+          dragged: slots.isEmpty || slots.last.total >= 0 ? null : (symbol: slots.last.symbol, points: slots.last.total),
+          lessons: const [
+            "You span 4 sectors: that's balance, and it's worth +5 at full time.",
+          ],
+        );
+      });
+
+  @override
   Future<MatchWeekResult> getMatchWeekResult(SportMode mode, {int? week}) => _delay(() {
         final session = _sessions[mode];
         final now = DateTime.now();
@@ -826,6 +858,47 @@ class FixtureRepository implements FormationRepository {
         }
         _notify();
       });
+
+  // Fixture mode has no FCM: settings are kept in memory so the screen works.
+  PushSettings _push = const PushSettings(
+    available: false,
+    devices: 0,
+    categories: {},
+    quietEnabled: true,
+    quietStart: 22 * 60,
+    quietEnd: 8 * 60,
+    timeZone: 'UTC',
+    dailyBudget: 10,
+  );
+
+  @override
+  Future<void> registerPushDevice({required String token, required String platform, String? timeZone}) =>
+      _delay(() {});
+
+  @override
+  Future<void> unregisterPushDevice(String token) => _delay(() {});
+
+  @override
+  Future<PushSettings> getPushSettings() => _delay(() => _push);
+
+  @override
+  Future<PushSettings> savePushSettings({
+    Map<String, bool>? categories,
+    bool? quietEnabled,
+    int? quietStart,
+    int? quietEnd,
+    String? timeZone,
+  }) =>
+      _delay(() => _push = PushSettings(
+            available: _push.available,
+            devices: _push.devices,
+            categories: {..._push.categories, ...?categories},
+            quietEnabled: quietEnabled ?? _push.quietEnabled,
+            quietStart: quietStart ?? _push.quietStart,
+            quietEnd: quietEnd ?? _push.quietEnd,
+            timeZone: timeZone ?? _push.timeZone,
+            dailyBudget: _push.dailyBudget,
+          ));
 
   // ── Assistant Manager (canned, but reads the real fixture roster) ──────────
 

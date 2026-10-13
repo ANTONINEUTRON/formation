@@ -14,6 +14,7 @@ import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.d
 import 'package:formation/features/onboarding/ui/pages/onboarding_page.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
 import 'package:formation/features/shared/data/fixture_repository.dart';
+import 'package:formation/features/notifications/data/push_controller.dart';
 import 'package:formation/features/notifications/ui/cubits/notifications_cubit.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
@@ -106,7 +107,16 @@ class _ConnectedApp extends StatelessWidget {
               ),
             ),
           ],
-          child: _toastWrapped(),
+          // Pushes: re-registers this device on launch if they were turned on.
+          child: RepositoryProvider<PushController>(
+            lazy: false,
+            create: (context) => PushController(
+              repository: context.read<FormationRepository>(),
+              onMessage: context.read<NotificationsCubit>().refreshUnread,
+            )..resume(),
+            dispose: (controller) => controller.dispose(),
+            child: _toastWrapped(),
+          ),
         ),
       ),
     );

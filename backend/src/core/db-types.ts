@@ -29,6 +29,8 @@ export interface XStocksTable {
   asset_class: Generated<string>;
   /** Pool depth in USD from the last catalogue refresh; null if unknown. */
   liquidity_usd: number | null;
+  /** Overrides the curated sector map (domain/sectors.ts). */
+  sector: string | null;
 }
 
 /** Whether an asset is scoring right now (scoring/engine/eligibility.ts). */
@@ -132,7 +134,7 @@ export interface PointsLedgerTable {
   id: Generated<string>;
   user_id: string;
   sport_mode: SportMode;
-  kind: 'alpha' | 'events' | 'substitution' | 'correction';
+  kind: 'alpha' | 'events' | 'substitution' | 'correction' | 'bonus';
   points: number;
   detail: ColumnType<unknown, unknown, unknown>;
   at: Timestamp;
@@ -233,6 +235,31 @@ export interface SkillRatingsTable {
   hit_rate: number;
   captain_rate: number | null;
   updated_at: Timestamp;
+}
+
+export interface DeviceTokensTable {
+  token: string;
+  user_id: string;
+  platform: 'android' | 'ios' | 'web';
+  created_at: Timestamp;
+  last_seen_at: Timestamp;
+}
+
+export interface PushPreferencesTable {
+  user_id: string;
+  categories: ColumnType<Record<string, boolean>, Record<string, boolean> | string | undefined, Record<string, boolean> | string>;
+  quiet_enabled: Generated<boolean>;
+  quiet_start: Generated<number>;
+  quiet_end: Generated<number>;
+  time_zone: Generated<string>;
+  updated_at: Timestamp;
+}
+
+export interface PushLogTable {
+  id: Generated<string>;
+  user_id: string;
+  kind: string;
+  sent_at: Timestamp;
 }
 
 export interface SeasonResultsTable {
@@ -392,6 +419,9 @@ export interface Database {
   live_events: LiveEventsTable;
   weekly_stats: WeeklyStatsTable;
   skill_ratings: SkillRatingsTable;
+  device_tokens: DeviceTokensTable;
+  push_preferences: PushPreferencesTable;
+  push_log: PushLogTable;
 }
 
 export type User = Selectable<UsersTable>;

@@ -13,6 +13,8 @@ import type { SportMode } from '../domain/sport.js';
 import type { LiveEventDto, SessionDto } from '../domain/dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EntryScoringService } from './entry-scoring.service.js';
+import { LedgerService } from './ledger.service.js';
+import type { LedgerKind } from './ledger.service.js';
 import { MatchWeekService } from './match-week.service.js';
 import { round1 } from './engine/metrics.js';
 import { GOAL_CODES } from './engine/skill.js';
@@ -55,6 +57,7 @@ export class GeneralScoringService {
     private readonly scoring: EntryScoringService,
     private readonly notifications: NotificationsService,
     private readonly matchWeeks: MatchWeekService,
+    private readonly ledger: LedgerService,
   ) {}
 
   /** Banks everything owed up to [now]. Called from the price tick. */
@@ -385,39 +388,15 @@ export class GeneralScoringService {
   }
 
   /** Writes a ledger row and moves the running total by the same amount. */
-  async award(
+  award(
     userId: string,
     mode: SportMode,
-    kind: 'alpha' | 'events' | 'substitution' | 'correction',
+    kind: LedgerKind,
     points: number,
     at: number,
     detail?: unknown,
   ): Promise<void> {
-    if (points === 0) return;
-    await this.db.transaction().execute(async (trx) => {
-      await trx
-        .insertInto('points_ledger')
-        .values({
-          user_id: userId,
-          sport_mode: mode,
-          kind,
-          points,
-          detail: detail === undefined ? null : JSON.stringify(detail),
-          at: new Date(at),
-          season: this.calendar.weekAt(at).season,
-        })
-        .execute();
-      await trx
-        .insertInto('classic_scores')
-        .values({ user_id: userId, sport_mode: mode, total_points: points })
-        .onConflict((oc) =>
-          oc.columns(['user_id', 'sport_mode']).doUpdateSet((eb) => ({
-            total_points: eb(eb.ref('classic_scores.total_points'), '+', points),
-            updated_at: this.clock.date(),
-          })),
-        )
-        .execute();
-    });
+    return this.ledger.award(userId, mode, kind, points, at, detail);
   }
 
   /** Loads the rolling entry, creating it once the lineup holds at least one stock. */
