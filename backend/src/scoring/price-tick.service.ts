@@ -8,6 +8,7 @@ import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { PRICE_SOURCE } from '../core/sources.js';
 import type { PriceSource } from '../core/sources.js';
+import { LeaguesService } from '../leagues/leagues.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { AssetScoringService } from './asset-scoring.service.js';
 import { GeneralScoringService } from './general-scoring.service.js';
@@ -33,6 +34,7 @@ export class PriceTickService implements OnModuleInit {
     private readonly assetScoring: AssetScoringService,
     private readonly seasons: SeasonService,
     private readonly matchWeeks: MatchWeekService,
+    private readonly leagues: LeaguesService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -84,6 +86,13 @@ export class PriceTickService implements OnModuleInit {
 
     // Points bank here, on every tick — nothing waits for a window to close.
     await this.general.process(capturedAt.getTime());
+
+    // Leagues have their own timer; this catches any it missed (a restart).
+    try {
+      await this.leagues.processDue();
+    } catch (e) {
+      this.logger.error(`League processing failed: ${String(e)}`);
+    }
 
     // Kick-off, half-time and full time ride on the tick that crosses them.
     try {

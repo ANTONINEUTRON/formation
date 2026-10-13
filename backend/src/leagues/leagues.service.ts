@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { CLOCK } from '../core/clock.js';
 import type { Clock } from '../core/clock.js';
@@ -29,6 +29,9 @@ export const MAX_LEAGUE_MONTHS = 11;
  * time, so a league crossing a daylight-saving change lands an hour off.
  */
 const DST_GRACE_MS = 3_600_000;
+
+/** The longest setTimeout waits (2^31 - 1 ms is ~24.8 days); it re-checks then. */
+const MAX_TIMER_MS = 20 * 24 * 3_600_000;
 
 /** [date] moved by whole calendar months in UTC, clamped to the month's end. */
 export function addUtcMonths(date: Date, months: number): Date {
@@ -80,8 +83,9 @@ export interface CreateLeagueInput {
  * general league, never a running one. At `ends_at` it settles on points.
  */
 @Injectable()
-export class LeaguesService {
+export class LeaguesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LeaguesService.name);
+  private timer?: NodeJS.Timeout;
 
   constructor(
     @Inject(DB) private readonly db: Db,
@@ -118,6 +122,8 @@ export class LeaguesService {
       .executeTakeFirstOrThrow();
 
     await this.addMember(league, user.id);
+    // It may now be the next thing due.
+    void this.scheduleNext();
     if (input.invite) {
       // Accepts a wallet address or a username, like the old duel challenge.
       const opponent = await this.users.findByHandle(input.invite);
@@ -208,8 +214,55 @@ export class LeaguesService {
       .execute();
   }
 
+  onModuleInit(): void {
+    void this.scheduleNext();
+  }
+
+  onModuleDestroy(): void {
+    if (this.timer) clearTimeout(this.timer);
+  }
+
+  /**
+   * Wakes exactly when the next league starts or ends, rather than polling.
+   *
+   * A once-a-minute check kept the database awake around the clock, and a
+   * serverless Postgres (Neon) bills for every minute it's awake. This asks
+   * once, sleeps until the next start or end, and asks again then. Creating
+   * a league reschedules, and every price tick also calls [processDue], so
+   * nothing is missed if a timer is lost to a restart.
+   */
+  async scheduleNext(): Promise<void> {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = undefined;
+    try {
+      const [start, end] = await Promise.all([
+        this.db
+          .selectFrom('leagues')
+          .select((eb) => eb.fn.min('starts_at').as('at'))
+          .where('status', '=', 'scheduled')
+          .executeTakeFirst(),
+        this.db
+          .selectFrom('leagues')
+          .select((eb) => eb.fn.min('ends_at').as('at'))
+          .where('status', '=', 'live')
+          .executeTakeFirst(),
+      ]);
+      const due = [start?.at, end?.at]
+        .filter((at): at is Date => at !== null && at !== undefined)
+        .map((at) => new Date(at).getTime());
+      if (due.length === 0) return;
+      // A few seconds late is fine; a timer can't wait longer than ~24 days.
+      const delay = Math.min(Math.max(Math.min(...due) - this.clock.now(), 0) + 2_000, MAX_TIMER_MS);
+      this.timer = setTimeout(() => {
+        void this.processDue().finally(() => this.scheduleNext());
+      }, delay);
+      this.timer.unref();
+    } catch (e) {
+      this.logger.warn(`Scheduling the next league failed: ${String(e)}`);
+    }
+  }
+
   /** Opens leagues whose start has passed and settles those that have ended. */
-  @Cron(CronExpression.EVERY_MINUTE)
   async processDue(): Promise<void> {
     const now = this.clock.date();
     const starting = await this.db
