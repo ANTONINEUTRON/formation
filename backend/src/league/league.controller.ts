@@ -9,7 +9,8 @@ export class LeagueController {
   constructor(private readonly league: LeagueService) {}
 
   /**
-   * `?period=all_time|monthly|weekly|custom`, defaulting to all time.
+   * `?period=season|match_week|all_time|monthly|weekly|custom`, defaulting to
+   * the current season.
    * Custom ranges take `?from=<iso>&to=<iso>`; `to` may be omitted to run
    * through to now.
    */

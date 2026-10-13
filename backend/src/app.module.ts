@@ -30,7 +30,10 @@ import { RosterService } from './roster/roster.service.js';
 import { AssetScoringService } from './scoring/asset-scoring.service.js';
 import { EntryScoringService } from './scoring/entry-scoring.service.js';
 import { GeneralScoringService } from './scoring/general-scoring.service.js';
+import { MatchWeekController } from './scoring/match-week.controller.js';
+import { MatchWeekService } from './scoring/match-week.service.js';
 import { PriceTickService } from './scoring/price-tick.service.js';
+import { SeasonService } from './scoring/season.service.js';
 import { SwapController } from './swap/swap.controller.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
@@ -54,6 +57,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     UsersController,
     SwapController,
     AssistantController,
+    MatchWeekController,
     // Unauthenticated share previews, read by the ogRender function.
     OgController,
     AdminController,
@@ -61,6 +65,8 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
   providers: [
     AppService,
     AssetScoringService,
+    SeasonService,
+    MatchWeekService,
     EntryScoringService,
     GeneralScoringService,
     PriceTickService,

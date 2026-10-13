@@ -15,7 +15,8 @@
           "tier": "blue_chip",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -29,7 +30,8 @@
           "tier": "stable",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -43,7 +45,8 @@
           "tier": "stable",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -57,7 +60,8 @@
           "tier": "stable",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -71,7 +75,8 @@
           "tier": "balanced",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -85,7 +90,8 @@
           "tier": "balanced",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -99,7 +105,8 @@
           "tier": "balanced",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -113,7 +120,8 @@
           "tier": "balanced",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -133,7 +141,8 @@
           "tier": "momentum",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       },
@@ -147,7 +156,8 @@
           "tier": "momentum",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10
       }
@@ -155,8 +165,18 @@
     "classicPoints": 0,
     "classicRank": 1,
     "session": {
-      "startsAt": "2026-01-05T12:00:00.000Z",
-      "endsAt": "2026-01-05T12:10:00.000Z",
+      "matchWeek": {
+        "number": 1,
+        "season": 1,
+        "weekOfSeason": 1,
+        "kickOff": "2026-01-05T14:30:00.000Z",
+        "fullTime": "2026-01-09T21:00:00.000Z",
+        "nextKickOff": "2026-01-12T14:30:00.000Z",
+        "points": 0
+      },
+      "transferWindowOpen": false,
+      "startsAt": "2026-01-06T15:00:00.000Z",
+      "endsAt": "2026-01-06T15:10:00.000Z",
       "entered": false,
       "points": 0,
       "slots": [],
@@ -173,7 +193,8 @@
           "tier": "blue_chip",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -188,7 +209,8 @@
           "tier": "blue_chip",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -203,7 +225,8 @@
           "tier": "stable",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -220,7 +243,8 @@
           "tier": "stable",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -237,7 +261,8 @@
           "tier": "balanced",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -256,10 +281,17 @@
           "tier": "growth",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
-        "eligibleSlots": []
+        "eligibleSlots": [
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
       },
       {
         "stock": {
@@ -269,10 +301,17 @@
           "tier": "growth",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
-        "eligibleSlots": []
+        "eligibleSlots": [
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
       },
       {
         "stock": {
@@ -282,10 +321,17 @@
           "tier": "growth",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
-        "eligibleSlots": []
+        "eligibleSlots": [
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
       },
       {
         "stock": {
@@ -295,7 +341,8 @@
           "tier": "momentum",
           "priceUsd": 100,
           "change24hPct": 0,
-          "logoUrl": null
+          "logoUrl": null,
+          "notScoring": null
         },
         "balance": 10,
         "eligibleSlots": [
@@ -313,7 +360,8 @@
       "tier": "stable",
       "priceUsd": 100,
       "change24hPct": 0,
-      "logoUrl": null
+      "logoUrl": null,
+      "notScoring": null
     }
   ]
 }

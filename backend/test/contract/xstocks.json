@@ -6,7 +6,8 @@
     "tier": "blue_chip",
     "priceUsd": 100,
     "change24hPct": 0,
-    "logoUrl": null
+    "logoUrl": null,
+    "notScoring": null
   },
   {
     "symbol": "AMDx",
@@ -15,7 +16,8 @@
     "tier": "growth",
     "priceUsd": 100,
     "change24hPct": 0,
-    "logoUrl": null
+    "logoUrl": null,
+    "notScoring": null
   },
   {
     "symbol": "HOODx",
@@ -24,6 +26,7 @@
     "tier": "momentum",
     "priceUsd": 100,
     "change24hPct": 0,
-    "logoUrl": null
+    "logoUrl": null,
+    "notScoring": null
   }
 ]

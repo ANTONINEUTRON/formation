@@ -11,6 +11,8 @@ import type { PriceSource } from '../core/sources.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { AssetScoringService } from './asset-scoring.service.js';
 import { GeneralScoringService } from './general-scoring.service.js';
+import { MatchWeekService } from './match-week.service.js';
+import { SeasonService } from './season.service.js';
 
 /**
  * Records a price for every xStock on an interval, then banks the general
@@ -29,6 +31,8 @@ export class PriceTickService implements OnModuleInit {
     private readonly xstocks: XStocksService,
     private readonly general: GeneralScoringService,
     private readonly assetScoring: AssetScoringService,
+    private readonly seasons: SeasonService,
+    private readonly matchWeeks: MatchWeekService,
     private readonly scheduler: SchedulerRegistry,
   ) {}
 
@@ -62,6 +66,13 @@ export class PriceTickService implements OnModuleInit {
         .execute();
     }
 
+    // A season that ended closes before this tick banks into the next one.
+    try {
+      await this.seasons.rollover(capturedAt.getTime());
+    } catch (e) {
+      this.logger.error(`Season rollover failed: ${String(e)}`);
+    }
+
     // Decide which assets score before anything banks, so a price that broke
     // on this very tick already counts for nothing.
     try {
@@ -73,6 +84,13 @@ export class PriceTickService implements OnModuleInit {
 
     // Points bank here, on every tick — nothing waits for a window to close.
     await this.general.process(capturedAt.getTime());
+
+    // Kick-off, half-time and full time ride on the tick that crosses them.
+    try {
+      await this.matchWeeks.process(capturedAt.getTime());
+    } catch (e) {
+      this.logger.error(`Match week processing failed: ${String(e)}`);
+    }
     return { mints: values.length, capturedAt };
   }
 }

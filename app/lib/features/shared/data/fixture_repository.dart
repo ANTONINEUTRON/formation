@@ -219,7 +219,33 @@ class FixtureRepository implements FormationRepository {
       teamEvents: const [],
       substitutionsUsed: 0,
       freeSubstitutionsLeft: 3,
+      matchWeek: _matchWeek(now),
+      transferWindowOpen: _inTransferWindow(now),
     );
+  }
+
+  /// A rough mirror of the backend calendar: ET taken as UTC-5 all year, which
+  /// is close enough for demo data. Season 1 kicked off Monday 12 Oct 2026.
+  static final _anchor = DateTime.utc(2026, 10, 12, 14, 30);
+
+  MatchWeek _matchWeek(DateTime now, {double points = 0}) {
+    final weeks = now.toUtc().difference(_anchor).inDays ~/ 7;
+    final number = weeks < 0 ? 1 : weeks + 1;
+    final kickOff = _anchor.add(Duration(days: 7 * (number - 1)));
+    return MatchWeek(
+      number: number,
+      season: (number - 1) ~/ 12 + 1,
+      weekOfSeason: (number - 1) % 12 + 1,
+      kickOff: kickOff,
+      fullTime: kickOff.add(const Duration(days: 4, hours: 6, minutes: 30)),
+      nextKickOff: kickOff.add(const Duration(days: 7)),
+      points: points,
+    );
+  }
+
+  bool _inTransferWindow(DateTime now) {
+    final week = _matchWeek(now);
+    return now.isBefore(week.kickOff) || now.isAfter(week.fullTime);
   }
 
   /// Scores the live session: alpha against SPYx, plus a few role events.
@@ -264,18 +290,45 @@ class FixtureRepository implements FormationRepository {
       ));
     }
 
+    final points = _round1(slots.fold<double>(0, (sum, s) => sum + s.total));
     _sessions[mode] = Session(
       startsAt: session.startsAt,
       endsAt: session.endsAt,
       entered: true,
       // Continuous banking: today's points accumulate rather than reset.
-      points: _round1(slots.fold<double>(0, (sum, s) => sum + s.total)),
+      points: points,
       slots: slots,
       teamEvents: const [],
       substitutionsUsed: session.substitutionsUsed,
       freeSubstitutionsLeft: session.freeSubstitutionsLeft,
+      matchWeek: _matchWeek(DateTime.now(), points: points),
+      transferWindowOpen: session.transferWindowOpen,
     );
   }
+
+  @override
+  Future<MatchWeekResult> getMatchWeekResult(SportMode mode, {int? week}) => _delay(() {
+        final session = _sessions[mode];
+        final now = DateTime.now();
+        final matchWeek = _matchWeek(now);
+        final slots = [...?session?.slots]..sort((a, b) => b.total.compareTo(a.total));
+        final best = slots.firstOrNull;
+        return MatchWeekResult(
+          week: matchWeek,
+          isFinal: _inTransferWindow(now),
+          points: session?.points ?? 0,
+          rank: session == null ? null : 4,
+          players: 128,
+          manOfTheMatch: best == null || best.total <= 0 ? null : (symbol: best.symbol, points: best.total),
+          goals: [
+            for (final s in slots)
+              for (final e in s.events)
+                if (e.points > 0 && e.code == 'goal')
+                  (at: now.subtract(const Duration(hours: 5)), symbol: s.symbol, label: e.label, points: e.points),
+          ],
+          turningPoint: best == null ? null : (at: now.subtract(const Duration(hours: 9)), points: best.total),
+        );
+      });
 
   List<ScoreEvent> _events(SportMode mode, String role, double ownReturn, double alpha) {
     final events = <ScoreEvent>[];
@@ -503,7 +556,7 @@ class FixtureRepository implements FormationRepository {
   @override
   Future<List<LeaderboardEntry>> getLeaderboard(
     SportMode mode, {
-    LeaguePeriod period = const LeaguePeriod.allTime(),
+    LeaguePeriod period = const LeaguePeriod.season(),
   }) =>
       // Fixtures hold no history, so every period shows the same board.
       _delay(() => _board(mode));

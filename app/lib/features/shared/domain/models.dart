@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/season_models.dart';
+
+export 'package:formation/features/shared/domain/season_models.dart';
 
 /// The three sports. One nav bar tab per mode.
 enum SportMode {
@@ -226,9 +229,15 @@ class Session extends Equatable {
     required this.teamEvents,
     required this.substitutionsUsed,
     required this.freeSubstitutionsLeft,
+    this.matchWeek,
+    this.transferWindowOpen = false,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
+        matchWeek: json['matchWeek'] == null
+            ? null
+            : MatchWeek.fromJson(json['matchWeek'] as Map<String, dynamic>),
+        transferWindowOpen: json['transferWindowOpen'] as bool? ?? false,
         startsAt: DateTime.parse(json['startsAt'] as String),
         endsAt: DateTime.parse(json['endsAt'] as String),
         entered: json['entered'] as bool,
@@ -258,6 +267,12 @@ class Session extends Equatable {
   final int substitutionsUsed;
   final int freeSubstitutionsLeft;
 
+  /// The match week under way, or whose transfer window is open.
+  final MatchWeek? matchWeek;
+
+  /// Friday full time to Monday kick-off: substitutions are free and unlimited.
+  final bool transferWindowOpen;
+
   Duration get remaining => endsAt.difference(DateTime.now());
 
   SlotScore? scoreFor(int slotIndex) =>
@@ -265,7 +280,7 @@ class Session extends Equatable {
 
   @override
   List<Object?> get props =>
-      [startsAt, points, slots, entered, substitutionsUsed];
+      [startsAt, points, slots, entered, substitutionsUsed, matchWeek, transferWindowOpen];
 }
 
 /// A held xStock that isn't in the starting lineup, and can be subbed in.
@@ -453,9 +468,10 @@ class LeaderboardEntry extends Equatable {
 
 /// Which slice of league history a leaderboard covers.
 enum LeaguePeriodKind {
+  matchWeek('match_week', 'This week'),
+  season('season', 'Season'),
   allTime('all_time', 'All time'),
   monthly('monthly', 'Month'),
-  weekly('weekly', 'Week'),
   custom('custom', 'Custom');
 
   const LeaguePeriodKind(this.apiValue, this.label);
@@ -470,6 +486,9 @@ class LeaguePeriod extends Equatable {
   const LeaguePeriod(this.kind, {this.from, this.to});
 
   const LeaguePeriod.allTime() : this(LeaguePeriodKind.allTime);
+
+  /// The current season: the default board.
+  const LeaguePeriod.season() : this(LeaguePeriodKind.season);
 
   /// A closed range. [to] may be null to run through to now.
   const LeaguePeriod.custom({required DateTime from, DateTime? to})
@@ -557,6 +576,8 @@ class Manager extends Equatable {
     this.formation,
     this.captainSlot,
     this.viceCaptainSlot,
+    this.seasons = const [],
+    this.badges = const [],
   });
 
   /// The API sends only filled slots; [lineup] has every slot in [shape], in
@@ -595,6 +616,14 @@ class Manager extends Equatable {
         followers: json['followers'] as int? ?? 0,
         following: json['following'] as bool? ?? false,
         isCurrentUser: json['isCurrentUser'] as bool? ?? false,
+        seasons: [
+          for (final s in (json['seasons'] as List? ?? const []))
+            SeasonResult.fromJson(s as Map<String, dynamic>),
+        ],
+        badges: [
+          for (final b in (json['badges'] as List? ?? const []))
+            ManagerBadge.fromJson(b as Map<String, dynamic>),
+        ],
       );
   }
 
@@ -615,6 +644,12 @@ class Manager extends Equatable {
   final String? formation;
   final int? captainSlot;
   final int? viceCaptainSlot;
+
+  /// Finished seasons in this sport, newest first.
+  final List<SeasonResult> seasons;
+
+  /// Honours kept across seasons.
+  final List<ManagerBadge> badges;
 
   /// Their lineup as a read-only roster, for the formation board.
   Roster get roster => Roster(
@@ -647,6 +682,8 @@ class Manager extends Equatable {
         formation: formation,
         captainSlot: captainSlot,
         viceCaptainSlot: viceCaptainSlot,
+        seasons: seasons,
+        badges: badges,
         holdings: holdings,
         followers: followers ?? this.followers,
         following: following ?? this.following,
@@ -701,9 +738,19 @@ class League extends Equatable {
     required this.joinable,
     this.maxMembers,
     this.standings = const [],
+    this.fixtures = const [],
+    this.table = const [],
   });
 
   factory League.fromJson(Map<String, dynamic> json) => League(
+        fixtures: [
+          for (final f in (json['fixtures'] as List? ?? const []))
+            Fixture.fromJson(f as Map<String, dynamic>),
+        ],
+        table: [
+          for (final r in (json['table'] as List? ?? const []))
+            LeagueTableRow.fromJson(r as Map<String, dynamic>),
+        ],
         id: json['id'] as String,
         name: json['name'] as String,
         mode: SportMode.fromApi(json['mode'] as String),
@@ -738,6 +785,15 @@ class League extends Equatable {
   final bool joinable;
   final List<LeagueStanding> standings;
 
+  /// Head-to-head fixtures, one round robin round per match week. Empty for
+  /// duels and leagues shorter than a match week.
+  final List<Fixture> fixtures;
+
+  /// W/D/L table from finished fixtures.
+  final List<LeagueTableRow> table;
+
+  bool get hasFixtures => fixtures.isNotEmpty;
+
   bool get isPrivate => visibility == 'private';
 
   /// Two-member private leagues are how a PvP challenge is modelled.
@@ -747,7 +803,7 @@ class League extends Equatable {
   Duration get endsIn => endsAt.difference(DateTime.now());
 
   @override
-  List<Object?> get props => [id, status, memberCount, joined, standings];
+  List<Object?> get props => [id, status, memberCount, joined, standings, fixtures, table];
 }
 
 /// The wire value is 'final', which Dart reserves, so the case is named [fin].

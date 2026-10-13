@@ -4,7 +4,9 @@ import type { Clock } from '../core/clock.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import type { LeaderboardEntryDto } from '../domain/dto.js';
-import { ALL_TIME, parseLeaguePeriod } from '../domain/league-period.js';
+import { CALENDAR } from '../domain/calendar.js';
+import type { GameCalendar } from '../domain/calendar.js';
+import { parseLeaguePeriod, SEASON } from '../domain/league-period.js';
 import type { LeaguePeriod } from '../domain/league-period.js';
 import type { SportMode } from '../domain/sport.js';
 
@@ -40,6 +42,7 @@ export class LeagueService {
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CALENDAR) private readonly calendar: GameCalendar,
   ) {}
 
   /**
@@ -51,16 +54,18 @@ export class LeagueService {
   async leaderboard(
     mode: SportMode,
     currentUserId?: string,
-    query: PeriodQuery | LeaguePeriod = ALL_TIME,
+    query: PeriodQuery | LeaguePeriod = SEASON,
   ): Promise<LeaderboardEntryDto[]> {
     const period =
       'kind' in query
         ? query
-        : parseLeaguePeriod(query.period, query.from, query.to, this.clock.date());
+        : parseLeaguePeriod(query.period, query.from, query.to, this.clock.date(), this.calendar);
     const today = await this.todayPoints(mode);
+    // The season board reads the running totals; every other period, career
+    // (all time) included, is a sum over the ledger.
     const tallies =
-      period.from === null && period.to === null
-        ? await this.allTimeTallies(mode, today)
+      period.kind === 'season'
+        ? await this.seasonTallies(mode, today)
         : await this.periodTallies(mode, period, today);
 
     const entries = tallies
@@ -81,8 +86,8 @@ export class LeagueService {
     return entries;
   }
 
-  /** Running totals, which every tick has already banked into. */
-  private async allTimeTallies(
+  /** This season's running totals, which every tick has already banked into. */
+  private async seasonTallies(
     mode: SportMode,
     today: Map<string, number>,
   ): Promise<Tally[]> {

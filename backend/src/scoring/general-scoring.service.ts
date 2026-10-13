@@ -6,6 +6,8 @@ import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import type { GeneralEntry } from '../core/db-types.js';
+import { CALENDAR } from '../domain/calendar.js';
+import type { GameCalendar } from '../domain/calendar.js';
 import { SPORT_MODES } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import type { SessionDto } from '../domain/dto.js';
@@ -47,6 +49,7 @@ export class GeneralScoringService {
     @Inject(DB) private readonly db: Db,
     @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CALENDAR) private readonly calendar: GameCalendar,
     private readonly scoring: EntryScoringService,
     private readonly notifications: NotificationsService,
   ) {}
@@ -129,7 +132,11 @@ export class GeneralScoringService {
       if (slot.base !== 0) sessionBase[slot.mint] = round1((sessionBase[slot.mint] ?? 0) + slot.base);
     }
 
-    await this.award(candidate.userId, mode, 'alpha', breakdown.total, now);
+    // Each pick's share, so a match week can name its man of the match.
+    const bySlot = Object.fromEntries(
+      breakdown.slots.flatMap((s) => (s.total !== 0 ? [[s.mint, s.total]] : [])),
+    );
+    await this.award(candidate.userId, mode, 'alpha', breakdown.total, now, { slots: bySlot });
     await this.db
       .updateTable('general_entries')
       .set({ last_breakdown: JSON.stringify(breakdown), session_base: JSON.stringify(sessionBase) })
@@ -253,6 +260,7 @@ export class GeneralScoringService {
           points,
           detail: detail === undefined ? null : JSON.stringify(detail),
           at: new Date(at),
+          season: this.calendar.weekAt(at).season,
         })
         .execute();
       await trx
@@ -314,11 +322,23 @@ export class GeneralScoringService {
       .where('sport_mode', '=', mode)
       .executeTakeFirst();
 
-    const start = this.sessionStart(this.clock.now());
+    const now = this.clock.now();
+    const start = this.sessionStart(now);
     const length = Math.max(1, this.config.sessionMinutes) * 60_000;
     const breakdown = parse<EntryBreakdown>(entry?.last_breakdown);
+    const week = this.calendar.weekAt(now);
 
     return {
+      matchWeek: {
+        number: week.number,
+        season: week.season,
+        weekOfSeason: week.weekOfSeason,
+        kickOff: week.kickOff.toISOString(),
+        fullTime: week.fullTime.toISOString(),
+        nextKickOff: week.nextKickOff.toISOString(),
+        points: await this.pointsSince(userId, mode, week.kickOff.getTime(), week.fullTime.getTime()),
+      },
+      transferWindowOpen: this.calendar.inTransferWindow(now),
       startsAt: new Date(start).toISOString(),
       endsAt: new Date(start + length).toISOString(),
       entered: entry !== undefined,
@@ -333,15 +353,16 @@ export class GeneralScoringService {
     };
   }
 
-  /** Points banked by a user in a sport since [from]. */
-  async pointsSince(userId: string, mode: SportMode, from: number): Promise<number> {
-    const row = await this.db
+  /** Points banked by a user in a sport since [from], up to [to] if given. */
+  async pointsSince(userId: string, mode: SportMode, from: number, to?: number): Promise<number> {
+    let query = this.db
       .selectFrom('points_ledger')
       .select((eb) => eb.fn.sum<string>('points').as('total'))
       .where('user_id', '=', userId)
       .where('sport_mode', '=', mode)
-      .where('at', '>=', new Date(from))
-      .executeTakeFirst();
+      .where('at', '>=', new Date(from));
+    if (to !== undefined) query = query.where('at', '<=', new Date(to));
+    const row = await query.executeTakeFirst();
     return Number(row?.total ?? 0);
   }
 
@@ -363,6 +384,8 @@ export class GeneralScoringService {
    */
   async chargeSubstitution(userId: string, mode: SportMode): Promise<number> {
     const now = this.clock.now();
+    // The weekend transfer window: substitutions are free and don't count.
+    if (this.calendar.inTransferWindow(now)) return 0;
     const row = await this.db
       .insertInto('daily_substitutions')
       .values({ user_id: userId, sport_mode: mode, day: new Date(utcDay(now)), used: 1 })

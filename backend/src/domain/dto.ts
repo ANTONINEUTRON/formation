@@ -51,6 +51,22 @@ export interface SessionDto {
   substitutionsUsed: number;
   /** Substitutions still free today; beyond this they cost points. */
   freeSubstitutionsLeft: number;
+  /** The match week now under way, or whose transfer window is open. */
+  matchWeek: MatchWeekDto;
+  /** Friday full time to Monday kick-off: substitutions are free and unlimited. */
+  transferWindowOpen: boolean;
+}
+
+export interface MatchWeekDto {
+  number: number;
+  season: number;
+  /** 1–12. */
+  weekOfSeason: number;
+  kickOff: string;
+  fullTime: string;
+  nextKickOff: string;
+  /** Points this player banked between kick-off and full time. */
+  points: number;
 }
 
 export interface RosterDto {
@@ -142,6 +158,62 @@ export interface LeagueDto {
   joinable: boolean;
   /** Ranked once the league is live; empty while it is scheduled. */
   standings: LeagueStandingDto[];
+  /**
+   * Head-to-head fixtures, one round robin round per match week inside the
+   * league. Empty for duels and for leagues shorter than a match week.
+   */
+  fixtures: FixtureDto[];
+  /** W/D/L table from finished fixtures; empty when there are none. */
+  table: LeagueTableRowDto[];
+}
+
+export interface FixtureDto {
+  week: number;
+  weekOfSeason: number;
+  kickOff: string;
+  fullTime: string;
+  homeId: string;
+  homeName: string;
+  /** Null is a bye. */
+  awayId: string | null;
+  awayName: string | null;
+  /** Null until full time. */
+  homePoints: number | null;
+  awayPoints: number | null;
+  status: 'scheduled' | 'final';
+}
+
+export interface LeagueTableRowDto {
+  rank: number;
+  userId: string;
+  username: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  /** 3 a win, 1 a draw. */
+  tablePoints: number;
+  /** Last five results, oldest first. */
+  form: ('W' | 'D' | 'L')[];
+}
+
+/** A player's match week: the full-time result card. */
+export interface MatchWeekResultDto {
+  week: MatchWeekDto;
+  /** False while the week is still being played. */
+  final: boolean;
+  points: number;
+  /** On this week's board; null if they banked nothing. */
+  rank: number | null;
+  players: number;
+  /** The pick that scored most this week. */
+  manOfTheMatch: { symbol: string; points: number } | null;
+  /** Goals (or the sport's equivalent), in order. */
+  goals: { at: string; symbol: string; label: string; points: number }[];
+  /** The tick that moved the score most. */
+  turningPoint: { at: string; points: number } | null;
 }
 
 export interface LeagueStandingDto {
@@ -161,7 +233,12 @@ export interface NotificationDto {
     | 'league_settled'
     | 'league_joined'
     | 'new_follower'
-    | 'manager_move';
+    | 'manager_move'
+    | 'match_week'
+    | 'transfer_window'
+    | 'season_final'
+    | 'goal'
+    | 'not_scoring';
   title: string;
   body: string;
   /** Deep-link payload, e.g. { leagueId }. */
@@ -201,6 +278,10 @@ export interface ManagerDto {
   /** True when the signed-in player follows them. */
   following: boolean;
   isCurrentUser: boolean;
+  /** Finished seasons in this sport, newest first. */
+  seasons: { season: number; points: number; rank: number; players: number }[];
+  /** Every badge they've earned, in any sport. */
+  badges: { code: string; label: string; mode: SportMode | null; season: number | null }[];
 }
 
 export interface ManagerHoldingDto {

@@ -33,10 +33,14 @@ abstract class FormationRepository {
   /// Football and basketball: the captain scores a multiplier.
   Future<Roster> setCaptaincy(SportMode mode, {int? captainSlot, int? viceCaptainSlot});
 
-  /// Standings for [mode] over [period], defaulting to the all-time board.
+  /// The signed-in player's match week result card for [mode]: this week
+  /// (live until Friday full time) or a past [week].
+  Future<MatchWeekResult> getMatchWeekResult(SportMode mode, {int? week});
+
+  /// Standings for [mode] over [period], defaulting to this season.
   Future<List<LeaderboardEntry>> getLeaderboard(
     SportMode mode, {
-    LeaguePeriod period = const LeaguePeriod.allTime(),
+    LeaguePeriod period = const LeaguePeriod.season(),
   });
 
   /// Tokens this server accepts as payment, for the amount field's picker.

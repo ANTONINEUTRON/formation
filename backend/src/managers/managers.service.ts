@@ -8,6 +8,7 @@ import { rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { LeagueService } from '../league/league.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { SeasonService } from '../scoring/season.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 
 /**
@@ -27,6 +28,7 @@ export class ManagersService {
     private readonly xstocks: XStocksService,
     private readonly league: LeagueService,
     private readonly notifications: NotificationsService,
+    private readonly seasons: SeasonService,
   ) {}
 
   async profile(viewer: AuthUser, userId: string, mode: SportMode): Promise<ManagerDto> {
@@ -37,14 +39,17 @@ export class ManagersService {
       .executeTakeFirst();
     if (!user) throw new NotFoundException('No such player');
 
-    const [standing, holdings, lineup, followers, following, record] = await Promise.all([
-      this.league.standing(user.id, mode),
-      this.holdingsOf(user.wallet_address, user.id, mode),
-      this.lineupOf(user.id, mode),
-      this.followerCount(user.id),
-      this.isFollowing(viewer.id, user.id),
-      this.leagueRecord(user.id, mode),
-    ]);
+    const [standing, holdings, lineup, followers, following, record, seasons, badges] =
+      await Promise.all([
+        this.league.standing(user.id, mode),
+        this.holdingsOf(user.wallet_address, user.id, mode),
+        this.lineupOf(user.id, mode),
+        this.followerCount(user.id),
+        this.isFollowing(viewer.id, user.id),
+        this.leagueRecord(user.id, mode),
+        this.seasons.history(user.id),
+        this.seasons.badges(user.id),
+      ]);
 
     return {
       userId: user.id,
@@ -63,6 +68,15 @@ export class ManagersService {
       followers,
       following,
       isCurrentUser: user.id === viewer.id,
+      seasons: seasons
+        .filter((s) => s.mode === mode)
+        .map(({ season, points, rank, players }) => ({ season, points, rank, players })),
+      badges: badges.map(({ code, label, mode: badgeMode, season }) => ({
+        code,
+        label,
+        mode: badgeMode,
+        season,
+      })),
     };
   }
 

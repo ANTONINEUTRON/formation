@@ -107,6 +107,21 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                       _Header(manager: manager),
                       const SizedBox(height: 16),
                       if (!manager.isCurrentUser) _actions(manager),
+                      if (manager.badges.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final badge in manager.badges)
+                              Chip(
+                                avatar: const Icon(Icons.emoji_events, size: 16, color: AppColors.warning),
+                                label: Text(badge.label, style: const TextStyle(fontSize: 12)),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       if (manager.lineup.isNotEmpty) ...[
                         Row(
@@ -143,6 +158,29 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                         else
                           for (final slot in manager.lineup)
                             if (slot.stock != null) _LineupRow(slot: slot),
+                        const SizedBox(height: 24),
+                      ],
+                      if (manager.seasons.isNotEmpty) ...[
+                        const _SectionLabel('Past seasons'),
+                        const SizedBox(height: 8),
+                        for (final season in manager.seasons)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text('Season ${season.season}')),
+                                Text(
+                                  '#${season.rank} of ${season.players}',
+                                  style: const TextStyle(color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  formatPoints(season.points),
+                                  style: AppTextStyles.mono(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 24),
                       ],
                       const _SectionLabel('Wallet'),

@@ -14,7 +14,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -28,7 +29,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -42,7 +44,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -56,7 +59,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -70,7 +74,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -84,7 +89,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -98,7 +104,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -112,7 +119,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -126,7 +134,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -140,7 +149,8 @@
         "tier": "momentum",
         "priceUsd": 106,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     },
@@ -154,7 +164,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10
     }
@@ -162,8 +173,18 @@
   "classicPoints": 163,
   "classicRank": 1,
   "session": {
-    "startsAt": "2026-01-05T12:30:00.000Z",
-    "endsAt": "2026-01-05T12:40:00.000Z",
+    "matchWeek": {
+      "number": 1,
+      "season": 1,
+      "weekOfSeason": 1,
+      "kickOff": "2026-01-05T14:30:00.000Z",
+      "fullTime": "2026-01-09T21:00:00.000Z",
+      "nextKickOff": "2026-01-12T14:30:00.000Z",
+      "points": 163
+    },
+    "transferWindowOpen": false,
+    "startsAt": "2026-01-06T15:30:00.000Z",
+    "endsAt": "2026-01-06T15:40:00.000Z",
     "entered": true,
     "points": 163,
     "slots": [
@@ -172,6 +193,15 @@
         "mint": "mint-AAPL",
         "role": "GK",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "AAPLx",
@@ -186,6 +216,15 @@
         "mint": "mint-KO",
         "role": "DEF",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "KOx",
@@ -200,6 +239,15 @@
         "mint": "mint-PG",
         "role": "DEF",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "PGx",
@@ -214,6 +262,15 @@
         "mint": "mint-JNJ",
         "role": "DEF",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "JNJx",
@@ -228,6 +285,15 @@
         "mint": "mint-JPM",
         "role": "MID",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "JPMx",
@@ -242,6 +308,15 @@
         "mint": "mint-V",
         "role": "MID",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "Vx",
@@ -256,6 +331,15 @@
         "mint": "mint-MA",
         "role": "MID",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "MAx",
@@ -270,6 +354,15 @@
         "mint": "mint-ORCL",
         "role": "MID",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "ORCLx",
@@ -284,6 +377,15 @@
         "mint": "mint-UNH",
         "role": "MID",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "UNHx",
@@ -298,6 +400,15 @@
         "mint": "mint-TSLA",
         "role": "FWD",
         "alpha": 0.06,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 106,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 120,
         "events": [],
         "symbol": "TSLAx",
@@ -312,6 +423,15 @@
         "mint": "mint-HOOD",
         "role": "FWD",
         "alpha": 0,
+        "guard": {
+          "held": false,
+          "jumps": 0,
+          "state": {
+            "price": 100,
+            "pending": 0,
+            "benchmark": 100
+          }
+        },
         "total": 0,
         "events": [],
         "symbol": "HOODx",
@@ -335,7 +455,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "eligibleSlots": [
@@ -350,7 +471,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "eligibleSlots": [
@@ -365,7 +487,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "eligibleSlots": [
@@ -382,7 +505,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "eligibleSlots": [
@@ -399,10 +523,17 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
-      "eligibleSlots": []
+      "eligibleSlots": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
     },
     {
       "stock": {
@@ -412,10 +543,17 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
-      "eligibleSlots": []
+      "eligibleSlots": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
     },
     {
       "stock": {
@@ -425,10 +563,17 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
-      "eligibleSlots": []
+      "eligibleSlots": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
     },
     {
       "stock": {
@@ -438,7 +583,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "eligibleSlots": [

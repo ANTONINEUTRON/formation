@@ -136,6 +136,8 @@ export interface PointsLedgerTable {
   points: number;
   detail: ColumnType<unknown, unknown, unknown>;
   at: Timestamp;
+  /** The season [at] falls in (domain/calendar.ts). */
+  season: number | null;
 }
 
 /** Free-substitution allowance, counted per UTC day. */
@@ -167,7 +169,62 @@ export type NotificationKind =
   | 'league_settled'
   | 'league_joined'
   | 'new_follower'
-  | 'manager_move';
+  | 'manager_move'
+  | 'match_week'
+  | 'transfer_window'
+  | 'season_final'
+  | 'goal'
+  | 'not_scoring';
+
+export interface SeasonsTable {
+  number: number;
+  starts_at: Timestamp;
+  ends_at: Timestamp;
+  finalized_at: Timestamp | null;
+}
+
+export interface MatchWeeksTable {
+  number: number;
+  kick_off: Timestamp;
+  full_time: Timestamp;
+  kick_off_sent_at: Timestamp | null;
+  half_time_sent_at: Timestamp | null;
+  full_time_done_at: Timestamp | null;
+  transfer_window_sent_at: Timestamp | null;
+}
+
+export interface SeasonResultsTable {
+  season: number;
+  user_id: string;
+  sport_mode: SportMode;
+  points: number;
+  rank: number;
+  players: number;
+}
+
+export interface BadgesTable {
+  id: Generated<string>;
+  user_id: string;
+  code: string;
+  label: string;
+  sport_mode: SportMode | null;
+  season: number | null;
+  week: number | null;
+  awarded_at: Timestamp;
+}
+
+export interface LeagueFixturesTable {
+  id: Generated<string>;
+  league_id: string;
+  week: number;
+  kick_off: Timestamp;
+  full_time: Timestamp;
+  home_id: string;
+  away_id: string | null;
+  home_points: number | null;
+  away_points: number | null;
+  status: Generated<'scheduled' | 'final'>;
+}
 
 /** A one-way subscription to another player's activity. */
 export interface FollowsTable {
@@ -285,6 +342,11 @@ export interface Database {
   assistant_avatars: AssistantAvatarsTable;
   asset_scoring_status: AssetScoringStatusTable;
   scoring_anomalies: ScoringAnomaliesTable;
+  seasons: SeasonsTable;
+  match_weeks: MatchWeeksTable;
+  season_results: SeasonResultsTable;
+  badges: BadgesTable;
+  league_fixtures: LeagueFixturesTable;
 }
 
 export type User = Selectable<UsersTable>;

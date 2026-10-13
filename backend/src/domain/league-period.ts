@@ -1,6 +1,19 @@
 import { BadRequestException } from '@nestjs/common';
+import { GameCalendar } from './calendar.js';
 
-export const LEAGUE_PERIODS = ['all_time', 'monthly', 'weekly', 'custom'] as const;
+/**
+ * - season: the current season's running totals (the default board);
+ * - match_week: points banked since this match week's kick-off;
+ * - all_time: a whole career, across seasons.
+ */
+export const LEAGUE_PERIODS = [
+  'season',
+  'match_week',
+  'all_time',
+  'monthly',
+  'weekly',
+  'custom',
+] as const;
 export type LeaguePeriodKind = (typeof LEAGUE_PERIODS)[number];
 
 /**
@@ -17,6 +30,9 @@ export interface LeaguePeriod {
 }
 
 export const ALL_TIME: LeaguePeriod = { kind: 'all_time', from: null, to: null };
+
+/** The current season, read from the running totals rather than the ledger. */
+export const SEASON: LeaguePeriod = { kind: 'season', from: null, to: null };
 
 /** True when the live gameweek's points belong in this period. */
 export function includesNow(period: LeaguePeriod, now = Date.now()): boolean {
@@ -55,13 +71,20 @@ export function parseLeaguePeriod(
   from: string | undefined,
   to: string | undefined,
   now = new Date(),
+  calendar = new GameCalendar(),
 ): LeaguePeriod {
-  if (kind === undefined || kind === '') return ALL_TIME;
+  if (kind === undefined || kind === '') return SEASON;
   if (!(LEAGUE_PERIODS as readonly string[]).includes(kind)) {
     throw new BadRequestException(`period must be one of ${LEAGUE_PERIODS.join(', ')}`);
   }
 
   switch (kind as LeaguePeriodKind) {
+    case 'season':
+      return SEASON;
+    case 'match_week': {
+      const week = calendar.weekAt(now);
+      return { kind: 'match_week', from: week.kickOff, to: week.fullTime };
+    }
     case 'all_time':
       return ALL_TIME;
     case 'weekly':

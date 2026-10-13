@@ -16,6 +16,7 @@ import type { League } from '../core/db-types.js';
 import type { AuthUser, LeagueDto, LeagueStandingDto } from '../domain/dto.js';
 import type { SportMode } from '../domain/sport.js';
 import { EntryScoringService } from '../scoring/entry-scoring.service.js';
+import { MatchWeekService } from '../scoring/match-week.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { LineupSnapshot, SlotExits } from '../scoring/engine/types.js';
@@ -88,6 +89,7 @@ export class LeaguesService {
     private readonly scoring: EntryScoringService,
     private readonly users: UsersService,
     private readonly notifications: NotificationsService,
+    private readonly matchWeeks: MatchWeekService,
   ) {}
 
   async create(user: AuthUser, input: CreateLeagueInput): Promise<LeagueDto> {
@@ -271,6 +273,12 @@ export class LeaguesService {
       .executeTakeFirst();
     if (!opened) return; // Another run opened it; don't notify twice.
 
+    // Three or more members play head-to-head each match week as well.
+    await this.matchWeeks.scheduleFixtures(
+      league,
+      members.map((m) => m.user_id),
+    );
+
     await this.notifications.pushMany(
       members.map((member) => ({
         userId: member.user_id,
@@ -392,6 +400,9 @@ export class LeaguesService {
 
     const joined = member !== undefined;
     const full = league.max_members !== null && count >= league.max_members;
+    const members = await this.membersOf(league.id);
+    const names = new Map(members.map((m) => [m.user_id, m.username]));
+    const fixtures = await this.matchWeeks.fixtures(league.id, names);
 
     return {
       id: league.id,
@@ -409,6 +420,12 @@ export class LeaguesService {
       joinable: league.status === 'scheduled' && !joined && !full,
       standings:
         league.status === 'scheduled' ? [] : await this.standings(league, viewerId),
+      fixtures,
+      table: this.matchWeeks.table(
+        members.map((m) => m.user_id),
+        fixtures,
+        names,
+      ),
     };
   }
 

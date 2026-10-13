@@ -1,8 +1,8 @@
 {
-  "userId": "04bcb042-e56a-4f1e-860f-ddda19c1ea93",
-  "username": "J4BL_E3vg",
+  "userId": "61f74618-a414-411f-bdcd-606def182bba",
+  "username": "znfV_G3Sa",
   "bio": null,
-  "walletAddress": "J4BLnEXkM4dqG4jtvE37eDAt1nW6prbNXRTD1FpkE3vg",
+  "walletAddress": "znfVVphqZdVGRwEadp39mR2vpNg9ESCE4Mu3Z3SG3Sa",
   "mode": "football",
   "rank": 1,
   "points": 0,
@@ -21,7 +21,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -35,7 +36,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -49,7 +51,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -63,7 +66,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -77,7 +81,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -91,7 +96,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -105,7 +111,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -119,7 +126,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -133,7 +141,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -147,7 +156,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     },
@@ -161,11 +171,15 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 0
     }
   ],
+  "formation": "4-4-2",
+  "captainSlot": null,
+  "viceCaptainSlot": null,
   "holdings": [
     {
       "stock": {
@@ -175,7 +189,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -189,7 +204,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -203,7 +219,8 @@
         "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -217,7 +234,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -231,7 +249,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -245,7 +264,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -259,7 +279,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -273,7 +294,8 @@
         "tier": "stable",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -287,7 +309,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -301,7 +324,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -315,7 +339,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -329,7 +354,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -343,7 +369,8 @@
         "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -357,7 +384,8 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -371,7 +399,8 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -385,7 +414,8 @@
         "tier": "growth",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -399,7 +429,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -413,7 +444,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -427,7 +459,8 @@
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
-        "logoUrl": null
+        "logoUrl": null,
+        "notScoring": null
       },
       "balance": 10,
       "valueUsd": 1000,
@@ -436,5 +469,7 @@
   ],
   "followers": 0,
   "following": false,
-  "isCurrentUser": false
+  "isCurrentUser": false,
+  "seasons": [],
+  "badges": []
 }

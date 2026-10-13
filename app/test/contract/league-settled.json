@@ -1,33 +1,35 @@
 {
-  "id": "08de89c9-deeb-4e03-a172-09ef16b74c18",
+  "id": "a06af62d-649f-4a9a-bd3f-6f7f71985e9c",
   "name": "Alice vs Bob",
   "mode": "football",
   "visibility": "private",
-  "joinCode": "F09AFF4F",
-  "startsAt": "2026-01-05T12:31:00.000Z",
-  "endsAt": "2026-01-05T13:31:00.000Z",
+  "joinCode": "E191D235",
+  "startsAt": "2026-01-06T15:31:00.000Z",
+  "endsAt": "2026-01-06T16:31:00.000Z",
   "status": "final",
   "maxMembers": 2,
   "memberCount": 2,
-  "createdBy": "6N1e_Xydo",
+  "createdBy": "ocTM_oWHJ",
   "joined": true,
   "joinable": false,
   "standings": [
     {
       "rank": 1,
-      "userId": "afebc3fb-41f4-465b-a5a1-164413402f27",
-      "username": "2Wg4_UErz",
-      "walletAddress": "2Wg47qURE4qFJpK3s2FAKMcnQL5kJtgkbxSYE7dDUErz",
+      "userId": "d9bff4de-2640-49b3-9ee2-df8c69b4f8c7",
+      "username": "AQ92_utZz",
+      "walletAddress": "AQ92FvTArFCthRUvgh373uFgbHZWuWfd9QAQx2jcutZz",
       "points": 24,
       "isCurrentUser": false
     },
     {
       "rank": 2,
-      "userId": "024d36d5-5131-4089-bf24-61726f2abbbf",
-      "username": "6N1e_Xydo",
-      "walletAddress": "6N1egfhUa16ErunDeJs97qKXTGnKqni82pfTFVN8Xydo",
+      "userId": "ec78b46e-3854-40eb-b0c8-cb3d9e8caf0a",
+      "username": "ocTM_oWHJ",
+      "walletAddress": "ocTMReQu4neUhk361SfF1LfpyBxDtwbmMN5wJ59oWHJ",
       "points": 21,
       "isCurrentUser": true
     }
-  ]
+  ],
+  "fixtures": [],
+  "table": []
 }

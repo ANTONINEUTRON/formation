@@ -1,4 +1,5 @@
 import { Global, Inject, Module, OnModuleDestroy } from '@nestjs/common';
+import { CALENDAR, GameCalendar } from '../domain/calendar.js';
 import { UsersService } from '../users/users.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { ChainService } from './chain.service.js';
@@ -15,6 +16,11 @@ import { BALANCE_SOURCE, PRICE_SOURCE } from './sources.js';
     { provide: CONFIG, useFactory: () => loadConfig() },
     { provide: CLOCK, useValue: systemClock },
     {
+      provide: CALENDAR,
+      useFactory: (config: AppConfig) => new GameCalendar(config.seasonAnchor),
+      inject: [CONFIG],
+    },
+    {
       provide: DB,
       useFactory: (config: AppConfig) => createDb(config.databaseUrl),
       inject: [CONFIG],
@@ -28,6 +34,7 @@ import { BALANCE_SOURCE, PRICE_SOURCE } from './sources.js';
   exports: [
     CONFIG,
     CLOCK,
+    CALENDAR,
     DB,
     ChainService,
     PRICE_SOURCE,

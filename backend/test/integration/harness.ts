@@ -77,6 +77,11 @@ const TABLES = [
   'assistant_avatars',
   'asset_scoring_status',
   'scoring_anomalies',
+  'league_fixtures',
+  'badges',
+  'season_results',
+  'seasons',
+  'match_weeks',
   'users',
   'xstocks',
 ];
@@ -126,6 +131,9 @@ export async function createHarness(): Promise<Harness> {
   // Long enough that the background interval never fires during a test.
   process.env.PRICE_TICK_MINUTES = '1000';
   process.env.BENCHMARK_MINT = BENCHMARK_MINT;
+  // Season 1 kicks off Monday 5 January 2026, so the test clock (a Tuesday
+  // morning ET) is mid match week, outside the free weekend transfer window.
+  process.env.SEASON_ANCHOR = '2026-01-05';
   process.env.AUTH_SECRET ||= 'test-secret';
   process.env.ADMIN_KEY ||= 'test-admin-key';
 
@@ -188,7 +196,8 @@ export async function createHarness(): Promise<Harness> {
       llm.reset();
       skrPayments.reset();
       prices.set(TEST_SKR.mint, 0.02);
-      clock.set(Date.UTC(2026, 0, 5, 12, 0, 0));
+      // Tuesday 6 January 2026, 10am ET: match week 1 of season 1 is under way.
+      clock.set(Date.UTC(2026, 0, 6, 15, 0, 0));
     },
 
     async close() {

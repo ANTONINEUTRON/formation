@@ -309,11 +309,20 @@ class ApiRepository implements FormationRepository {
   @override
   Future<List<LeaderboardEntry>> getLeaderboard(
     SportMode mode, {
-    LeaguePeriod period = const LeaguePeriod.allTime(),
+    LeaguePeriod period = const LeaguePeriod.season(),
   }) async {
     final query = Uri(queryParameters: period.query).query;
     final list = await _request('GET', '/league/${mode.apiValue}?$query') as List;
     return list.cast<Map<String, dynamic>>().map(LeaderboardEntry.fromJson).toList();
+  }
+
+  @override
+  Future<MatchWeekResult> getMatchWeekResult(SportMode mode, {int? week}) async {
+    final json = await _request(
+      'GET',
+      '/match-week/${mode.apiValue}/result${week == null ? '' : '?week=$week'}',
+    ) as Map<String, dynamic>;
+    return MatchWeekResult.fromJson(json);
   }
 
   @override

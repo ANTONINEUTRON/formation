@@ -1,13 +1,26 @@
 [
   {
-    "id": "7ee80687-d4c3-4e62-8874-96fe2e87a225",
-    "kind": "new_follower",
-    "title": "DNfh_CiVL is following you",
-    "body": "They will see when you change your starting lineup.",
+    "id": "821d7c62-2d83-4032-a919-d83565eb8719",
+    "kind": "match_week",
+    "title": "Match week 1 kicks off",
+    "body": "Season 1: your football team is on the pitch until Friday 4pm ET.",
     "data": {
-      "userId": "b6394916-e0d2-485b-ba5d-23aac02f46c9"
+      "mode": "football",
+      "week": 1,
+      "phase": "kick_off"
     },
     "read": false,
-    "createdAt": "2026-01-05T12:00:00.000Z"
+    "createdAt": "2026-01-06T15:00:00.000Z"
+  },
+  {
+    "id": "6ec8ea10-6e2b-4d3e-b692-8965d0072e0d",
+    "kind": "new_follower",
+    "title": "5kPc_E7UW is following you",
+    "body": "They will see when you change your starting lineup.",
+    "data": {
+      "userId": "2317c10e-24d1-4158-a2df-7c016c31f041"
+    },
+    "read": false,
+    "createdAt": "2026-01-06T15:00:00.000Z"
   }
 ]

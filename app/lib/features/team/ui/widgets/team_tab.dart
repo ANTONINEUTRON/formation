@@ -12,6 +12,8 @@ import 'package:formation/features/shared/domain/load_status.dart';
 import 'package:formation/features/team/ui/cubits/team_cubit.dart';
 import 'package:formation/features/team/ui/cubits/team_state.dart';
 import 'package:formation/features/team/ui/widgets/bench_section.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
+import 'package:formation/features/team/ui/widgets/match_week_result_sheet.dart';
 import 'package:formation/features/team/ui/widgets/session_bar.dart';
 import 'package:formation/features/team/ui/widgets/lineup_section.dart';
 import 'package:formation/features/team/ui/widgets/score_header.dart';
@@ -62,6 +64,11 @@ class TeamTab extends StatelessWidget {
               SessionBar(
                 session: roster.session,
                 onRunTick: kDebugMode ? cubit.runTick : null,
+                onOpenResult: () => MatchWeekResultSheet.show(
+                  context,
+                  repository: context.read<FormationRepository>(),
+                  mode: cubit.mode,
+                ),
                 isBusy: state.isTicking,
               ),
               if (!roster.isComplete) ...[

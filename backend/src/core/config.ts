@@ -1,5 +1,6 @@
 import { parsePacks } from '../assistant/packs.js';
 import type { CreditPack } from '../assistant/packs.js';
+import { DEFAULT_SEASON_ANCHOR } from '../domain/calendar.js';
 import { loadPayTokens } from '../domain/pay-tokens.js';
 import type { PayToken } from '../domain/pay-tokens.js';
 
@@ -47,6 +48,8 @@ export interface AppConfig {
    * below it; it just banks nothing. 0 turns the check off.
    */
   scoringMinLiquidityUsd: number;
+  /** ET date in the week season 1 kicks off; seasons run 12 match weeks from it. */
+  seasonAnchor: string;
 
   // ── Catalogue ──────────────────────────────────────────────────────────────
   /** Hours between refreshes of the xStocks catalogue. 0 disables it. */
@@ -118,6 +121,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     benchmarkMint: env.BENCHMARK_MINT ?? 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
     maxTickMove: number(env.MAX_TICK_MOVE, 0.1),
     scoringMinLiquidityUsd: number(env.SCORING_MIN_LIQUIDITY_USD, 1_000),
+    seasonAnchor: env.SEASON_ANCHOR?.trim() || DEFAULT_SEASON_ANCHOR,
 
     catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
     catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),

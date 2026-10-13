@@ -7,7 +7,7 @@ class LeagueState extends Equatable {
   const LeagueState({
     this.status = LoadStatus.initial,
     this.entries = const [],
-    this.period = const LeaguePeriod.allTime(),
+    this.period = const LeaguePeriod.season(),
     this.error,
   });
 

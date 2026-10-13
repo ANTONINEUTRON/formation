@@ -1,0 +1,126 @@
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:formation/features/shared/data/fixture_repository.dart';
+import 'package:formation/features/shared/domain/models.dart';
+
+const _week = {
+  'number': 3,
+  'season': 1,
+  'weekOfSeason': 3,
+  'kickOff': '2026-10-26T13:30:00.000Z',
+  'fullTime': '2026-10-30T20:00:00.000Z',
+  'nextKickOff': '2026-11-02T14:30:00.000Z',
+  'points': 42.5,
+};
+
+void main() {
+  test('a session carries its match week and the transfer window', () {
+    final session = Session.fromJson({
+      'startsAt': '2026-10-31T00:00:00.000Z',
+      'endsAt': '2026-11-01T00:00:00.000Z',
+      'entered': true,
+      'points': 3,
+      'slots': <Object>[],
+      'teamEvents': <Object>[],
+      'substitutionsUsed': 0,
+      'freeSubstitutionsLeft': 3,
+      'matchWeek': _week,
+      'transferWindowOpen': true,
+    });
+    expect(session.transferWindowOpen, isTrue);
+    expect(session.matchWeek!.label, 'Season 1 · Week 3');
+    expect(session.matchWeek!.points, 42.5);
+  });
+
+  test('a league parses its fixtures, byes and W/D/L table', () {
+    final league = League.fromJson({
+      'id': 'l1',
+      'name': 'Office',
+      'mode': 'football',
+      'visibility': 'private',
+      'joinCode': 'ABCD',
+      'startsAt': '2026-10-25T00:00:00.000Z',
+      'endsAt': '2026-12-01T00:00:00.000Z',
+      'status': 'live',
+      'maxMembers': null,
+      'memberCount': 3,
+      'createdBy': 'anna',
+      'joined': true,
+      'joinable': false,
+      'standings': <Object>[],
+      'fixtures': [
+        {
+          'week': 3,
+          'weekOfSeason': 3,
+          'kickOff': '2026-10-26T13:30:00.000Z',
+          'fullTime': '2026-10-30T20:00:00.000Z',
+          'homeId': 'a',
+          'homeName': 'anna',
+          'awayId': 'b',
+          'awayName': 'ben',
+          'homePoints': 84.2,
+          'awayPoints': 61,
+          'status': 'final',
+        },
+        {
+          'week': 3,
+          'weekOfSeason': 3,
+          'kickOff': '2026-10-26T13:30:00.000Z',
+          'fullTime': '2026-10-30T20:00:00.000Z',
+          'homeId': 'c',
+          'homeName': 'cy',
+          'awayId': null,
+          'awayName': null,
+          'homePoints': 0,
+          'awayPoints': 0,
+          'status': 'final',
+        },
+      ],
+      'table': [
+        {
+          'rank': 1,
+          'userId': 'a',
+          'username': 'anna',
+          'played': 1,
+          'won': 1,
+          'drawn': 0,
+          'lost': 0,
+          'pointsFor': 84.2,
+          'pointsAgainst': 61,
+          'tablePoints': 3,
+          'form': ['W'],
+        },
+      ],
+    });
+    expect(league.hasFixtures, isTrue);
+    expect(league.fixtures.first.isFinal, isTrue);
+    expect(league.fixtures.last.isBye, isTrue);
+    expect(league.table.single.tablePoints, 3);
+    expect(league.table.single.form, ['W']);
+  });
+
+  test('a result card parses its man of the match, goals and turning point', () {
+    final result = MatchWeekResult.fromJson({
+      'week': _week,
+      'final': true,
+      'points': -7,
+      'rank': 4,
+      'players': 128,
+      'manOfTheMatch': {'symbol': 'TSLAx', 'points': 26},
+      'goals': [
+        {'at': '2026-10-27T20:00:00.000Z', 'symbol': 'TSLAx', 'label': '2 goals', 'points': 8},
+      ],
+      'turningPoint': {'at': '2026-10-27T15:03:00.000Z', 'points': -30},
+    });
+    expect(result.isFinal, isTrue);
+    expect(result.manOfTheMatch!.symbol, 'TSLAx');
+    expect(result.goals.single.label, '2 goals');
+    expect(result.turningPoint!.points, -30);
+  });
+
+  test('fixture mode serves a result card', () async {
+    final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
+    final result = await repo.getMatchWeekResult(SportMode.football);
+    expect(result.week.weekOfSeason, inInclusiveRange(1, 12));
+  });
+}
