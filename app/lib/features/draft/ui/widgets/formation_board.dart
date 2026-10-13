@@ -56,6 +56,7 @@ class FormationBoard extends StatelessWidget {
                       size: chip,
                       onTap: onSlotTap == null ? null : () => onSlotTap!(i),
                       armband: roster.armband(i),
+                      liveGoal: roster.session?.liveFor(i).any((e) => e.isGoal && e.isProvisional) ?? false,
                     ),
                   ),
               ],

@@ -193,6 +193,48 @@ export interface MatchWeeksTable {
   transfer_window_sent_at: Timestamp | null;
 }
 
+export interface LiveEventsTable {
+  id: Generated<string>;
+  user_id: string;
+  sport_mode: SportMode;
+  session_start: Timestamp;
+  slot_index: number;
+  mint: string;
+  symbol: string;
+  code: string;
+  label: string;
+  points: number;
+  status: Generated<'provisional' | 'confirmed' | 'disallowed'>;
+  at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface WeeklyStatsTable {
+  user_id: string;
+  sport_mode: SportMode;
+  week: number;
+  points: number;
+  alpha: number;
+  picks: number;
+  picks_beating: number;
+  goals: Generated<number>;
+  clean_sheets: Generated<number>;
+  captain_points: number | null;
+  average_pick_points: number | null;
+}
+
+export interface SkillRatingsTable {
+  user_id: string;
+  sport_mode: SportMode;
+  rating: number;
+  weeks: number;
+  mean_alpha: number;
+  volatility: number;
+  hit_rate: number;
+  captain_rate: number | null;
+  updated_at: Timestamp;
+}
+
 export interface SeasonResultsTable {
   season: number;
   user_id: string;
@@ -347,6 +389,9 @@ export interface Database {
   season_results: SeasonResultsTable;
   badges: BadgesTable;
   league_fixtures: LeagueFixturesTable;
+  live_events: LiveEventsTable;
+  weekly_stats: WeeklyStatsTable;
+  skill_ratings: SkillRatingsTable;
 }
 
 export type User = Selectable<UsersTable>;

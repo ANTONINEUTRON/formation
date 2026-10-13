@@ -231,9 +231,19 @@ class Session extends Equatable {
     required this.freeSubstitutionsLeft,
     this.matchWeek,
     this.transferWindowOpen = false,
+    this.liveEvents = const [],
+    this.liveFixtures = const [],
   });
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
+        liveEvents: [
+          for (final e in (json['liveEvents'] as List? ?? const []))
+            LiveEvent.fromJson(e as Map<String, dynamic>),
+        ],
+        liveFixtures: [
+          for (final f in (json['liveFixtures'] as List? ?? const []))
+            LiveFixture.fromJson(f as Map<String, dynamic>),
+        ],
         matchWeek: json['matchWeek'] == null
             ? null
             : MatchWeek.fromJson(json['matchWeek'] as Map<String, dynamic>),
@@ -273,14 +283,33 @@ class Session extends Equatable {
   /// Friday full time to Monday kick-off: substitutions are free and unlimited.
   final bool transferWindowOpen;
 
+  /// Today's role events so far: provisional until the daily rollup.
+  final List<LiveEvent> liveEvents;
+
+  /// This week's private-league fixtures, with live scores.
+  final List<LiveFixture> liveFixtures;
+
   Duration get remaining => endsAt.difference(DateTime.now());
 
   SlotScore? scoreFor(int slotIndex) =>
       slots.where((s) => s.slotIndex == slotIndex).firstOrNull;
 
+  /// Today's live events for one slot.
+  List<LiveEvent> liveFor(int slotIndex) =>
+      liveEvents.where((e) => e.slotIndex == slotIndex).toList();
+
   @override
-  List<Object?> get props =>
-      [startsAt, points, slots, entered, substitutionsUsed, matchWeek, transferWindowOpen];
+  List<Object?> get props => [
+        startsAt,
+        points,
+        slots,
+        entered,
+        substitutionsUsed,
+        matchWeek,
+        transferWindowOpen,
+        liveEvents,
+        liveFixtures,
+      ];
 }
 
 /// A held xStock that isn't in the starting lineup, and can be subbed in.
@@ -438,10 +467,12 @@ class LeaderboardEntry extends Equatable {
     this.todayPoints = 0,
     this.streak = 0,
     this.isCurrentUser = false,
+    this.skill,
   });
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
       LeaderboardEntry(
+        skill: json['skill'] == null ? null : _double(json['skill']),
         rank: json['rank'] as int? ?? 0,
         userId: json['userId'] as String,
         username: json['username'] as String,
@@ -461,15 +492,20 @@ class LeaderboardEntry extends Equatable {
   final int streak;
   final bool isCurrentUser;
 
+  /// Skill rating (0–100); null before their first full match week. On the
+  /// Skill board [points] carries it too.
+  final double? skill;
+
   @override
   List<Object?> get props =>
-      [rank, userId, username, walletAddress, points, todayPoints, streak, isCurrentUser];
+      [rank, userId, username, walletAddress, points, todayPoints, streak, isCurrentUser, skill];
 }
 
 /// Which slice of league history a leaderboard covers.
 enum LeaguePeriodKind {
   matchWeek('match_week', 'This week'),
   season('season', 'Season'),
+  skill('skill', 'Skill'),
   allTime('all_time', 'All time'),
   monthly('monthly', 'Month'),
   custom('custom', 'Custom');
@@ -578,6 +614,7 @@ class Manager extends Equatable {
     this.viceCaptainSlot,
     this.seasons = const [],
     this.badges = const [],
+    this.skill,
   });
 
   /// The API sends only filled slots; [lineup] has every slot in [shape], in
@@ -624,6 +661,7 @@ class Manager extends Equatable {
           for (final b in (json['badges'] as List? ?? const []))
             ManagerBadge.fromJson(b as Map<String, dynamic>),
         ],
+        skill: json['skill'] == null ? null : Skill.fromJson(json['skill'] as Map<String, dynamic>),
       );
   }
 
@@ -650,6 +688,9 @@ class Manager extends Equatable {
 
   /// Honours kept across seasons.
   final List<ManagerBadge> badges;
+
+  /// Null before their first full match week.
+  final Skill? skill;
 
   /// Their lineup as a read-only roster, for the formation board.
   Roster get roster => Roster(
@@ -684,6 +725,7 @@ class Manager extends Equatable {
         viceCaptainSlot: viceCaptainSlot,
         seasons: seasons,
         badges: badges,
+        skill: skill,
         holdings: holdings,
         followers: followers ?? this.followers,
         following: following ?? this.following,

@@ -185,6 +185,7 @@ class MatchWeekResult extends Equatable {
             symbol: g['symbol'] as String,
             label: g['label'] as String,
             points: _num(g['points']),
+            provisional: g['provisional'] == true,
           ),
       ],
       turningPoint:
@@ -198,11 +199,137 @@ class MatchWeekResult extends Equatable {
   final int? rank;
   final int players;
   final ({String symbol, double points})? manOfTheMatch;
-  final List<({DateTime at, String symbol, String label, double points})> goals;
+  /// Goals in order; today's are [provisional] until the daily rollup.
+  final List<({DateTime at, String symbol, String label, double points, bool provisional})> goals;
   final ({DateTime at, double points})? turningPoint;
 
   @override
   List<Object?> get props => [week, isFinal, points, rank];
+}
+
+/// A role event as it happens today (SCORING_PLAN.md §3.1): provisional until
+/// the daily rollup confirms it, or disallowed if the price fell back.
+class LiveEvent extends Equatable {
+  const LiveEvent({
+    required this.slotIndex,
+    required this.mint,
+    required this.symbol,
+    required this.code,
+    required this.label,
+    required this.points,
+    required this.status,
+    required this.at,
+  });
+
+  factory LiveEvent.fromJson(Map<String, dynamic> json) => LiveEvent(
+        slotIndex: json['slotIndex'] as int,
+        mint: json['mint'] as String,
+        symbol: json['symbol'] as String,
+        code: json['code'] as String,
+        label: json['label'] as String,
+        points: _num(json['points']),
+        status: json['status'] as String,
+        at: DateTime.parse(json['at'] as String),
+      );
+
+  final int slotIndex;
+  final String mint;
+  final String symbol;
+  final String code;
+  final String label;
+  final double points;
+
+  /// 'provisional', 'confirmed' or 'disallowed'.
+  final String status;
+  final DateTime at;
+
+  bool get isProvisional => status == 'provisional';
+  bool get isDisallowed => status == 'disallowed';
+
+  /// A goal, or the sport's equivalent: worth a celebration.
+  bool get isGoal =>
+      points > 0 && const {'goal', 'bucket', 'touchdown', 'block', 'double_double', 'field_goal'}.contains(code);
+
+  @override
+  List<Object?> get props => [slotIndex, mint, code, label, points, status];
+}
+
+/// A private-league fixture being played this week.
+class LiveFixture extends Equatable {
+  const LiveFixture({
+    required this.leagueId,
+    required this.leagueName,
+    required this.opponent,
+    required this.points,
+    required this.opponentPoints,
+    required this.isFinal,
+  });
+
+  factory LiveFixture.fromJson(Map<String, dynamic> json) => LiveFixture(
+        leagueId: json['leagueId'] as String,
+        leagueName: json['leagueName'] as String,
+        opponent: json['opponent'] as String?,
+        points: _num(json['points']),
+        opponentPoints: _num(json['opponentPoints']),
+        isFinal: json['final'] as bool? ?? false,
+      );
+
+  final String leagueId;
+  final String leagueName;
+
+  /// Null is a bye.
+  final String? opponent;
+  final double points;
+  final double opponentPoints;
+  final bool isFinal;
+
+  @override
+  List<Object?> get props => [leagueId, opponent, points, opponentPoints, isFinal];
+}
+
+/// Skill, made visible (SCORING_PLAN.md §3.2).
+class Skill extends Equatable {
+  const Skill({
+    required this.rating,
+    required this.weeks,
+    required this.ranked,
+    required this.alphaPerWeekPct,
+    required this.hitRatePct,
+    required this.shrewdCaptainPct,
+    required this.form,
+  });
+
+  factory Skill.fromJson(Map<String, dynamic> json) => Skill(
+        rating: _num(json['rating']),
+        weeks: json['weeks'] as int,
+        ranked: json['ranked'] as bool? ?? false,
+        alphaPerWeekPct: _num(json['alphaPerWeekPct']),
+        hitRatePct: json['hitRatePct'] as int? ?? 0,
+        shrewdCaptainPct: json['shrewdCaptainPct'] as int?,
+        form: [for (final f in json['form'] as List? ?? const []) f as String],
+      );
+
+  /// 0–100; 50 matches the market. Risk-adjusted: steady beats lucky.
+  final double rating;
+  final int weeks;
+
+  /// Enough weeks to appear on the Skill board.
+  final bool ranked;
+
+  /// "Beats the market by +2.1% a week on average."
+  final double alphaPerWeekPct;
+
+  /// Share of picks that beat the S&P 500 over their week.
+  final int hitRatePct;
+
+  /// Share of weeks the captain outscored the team's average pick.
+  final int? shrewdCaptainPct;
+
+  /// Last five weeks against the market, oldest first.
+  final List<String> form;
+
+  @override
+  List<Object?> get props => [rating, weeks, alphaPerWeekPct, hitRatePct, form];
 }
 
 /// A finished season on a manager's profile.

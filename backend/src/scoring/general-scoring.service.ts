@@ -10,10 +10,12 @@ import { CALENDAR } from '../domain/calendar.js';
 import type { GameCalendar } from '../domain/calendar.js';
 import { SPORT_MODES } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
-import type { SessionDto } from '../domain/dto.js';
+import type { LiveEventDto, SessionDto } from '../domain/dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EntryScoringService } from './entry-scoring.service.js';
+import { MatchWeekService } from './match-week.service.js';
 import { round1 } from './engine/metrics.js';
+import { GOAL_CODES } from './engine/skill.js';
 import {
   FREE_SUBSTITUTIONS_PER_DAY,
   GENERAL_CAPS,
@@ -52,6 +54,7 @@ export class GeneralScoringService {
     @Inject(CALENDAR) private readonly calendar: GameCalendar,
     private readonly scoring: EntryScoringService,
     private readonly notifications: NotificationsService,
+    private readonly matchWeeks: MatchWeekService,
   ) {}
 
   /** Banks everything owed up to [now]. Called from the price tick. */
@@ -82,6 +85,138 @@ export class GeneralScoringService {
     const alpha = await this.bankAlpha(candidate, mode, entry, now);
     await this.rollUpEvents(candidate, mode, entry, now);
     await this.reSnapshot(candidate, mode, entry, now, alpha);
+    await this.recordLiveEvents(candidate, mode, now);
+  }
+
+  /**
+   * Live events (SCORING_PLAN.md §3.1): the role events today's session has
+   * produced so far, recorded as provisional. They bank nothing; the daily
+   * rollup confirms or disallows them. An event that falls away during the
+   * day shows as disallowed until it comes back.
+   */
+  private async recordLiveEvents(candidate: Candidate, mode: SportMode, now: number): Promise<void> {
+    const sessionStart = this.sessionStart(now);
+    if (now <= sessionStart) return;
+    const row = await this.db
+      .selectFrom('general_entries')
+      .select('session_snapshot')
+      .where('user_id', '=', candidate.userId)
+      .where('sport_mode', '=', mode)
+      .executeTakeFirst();
+    const snapshot = parse<LineupSnapshot>(row?.session_snapshot);
+    if (!snapshot) return;
+
+    const { breakdown } = await this.scoring.score(
+      snapshot,
+      candidate.wallet,
+      this.scoring.window(new Date(sessionStart), new Date(now)),
+      { parts: EVENTS_ONLY, at: now, caps: { sessionEvents: GENERAL_CAPS.sessionEvents } },
+    );
+    const live = breakdown.slots.flatMap((slot) =>
+      slot.events
+        .filter((e) => e.code !== 'cap' && e.points !== 0)
+        .map((e) => ({ slot, event: e })),
+    );
+
+    const existing = await this.db
+      .selectFrom('live_events')
+      .select(['mint', 'code', 'status'])
+      .where('user_id', '=', candidate.userId)
+      .where('sport_mode', '=', mode)
+      .where('session_start', '=', new Date(sessionStart))
+      .execute();
+    const seen = new Set(existing.map((e) => `${e.mint}:${e.code}`));
+    const firing = new Set(live.map(({ slot, event }) => `${slot.mint}:${event.code}`));
+
+    for (const { slot, event } of live) {
+      await this.db
+        .insertInto('live_events')
+        .values({
+          user_id: candidate.userId,
+          sport_mode: mode,
+          session_start: new Date(sessionStart),
+          slot_index: slot.slotIndex,
+          mint: slot.mint,
+          symbol: slot.symbol,
+          code: event.code,
+          label: event.label,
+          points: event.points,
+          at: new Date(now),
+          updated_at: new Date(now),
+        })
+        .onConflict((oc) =>
+          oc.columns(['user_id', 'sport_mode', 'session_start', 'mint', 'code']).doUpdateSet({
+            label: event.label,
+            points: event.points,
+            status: 'provisional',
+            updated_at: new Date(now),
+          }),
+        )
+        .execute();
+
+      // One "goal" notice per pick per day: only the first time it fires.
+      if (!seen.has(`${slot.mint}:${event.code}`) && GOAL_CODES.has(event.code) && event.points > 0) {
+        await this.notifications.push({
+          userId: candidate.userId,
+          kind: 'goal',
+          title: `${event.label}! ${slot.symbol} scores`,
+          body: `Provisional: it's confirmed at the end of the day if ${slot.symbol} holds its gains.`,
+          data: { mode, mint: slot.mint, code: event.code },
+        });
+      }
+    }
+
+    const fellAway = existing.filter(
+      (e) => e.status === 'provisional' && !firing.has(`${e.mint}:${e.code}`),
+    );
+    for (const e of fellAway) {
+      await this.db
+        .updateTable('live_events')
+        .set({ status: 'disallowed', updated_at: new Date(now) })
+        .where('user_id', '=', candidate.userId)
+        .where('sport_mode', '=', mode)
+        .where('session_start', '=', new Date(sessionStart))
+        .where('mint', '=', e.mint)
+        .where('code', '=', e.code)
+        .execute();
+    }
+  }
+
+  /**
+   * Settles the live events of the sessions a rollup just closed: confirmed
+   * if the final day's events include them, disallowed if the price fell back.
+   */
+  private async settleLiveEvents(
+    userId: string,
+    mode: SportMode,
+    from: number,
+    to: number,
+    breakdown: EntryBreakdown | undefined,
+  ): Promise<void> {
+    const final = new Set(
+      (breakdown?.slots ?? []).flatMap((s) =>
+        s.events.filter((e) => e.points !== 0).map((e) => `${s.mint}:${e.code}`),
+      ),
+    );
+    const rows = await this.db
+      .selectFrom('live_events')
+      .select(['id', 'mint', 'code'])
+      .where('user_id', '=', userId)
+      .where('sport_mode', '=', mode)
+      .where('session_start', '>=', new Date(from))
+      .where('session_start', '<', new Date(to))
+      .where('status', '!=', 'confirmed')
+      .execute();
+    for (const row of rows) {
+      await this.db
+        .updateTable('live_events')
+        .set({
+          status: final.has(`${row.mint}:${row.code}`) ? 'confirmed' : 'disallowed',
+          updated_at: this.clock.date(),
+        })
+        .where('id', '=', row.id)
+        .execute();
+    }
   }
 
   /**
@@ -132,11 +267,17 @@ export class GeneralScoringService {
       if (slot.base !== 0) sessionBase[slot.mint] = round1((sessionBase[slot.mint] ?? 0) + slot.base);
     }
 
-    // Each pick's share, so a match week can name its man of the match.
+    // Each pick's share and who wore the armband, so a match week can name its
+    // man of the match and skill stats can take the multiplier back out.
     const bySlot = Object.fromEntries(
       breakdown.slots.flatMap((s) => (s.total !== 0 ? [[s.mint, s.total]] : [])),
     );
-    await this.award(candidate.userId, mode, 'alpha', breakdown.total, now, { slots: bySlot });
+    const captain = breakdown.slots.find((s) => s.multiplier > 1);
+    await this.award(candidate.userId, mode, 'alpha', breakdown.total, now, {
+      slots: bySlot,
+      captain: captain?.mint ?? null,
+      multiplier: captain?.multiplier ?? 1,
+    });
     await this.db
       .updateTable('general_entries')
       .set({ last_breakdown: JSON.stringify(breakdown), session_base: JSON.stringify(sessionBase) })
@@ -173,6 +314,7 @@ export class GeneralScoringService {
 
     const snapshot =
       parse<LineupSnapshot>(entry.session_snapshot) ?? parse<LineupSnapshot>(entry.snapshot);
+    let settled: EntryBreakdown | undefined;
     if (snapshot) {
       const { breakdown } = await this.scoring.score(
         snapshot,
@@ -184,6 +326,7 @@ export class GeneralScoringService {
           caps: { sessionEvents: GENERAL_CAPS.sessionEvents },
         },
       );
+      settled = breakdown;
       await this.award(candidate.userId, mode, 'events', breakdown.total, now, {
         slots: breakdown.slots.filter((s) => s.events.length > 0),
         teamEvents: breakdown.teamEvents,
@@ -199,6 +342,7 @@ export class GeneralScoringService {
         });
       }
     }
+    await this.settleLiveEvents(candidate.userId, mode, lastEvents, currentSession, settled);
 
     await this.db
       .updateTable('general_entries')
@@ -339,6 +483,8 @@ export class GeneralScoringService {
         points: await this.pointsSince(userId, mode, week.kickOff.getTime(), week.fullTime.getTime()),
       },
       transferWindowOpen: this.calendar.inTransferWindow(now),
+      liveEvents: await this.liveEvents(userId, mode, start),
+      liveFixtures: await this.matchWeeks.liveFixtures(userId, mode, now),
       startsAt: new Date(start).toISOString(),
       endsAt: new Date(start + length).toISOString(),
       entered: entry !== undefined,
@@ -351,6 +497,28 @@ export class GeneralScoringService {
         FREE_SUBSTITUTIONS_PER_DAY - (await this.substitutionsToday(userId, mode)),
       ),
     };
+  }
+
+  /** Today's live events for the team screen. */
+  private async liveEvents(userId: string, mode: SportMode, sessionStart: number): Promise<LiveEventDto[]> {
+    const rows = await this.db
+      .selectFrom('live_events')
+      .selectAll()
+      .where('user_id', '=', userId)
+      .where('sport_mode', '=', mode)
+      .where('session_start', '=', new Date(sessionStart))
+      .orderBy('at')
+      .execute();
+    return rows.map((r) => ({
+      slotIndex: r.slot_index,
+      mint: r.mint,
+      symbol: r.symbol,
+      code: r.code,
+      label: r.label,
+      points: r.points,
+      status: r.status,
+      at: new Date(r.at).toISOString(),
+    }));
   }
 
   /** Points banked by a user in a sport since [from], up to [to] if given. */

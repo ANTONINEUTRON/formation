@@ -107,6 +107,10 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                       _Header(manager: manager),
                       const SizedBox(height: 16),
                       if (!manager.isCurrentUser) _actions(manager),
+                      if (manager.skill != null) ...[
+                        const SizedBox(height: 16),
+                        _SkillCard(skill: manager.skill!),
+                      ],
                       if (manager.badges.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Wrap(
@@ -291,6 +295,87 @@ class _Header extends StatelessWidget {
               StatPill(label: 'Followers', value: '${manager.followers}'),
               if (manager.streak > 0)
                 StatPill(label: 'Streak', value: '${manager.streak}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Skill, made visible: the rating and what's behind it.
+class _SkillCard extends StatelessWidget {
+  const _SkillCard({required this.skill});
+
+  final Skill skill;
+
+  @override
+  Widget build(BuildContext context) {
+    final alpha = skill.alphaPerWeekPct;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                skill.rating.round().toString(),
+                style: AppTextStyles.mono(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Skill rating', style: TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      skill.ranked
+                          ? 'Over ${skill.weeks} weeks · steady beats lucky'
+                          : 'After ${skill.weeks} of 3 weeks needed for the Skill board',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              for (final f in skill.form)
+                Container(
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.only(left: 3),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: switch (f) {
+                      'W' => AppColors.success,
+                      'L' => AppColors.error,
+                      _ => AppColors.textMuted,
+                    }.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(f, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            alpha >= 0
+                ? 'Beats the market by ${alpha.toStringAsFixed(1)}% a week on average'
+                : 'Trails the market by ${(-alpha).toStringAsFixed(1)}% a week on average',
+            style: const TextStyle(fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              StatPill(label: 'Hit rate', value: '${skill.hitRatePct}%'),
+              if (skill.shrewdCaptainPct != null)
+                StatPill(label: 'Shrewd captain', value: '${skill.shrewdCaptainPct}%'),
             ],
           ),
         ],

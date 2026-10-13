@@ -18,8 +18,12 @@ class PositionSlotChip extends StatelessWidget {
     this.armband,
     this.isSelected = false,
     this.isHighlighted = false,
+    this.liveGoal = false,
     super.key,
   });
+
+  /// It scored today: provisional until the daily rollup.
+  final bool liveGoal;
 
   /// Decides the jersey: football shirt, basketball vest or gridiron jersey.
   final SportMode mode;
@@ -97,6 +101,19 @@ class PositionSlotChip extends StatelessWidget {
                     top: -4,
                     right: -4,
                     child: ArmbandBadge(label: armband!, size: size * 0.38),
+                  ),
+                if (liveGoal)
+                  Positioned(
+                    top: -4,
+                    left: -4,
+                    child: Tooltip(
+                      message: 'Scored today (provisional)',
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(color: AppColors.background, shape: BoxShape.circle),
+                        child: Icon(mode.icon, size: size * 0.28, color: AppColors.primary),
+                      ),
+                    ),
                   ),
                 // A price that can't be trusted right now: kept, but banking nothing.
                 if (stock?.notScoring != null)

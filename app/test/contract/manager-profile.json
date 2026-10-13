@@ -1,8 +1,8 @@
 {
-  "userId": "61f74618-a414-411f-bdcd-606def182bba",
-  "username": "znfV_G3Sa",
+  "userId": "61aaf77a-8472-49b5-af95-a16c8b7eb341",
+  "username": "MusK_pcto",
   "bio": null,
-  "walletAddress": "znfVVphqZdVGRwEadp39mR2vpNg9ESCE4Mu3Z3SG3Sa",
+  "walletAddress": "MusKGXwttQ1a7cLpCeerddRNq3XMhoD9FcwbGBcpcto",
   "mode": "football",
   "rank": 1,
   "points": 0,
@@ -471,5 +471,6 @@
   "following": false,
   "isCurrentUser": false,
   "seasons": [],
-  "badges": []
+  "badges": [],
+  "skill": null
 }

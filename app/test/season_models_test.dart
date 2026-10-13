@@ -118,6 +118,67 @@ void main() {
     expect(result.turningPoint!.points, -30);
   });
 
+  test('live events, live fixtures and skill parse from a session and a profile', () {
+    final session = Session.fromJson({
+      'startsAt': '2026-10-27T00:00:00.000Z',
+      'endsAt': '2026-10-28T00:00:00.000Z',
+      'entered': true,
+      'points': 3,
+      'slots': <Object>[],
+      'teamEvents': <Object>[],
+      'substitutionsUsed': 0,
+      'freeSubstitutionsLeft': 3,
+      'liveEvents': [
+        {
+          'slotIndex': 9,
+          'mint': 'm',
+          'symbol': 'TSLAx',
+          'code': 'goal',
+          'label': 'Goal',
+          'points': 4,
+          'status': 'provisional',
+          'at': '2026-10-27T15:03:00.000Z',
+        },
+        {
+          'slotIndex': 1,
+          'mint': 'k',
+          'symbol': 'KOx',
+          'code': 'clean_sheet',
+          'label': 'Clean sheet',
+          'points': 4,
+          'status': 'disallowed',
+          'at': '2026-10-27T15:03:00.000Z',
+        },
+      ],
+      'liveFixtures': [
+        {
+          'leagueId': 'l',
+          'leagueName': 'Office',
+          'opponent': 'ben',
+          'points': 42.1,
+          'opponentPoints': 38,
+          'final': false,
+        },
+      ],
+    });
+    expect(session.liveFor(9).single.isGoal, isTrue);
+    expect(session.liveFor(1).single.isDisallowed, isTrue);
+    expect(session.liveFor(1).single.isGoal, isFalse);
+    expect(session.liveFixtures.single.opponent, 'ben');
+
+    final skill = Skill.fromJson({
+      'rating': 71.4,
+      'weeks': 4,
+      'ranked': true,
+      'alphaPerWeekPct': 2.1,
+      'hitRatePct': 64,
+      'shrewdCaptainPct': 75,
+      'form': ['W', 'W', 'L', 'W'],
+    });
+    expect(skill.ranked, isTrue);
+    expect(skill.form.last, 'W');
+  });
+
   test('fixture mode serves a result card', () async {
     final repo = FixtureRepository(walletAddress: 'TestWallet1111111111111111111111111111111');
     final result = await repo.getMatchWeekResult(SportMode.football);

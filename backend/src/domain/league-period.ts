@@ -4,11 +4,13 @@ import { GameCalendar } from './calendar.js';
 /**
  * - season: the current season's running totals (the default board);
  * - match_week: points banked since this match week's kick-off;
- * - all_time: a whole career, across seasons.
+ * - all_time: a whole career, across seasons;
+ * - skill: ranked by skill rating rather than points, never resets.
  */
 export const LEAGUE_PERIODS = [
   'season',
   'match_week',
+  'skill',
   'all_time',
   'monthly',
   'weekly',
@@ -81,6 +83,8 @@ export function parseLeaguePeriod(
   switch (kind as LeaguePeriodKind) {
     case 'season':
       return SEASON;
+    case 'skill':
+      return { kind: 'skill', from: null, to: null };
     case 'match_week': {
       const week = calendar.weekAt(now);
       return { kind: 'match_week', from: week.kickOff, to: week.fullTime };

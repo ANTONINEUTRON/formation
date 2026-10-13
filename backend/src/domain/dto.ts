@@ -55,6 +55,10 @@ export interface SessionDto {
   matchWeek: MatchWeekDto;
   /** Friday full time to Monday kick-off: substitutions are free and unlimited. */
   transferWindowOpen: boolean;
+  /** Today's role events so far: provisional, or disallowed if they fell away. */
+  liveEvents: LiveEventDto[];
+  /** This week's private-league fixtures, with live scores. */
+  liveFixtures: LiveFixtureDto[];
 }
 
 export interface MatchWeekDto {
@@ -109,6 +113,8 @@ export interface LeaderboardEntryDto {
   todayPoints: number;
   streak: number;
   isCurrentUser: boolean;
+  /** Skill rating (0–100), or null before their first full match week. */
+  skill: number | null;
 }
 
 export interface SwapQuoteDto {
@@ -199,6 +205,45 @@ export interface LeagueTableRowDto {
   form: ('W' | 'D' | 'L')[];
 }
 
+/** Skill, made visible: on profiles and the Skill board. */
+export interface SkillDto {
+  /** 0–100; 50 matches the market. Risk-adjusted, so steady beats lucky. */
+  rating: number;
+  weeks: number;
+  /** True once there are enough weeks to appear on the Skill board. */
+  ranked: boolean;
+  /** "Beats the market by +2.1% a week on average." */
+  alphaPerWeekPct: number;
+  /** Share of picks that beat the S&P 500 over their week. */
+  hitRatePct: number;
+  /** Share of weeks the captain outscored the team's average pick. */
+  shrewdCaptainPct: number | null;
+  /** Last five weeks against the market, oldest first. */
+  form: ('W' | 'D' | 'L')[];
+}
+
+/** A role event as it happens today: provisional until the daily rollup. */
+export interface LiveEventDto {
+  slotIndex: number;
+  mint: string;
+  symbol: string;
+  code: string;
+  label: string;
+  points: number;
+  status: 'provisional' | 'confirmed' | 'disallowed';
+  at: string;
+}
+
+/** A private-league fixture being played this week, with the live score. */
+export interface LiveFixtureDto {
+  leagueId: string;
+  leagueName: string;
+  opponent: string | null;
+  points: number;
+  opponentPoints: number;
+  final: boolean;
+}
+
 /** A player's match week: the full-time result card. */
 export interface MatchWeekResultDto {
   week: MatchWeekDto;
@@ -210,8 +255,8 @@ export interface MatchWeekResultDto {
   players: number;
   /** The pick that scored most this week. */
   manOfTheMatch: { symbol: string; points: number } | null;
-  /** Goals (or the sport's equivalent), in order. */
-  goals: { at: string; symbol: string; label: string; points: number }[];
+  /** Goals (or the sport's equivalent), in order; today's are provisional. */
+  goals: { at: string; symbol: string; label: string; points: number; provisional?: boolean }[];
   /** The tick that moved the score most. */
   turningPoint: { at: string; points: number } | null;
 }
@@ -282,6 +327,8 @@ export interface ManagerDto {
   seasons: { season: number; points: number; rank: number; players: number }[];
   /** Every badge they've earned, in any sport. */
   badges: { code: string; label: string; mode: SportMode | null; season: number | null }[];
+  /** Null before their first full match week. */
+  skill: SkillDto | null;
 }
 
 export interface ManagerHoldingDto {

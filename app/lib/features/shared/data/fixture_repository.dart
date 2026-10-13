@@ -303,6 +303,21 @@ class FixtureRepository implements FormationRepository {
       freeSubstitutionsLeft: session.freeSubstitutionsLeft,
       matchWeek: _matchWeek(DateTime.now(), points: points),
       transferWindowOpen: session.transferWindowOpen,
+      // Today's events as they happen, provisional until the day closes.
+      liveEvents: [
+        for (final s in slots)
+          for (final e in s.events)
+            LiveEvent(
+              slotIndex: s.slotIndex,
+              mint: s.mint,
+              symbol: s.symbol,
+              code: e.code,
+              label: e.label,
+              points: e.points,
+              status: 'provisional',
+              at: DateTime.now(),
+            ),
+      ],
     );
   }
 
@@ -324,7 +339,13 @@ class FixtureRepository implements FormationRepository {
             for (final s in slots)
               for (final e in s.events)
                 if (e.points > 0 && e.code == 'goal')
-                  (at: now.subtract(const Duration(hours: 5)), symbol: s.symbol, label: e.label, points: e.points),
+                  (
+                    at: now.subtract(const Duration(hours: 5)),
+                    symbol: s.symbol,
+                    label: e.label,
+                    points: e.points,
+                    provisional: true,
+                  ),
           ],
           turningPoint: best == null ? null : (at: now.subtract(const Duration(hours: 9)), points: best.total),
         );

@@ -183,6 +183,8 @@
       "points": 163
     },
     "transferWindowOpen": false,
+    "liveEvents": [],
+    "liveFixtures": [],
     "startsAt": "2026-01-06T15:30:00.000Z",
     "endsAt": "2026-01-06T15:40:00.000Z",
     "entered": true,

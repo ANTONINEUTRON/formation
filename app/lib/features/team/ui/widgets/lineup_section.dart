@@ -57,6 +57,7 @@ class LineupSection extends StatelessWidget {
             slot: roster.slots[i],
             teamValueUsd: roster.totalValueUsd,
             score: session?.scoreFor(i),
+            live: session?.liveFor(i) ?? const [],
             armband: roster.armband(i),
           ),
           const SizedBox(height: 8),

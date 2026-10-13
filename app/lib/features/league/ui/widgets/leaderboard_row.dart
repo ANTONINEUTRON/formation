@@ -63,7 +63,9 @@ class LeaderboardRow extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      shortAddress(entry.walletAddress),
+                      entry.skill == null
+                          ? shortAddress(entry.walletAddress)
+                          : '${shortAddress(entry.walletAddress)} · skill ${entry.skill!.round()}',
                       style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],

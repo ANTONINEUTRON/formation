@@ -4,16 +4,20 @@ import type { Db } from '../core/db.js';
 import type { League } from '../core/db-types.js';
 import { CALENDAR } from '../domain/calendar.js';
 import type { GameCalendar, MatchWeek } from '../domain/calendar.js';
-import type { MatchWeekResultDto, FixtureDto, LeagueTableRowDto } from '../domain/dto.js';
+import type {
+  FixtureDto,
+  LeagueTableRowDto,
+  LiveFixtureDto,
+  MatchWeekResultDto,
+} from '../domain/dto.js';
 import { leagueTable, roundRobin } from '../domain/fixtures.js';
 import { SPORT_MODES } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
+import { GOAL_CODES } from './engine/skill.js';
 import type { SlotScore } from './engine/types.js';
-
-/** Event codes that read as a "goal" on a timeline, whatever the sport. */
-const GOAL_CODES = new Set(['goal', 'bucket', 'touchdown', 'block', 'double_double', 'field_goal']);
+import { SkillService } from './skill.service.js';
 
 /**
  * The weekly rhythm (SCORING_PLAN.md §2.2). A match week is a window over the
@@ -30,6 +34,7 @@ export class MatchWeekService {
     @Inject(CALENDAR) private readonly calendar: GameCalendar,
     private readonly notifications: NotificationsService,
     private readonly xstocks: XStocksService,
+    private readonly skill: SkillService,
   ) {}
 
   /** Runs after each tick has banked. */
@@ -119,6 +124,7 @@ export class MatchWeekService {
   private async fullTime(week: MatchWeek, now: number): Promise<void> {
     if (!(await this.claim(week, 'full_time_done_at', now))) return;
     await this.settleFixtures(now);
+    await this.skill.computeWeek(week, now);
 
     const messages = [];
     for (const mode of SPORT_MODES) {
@@ -247,6 +253,67 @@ export class MatchWeekService {
     return due.length;
   }
 
+  /** [userId]'s fixtures in this match week, scored live from the ledger. */
+  async liveFixtures(userId: string, mode: SportMode, now: number): Promise<LiveFixtureDto[]> {
+    const week = this.calendar.weekAt(now);
+    const rows = await this.db
+      .selectFrom('league_fixtures')
+      .innerJoin('leagues', 'leagues.id', 'league_fixtures.league_id')
+      .select([
+        'league_fixtures.league_id as league_id',
+        'leagues.name as league_name',
+        'league_fixtures.home_id as home_id',
+        'league_fixtures.away_id as away_id',
+        'league_fixtures.home_points as home_points',
+        'league_fixtures.away_points as away_points',
+        'league_fixtures.status as status',
+      ])
+      .where('leagues.sport_mode', '=', mode)
+      .where('league_fixtures.week', '=', week.number)
+      .where((eb) =>
+        eb.or([eb('league_fixtures.home_id', '=', userId), eb('league_fixtures.away_id', '=', userId)]),
+      )
+      .execute();
+    if (rows.length === 0) return [];
+
+    const opponents = rows.flatMap((r) => {
+      const other = r.home_id === userId ? r.away_id : r.home_id;
+      return other ? [other] : [];
+    });
+    const names = new Map(
+      opponents.length === 0
+        ? []
+        : (
+            await this.db
+              .selectFrom('users')
+              .select(['id', 'username'])
+              .where('id', 'in', opponents)
+              .execute()
+          ).map((u) => [u.id, u.username]),
+    );
+    const board = new Map((await this.weekBoard(mode, week)).map((r) => [r.userId, r.points]));
+
+    return rows.map((r) => {
+      const home = r.home_id === userId;
+      const other = home ? r.away_id : r.home_id;
+      const final = r.status === 'final';
+      return {
+        leagueId: r.league_id,
+        leagueName: r.league_name,
+        opponent: other ? (names.get(other) ?? 'unknown') : null,
+        points: round1(final ? ((home ? r.home_points : r.away_points) ?? 0) : (board.get(userId) ?? 0)),
+        opponentPoints: round1(
+          final
+            ? ((home ? r.away_points : r.home_points) ?? 0)
+            : other
+              ? (board.get(other) ?? 0)
+              : 0,
+        ),
+        final,
+      };
+    });
+  }
+
   async fixtures(leagueId: string, names: Map<string, string>): Promise<FixtureDto[]> {
     const rows = await this.db
       .selectFrom('league_fixtures')
@@ -346,6 +413,31 @@ export class MatchWeekService {
         }
       }
     }
+
+    // Today's goals so far, flagged provisional until the daily rollup.
+    const live = await this.db
+      .selectFrom('live_events')
+      .select(['symbol', 'label', 'points', 'at', 'code'])
+      .where('user_id', '=', userId)
+      .where('sport_mode', '=', mode)
+      .where('status', '=', 'provisional')
+      .where('at', '>=', week.kickOff)
+      .where('at', '<=', week.fullTime)
+      .orderBy('at')
+      .execute();
+    for (const e of live) {
+      if (GOAL_CODES.has(e.code) && e.points > 0) {
+        goals.push({
+          at: new Date(e.at).toISOString(),
+          symbol: e.symbol,
+          label: e.label,
+          points: e.points,
+          provisional: true,
+        });
+      }
+    }
+
+    goals.sort((a, b) => a.at.localeCompare(b.at));
 
     const best = [...byPick.entries()].sort((a, b) => b[1] - a[1])[0];
     const rank = board.findIndex((r) => r.userId === userId);

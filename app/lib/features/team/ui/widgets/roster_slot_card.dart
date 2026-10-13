@@ -12,6 +12,7 @@ class RosterSlotCard extends StatelessWidget {
     required this.slot,
     required this.teamValueUsd,
     this.score,
+    this.live = const [],
     this.armband,
     super.key,
   });
@@ -21,6 +22,9 @@ class RosterSlotCard extends StatelessWidget {
 
   /// This pick's session score, when the team is being scored.
   final SlotScore? score;
+
+  /// Today's role events as they happen: provisional until the daily rollup.
+  final List<LiveEvent> live;
 
   /// 'C' or 'V' badge, if any.
   final String? armband;
@@ -126,7 +130,7 @@ class RosterSlotCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (score != null && (score.events.isNotEmpty || score.multiplier > 1)) ...[
+          if ((score != null && (score.events.isNotEmpty || score.multiplier > 1)) || live.isNotEmpty) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
@@ -134,15 +138,25 @@ class RosterSlotCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  if (score.multiplier > 1)
+                  if (score != null && score.multiplier > 1)
                     _EventChip(
                       label: '${formatPoints(score.multiplier)}× captain',
                       color: const Color(0xFFFACC15),
                     ),
-                  for (final event in score.events)
+                  for (final event in score?.events ?? const <ScoreEvent>[])
                     _EventChip(
                       label: '${event.label} ${formatSignedPoints(event.points)}',
                       color: pnlColor(event.points),
+                    ),
+                  // Live: dotted while provisional, struck through if disallowed.
+                  for (final event in live)
+                    _EventChip(
+                      label: event.isDisallowed
+                          ? '${event.label} · disallowed'
+                          : '${event.label} ${formatSignedPoints(event.points)} · live',
+                      color: event.isDisallowed ? AppColors.textMuted : pnlColor(event.points),
+                      provisional: event.isProvisional,
+                      struck: event.isDisallowed,
                     ),
                 ],
               ),
@@ -155,13 +169,45 @@ class RosterSlotCard extends StatelessWidget {
 }
 
 class _EventChip extends StatelessWidget {
-  const _EventChip({required this.label, required this.color});
+  const _EventChip({
+    required this.label,
+    required this.color,
+    this.provisional = false,
+    this.struck = false,
+  });
 
   final String label;
   final Color color;
 
+  /// Not banked yet: drawn with a dotted outline.
+  final bool provisional;
+
+  /// Disallowed: the price fell back.
+  final bool struck;
+
   @override
   Widget build(BuildContext context) {
+    final text = Text(
+      label,
+      style: AppTextStyles.mono(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: color,
+      ).copyWith(decoration: struck ? TextDecoration.lineThrough : null),
+    );
+    if (provisional) {
+      return CustomPaint(
+        painter: _DottedOutline(color: color.withValues(alpha: 0.8)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: text,
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -169,10 +215,30 @@ class _EventChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
-      child: Text(
-        label,
-        style: AppTextStyles.mono(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-      ),
+      child: text,
     );
   }
+}
+
+class _DottedOutline extends CustomPainter {
+  _DottedOutline({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(6)));
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += 5) {
+        canvas.drawPath(metric.extractPath(d, d + 2.5), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DottedOutline old) => old.color != color;
 }

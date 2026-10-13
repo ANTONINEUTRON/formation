@@ -9,6 +9,7 @@ import type { GameCalendar } from '../domain/calendar.js';
 import { parseLeaguePeriod, SEASON } from '../domain/league-period.js';
 import type { LeaguePeriod } from '../domain/league-period.js';
 import type { SportMode } from '../domain/sport.js';
+import { SKILL_MIN_WEEKS } from '../scoring/engine/skill.js';
 
 const BOARD_SIZE = 100;
 
@@ -63,10 +64,14 @@ export class LeagueService {
     const today = await this.todayPoints(mode);
     // The season board reads the running totals; every other period, career
     // (all time) included, is a sum over the ledger.
-    const tallies =
+    const [tallies, skill] = await Promise.all([
       period.kind === 'season'
-        ? await this.seasonTallies(mode, today)
-        : await this.periodTallies(mode, period, today);
+        ? this.seasonTallies(mode, today)
+        : period.kind === 'skill'
+          ? this.skillTallies(mode, today)
+          : this.periodTallies(mode, period, today),
+      this.skillRatings(mode),
+    ]);
 
     const entries = tallies
       .sort((a, b) => b.points - a.points)
@@ -75,15 +80,61 @@ export class LeagueService {
         ...tally,
         rank: i + 1,
         isCurrentUser: tally.userId === currentUserId,
+        skill: skill.get(tally.userId) ?? null,
       }));
 
     if (currentUserId && !entries.some((e) => e.isCurrentUser)) {
       const mine = tallies.findIndex((t) => t.userId === currentUserId);
       if (mine >= 0) {
-        entries.push({ ...tallies[mine], rank: mine + 1, isCurrentUser: true });
+        entries.push({
+          ...tallies[mine],
+          rank: mine + 1,
+          isCurrentUser: true,
+          skill: skill.get(currentUserId) ?? null,
+        });
       }
     }
     return entries;
+  }
+
+  /**
+   * The Skill board: ranked by skill rating, which never resets, for players
+   * with enough weeks behind them. The "points" column carries the rating.
+   */
+  private async skillTallies(mode: SportMode, today: Map<string, number>): Promise<Tally[]> {
+    const [rows, streaks] = await Promise.all([
+      this.db
+        .selectFrom('skill_ratings')
+        .innerJoin('users', 'users.id', 'skill_ratings.user_id')
+        .select([
+          'skill_ratings.user_id as user_id',
+          'skill_ratings.rating as rating',
+          'users.username as username',
+          'users.wallet_address as wallet_address',
+        ])
+        .where('skill_ratings.sport_mode', '=', mode)
+        .where('skill_ratings.weeks', '>=', SKILL_MIN_WEEKS)
+        .orderBy('skill_ratings.rating', 'desc')
+        .execute(),
+      this.streaks(mode),
+    ]);
+    return rows.map((row) => ({
+      userId: row.user_id,
+      username: row.username,
+      walletAddress: row.wallet_address,
+      points: row.rating,
+      todayPoints: today.get(row.user_id) ?? 0,
+      streak: streaks.get(row.user_id) ?? 0,
+    }));
+  }
+
+  private async skillRatings(mode: SportMode): Promise<Map<string, number>> {
+    const rows = await this.db
+      .selectFrom('skill_ratings')
+      .select(['user_id', 'rating'])
+      .where('sport_mode', '=', mode)
+      .execute();
+    return new Map(rows.map((r) => [r.user_id, r.rating]));
   }
 
   /** This season's running totals, which every tick has already banked into. */

@@ -39,6 +39,7 @@ describe('migrations', () => {
         'league_fixtures',
         'league_members',
         'leagues',
+        'live_events',
         'match_weeks',
         'notifications',
         'points_ledger',
@@ -50,7 +51,9 @@ describe('migrations', () => {
         'scoring_anomalies',
         'season_results',
         'seasons',
+        'skill_ratings',
         'users',
+        'weekly_stats',
         'xstocks',
       ]);
 

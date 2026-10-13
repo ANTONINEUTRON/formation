@@ -1,12 +1,13 @@
 [
   {
-    "userId": "ec78b46e-3854-40eb-b0c8-cb3d9e8caf0a",
-    "username": "ocTM_oWHJ",
-    "walletAddress": "ocTMReQu4neUhk361SfF1LfpyBxDtwbmMN5wJ59oWHJ",
+    "userId": "db508fb4-8f94-4de5-a09f-5b5cbde1d854",
+    "username": "CtXj_f7ia",
+    "walletAddress": "CtXj6bx2Y2H3bqPEw7PqAJ9MBypR1hwadJQMkFSf7ia",
     "points": 163,
     "todayPoints": 163,
     "streak": 0,
     "rank": 1,
-    "isCurrentUser": true
+    "isCurrentUser": true,
+    "skill": null
   }
 ]

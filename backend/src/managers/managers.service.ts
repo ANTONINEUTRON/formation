@@ -9,6 +9,7 @@ import type { SportMode } from '../domain/sport.js';
 import { LeagueService } from '../league/league.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { SeasonService } from '../scoring/season.service.js';
+import { SkillService } from '../scoring/skill.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 
 /**
@@ -29,6 +30,7 @@ export class ManagersService {
     private readonly league: LeagueService,
     private readonly notifications: NotificationsService,
     private readonly seasons: SeasonService,
+    private readonly skill: SkillService,
   ) {}
 
   async profile(viewer: AuthUser, userId: string, mode: SportMode): Promise<ManagerDto> {
@@ -39,7 +41,7 @@ export class ManagersService {
       .executeTakeFirst();
     if (!user) throw new NotFoundException('No such player');
 
-    const [standing, holdings, lineup, followers, following, record, seasons, badges] =
+    const [standing, holdings, lineup, followers, following, record, seasons, badges, skill] =
       await Promise.all([
         this.league.standing(user.id, mode),
         this.holdingsOf(user.wallet_address, user.id, mode),
@@ -49,6 +51,7 @@ export class ManagersService {
         this.leagueRecord(user.id, mode),
         this.seasons.history(user.id),
         this.seasons.badges(user.id),
+        this.skill.skillFor(user.id, mode),
       ]);
 
     return {
@@ -77,6 +80,7 @@ export class ManagersService {
         mode: badgeMode,
         season,
       })),
+      skill,
     };
   }
 

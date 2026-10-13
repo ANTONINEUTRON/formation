@@ -130,9 +130,18 @@ class MatchWeekResultSheet extends StatelessWidget {
                           style: AppTextStyles.mono(fontSize: 11, color: AppColors.textMuted),
                         ),
                       ),
-                      const Icon(Icons.sports_soccer, size: 14, color: AppColors.primary),
+                      Icon(mode.icon, size: 14, color: AppColors.primary),
                       const SizedBox(width: 6),
-                      Expanded(child: Text('${goal.symbol} · ${goal.label}')),
+                      Expanded(
+                        child: Text(
+                          goal.provisional
+                              ? '${goal.symbol} · ${goal.label} (provisional)'
+                              : '${goal.symbol} · ${goal.label}',
+                          style: TextStyle(
+                            fontStyle: goal.provisional ? FontStyle.italic : FontStyle.normal,
+                          ),
+                        ),
+                      ),
                       Text(
                         formatSignedPoints(goal.points),
                         style: AppTextStyles.mono(fontSize: 12, color: AppColors.success),
