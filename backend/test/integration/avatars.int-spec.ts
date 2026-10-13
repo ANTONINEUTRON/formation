@@ -36,7 +36,7 @@ describe('custom avatars', () => {
   it('draws four poses from the photo, free the first time, and makes it the active character', async () => {
     expect((await assistant.profile(manager)).avatarCost).toBe(0);
 
-    const result = await avatars.create(manager, photo(), { personality: 'maverick', name: 'Coach Ade', consent: 'true' });
+    const result = await avatars.create(manager, photo(), { personality: 'maverick', name: 'Coach Toly', consent: 'true' });
     expect(result.credits).toBe(5); // free
 
     // One drawing from the photo, then three poses drawn from that character.
@@ -46,7 +46,7 @@ describe('custom avatars', () => {
 
     const profile = await assistant.profile(manager);
     expect(profile.characterId).toBe('custom');
-    expect(profile.characters.at(-1)).toMatchObject({ id: 'custom', name: 'Coach Ade', style: 'bold' });
+    expect(profile.characters.at(-1)).toMatchObject({ id: 'custom', name: 'Coach Toly', style: 'bold' });
     expect(profile.avatarVersion).not.toBeNull();
     expect(profile.avatarCost).toBe(20);
 
@@ -57,7 +57,7 @@ describe('custom avatars', () => {
     // The custom character speaks with the borrowed personality.
     h.llm.reply = { text: 'Go bold.', mood: 'happy', suggestions: [] };
     await assistant.chat(manager, { context: { mode: 'football' }, messages: [{ role: 'manager', text: 'hi' }] });
-    expect(h.llm.requests[0].system).toContain('You are Coach Ade');
+    expect(h.llm.requests[0].system).toContain('You are Coach Toly');
   });
 
   it('charges for a second avatar, and refunds when drawing fails', async () => {

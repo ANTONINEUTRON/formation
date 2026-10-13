@@ -176,13 +176,13 @@ void main() {
         photo: photo,
         mimeType: 'image/png',
         personality: 'maverick',
-        name: 'Coach Ade',
+        name: 'Coach Toly',
       );
 
       expect(error, isNull);
       final profile = cubit.state.profile!;
       expect(profile.character!.isCustom, isTrue);
-      expect(profile.character!.name, 'Coach Ade');
+      expect(profile.character!.name, 'Coach Toly');
       expect(profile.character!.style, 'bold');
       expect(profile.avatarCost, 20); // the second one costs credits
       expect(cubit.state.avatarImages.keys, containsAll(AssistantPose.values));

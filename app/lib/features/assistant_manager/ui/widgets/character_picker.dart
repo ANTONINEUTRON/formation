@@ -61,7 +61,7 @@ class _CharacterPickerState extends State<CharacterPicker> {
           ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
-        const Text('You make the calls. They advise.', style: TextStyle(color: AppColors.textSecondary)),
+        const Text('You make the calls. They assist.', style: TextStyle(color: AppColors.textSecondary)),
         Expanded(
           child: PageView.builder(
             controller: _pages,

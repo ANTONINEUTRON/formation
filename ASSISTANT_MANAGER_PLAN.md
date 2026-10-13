@@ -1,14 +1,40 @@
-# AI Manager: implementation plan
+# Assistant Manager: implementation plan
 
-**Status:** not started. The app currently ships only the entry point: the ✨ button in the app bar
-(`formation_app_bar.dart`). It opens a "coming soon" explainer page, `AiManagerPage`
-(`app/lib/features/ai_manager/ui/pages/ai_manager_page.dart`), at `/ai-manager`. This document is the
-plan for building the real feature.
+**Naming.** The user is the **Manager**. The feature is the **Assistant Manager**: it advises, and the
+Manager decides. Never call it the "AI Manager".
+
+**Status: all five phases are built** (commits `329a47f` to `d1d813b` on `web`; migrations 011 to 014).
+
+| Phase | What's built |
+|---|---|
+| 1a | Characters, context-aware chat, validated suggestions, trial credits, glassy sheet |
+| 1b | Credit packs paid in SKR: quote, build, sign, then an on-chain check before crediting |
+| 2 | Cards filled from real data (scouting report, head to head, squad bubbles, points breakdown), news from Google Search with sources |
+| 3 | Three intro screens, character picked before connecting, free starter squad (a draft plus one regenerate) |
+| 4 | Sandboxed HTML card (strict CSP, no network, display only); personalities shape every reply |
+| 5 | Custom Assistant Manager drawn from a photo in four poses; the first is free |
+
+**Not verified live yet.** No `GEMINI_API_KEY` has been set, so every test so far ran against a fake model
+and a fake chain. Still to check against the real services: prompt quality, the image model's output,
+Google Search grounding, and one real SKR purchase.
+
+**Built differently from the original plan:**
+- **No streaming:** replies arrive whole.
+- **History is kept in memory per sport for the session.** It isn't saved on the device.
+- **There is no `/assistant-manager` deep-link route.** The sheet opens from the app bar only.
+- **There is no `rosterVersion`.** The roster endpoints re-check suggestions when they're applied.
+- **No Rive animations.** The four AI-drawn poses cross-fade, with a bob and a glow.
+- **No "swap USDC → SKR" in the buy sheet.** It warns when the wallet holds too little SKR.
+- **HTML cards are display only.** There are no `postMessage` actions back to the app.
+- **The starter squad uses `users.starter_drafts`** (a draft plus one regenerate), not a boolean, and is
+  offered from the home screen rather than a step in `_AppGate`.
+- **Custom avatars aren't cut out.** They keep their plain dark background and are framed with rounded
+  corners.
 
 ## What it is
 
-The AI Manager is an animated character, the manager's assistant in the dugout. It lives in a glassy
-panel that opens over whatever screen the manager is on. It already knows the sport, the lineup and the
+The Assistant Manager is an animated character, the Manager's assistant in the dugout. It lives in a
+glassy panel that opens over whatever screen the Manager is on. It already knows the sport, the lineup and the
 screen it was opened from. It does five things:
 
 1. **Squad review.** One tap gives a short write-up covering tier balance, weak slots and a captain pick.
@@ -29,7 +55,7 @@ New accounts get a small trial allowance, a free starter squad, and one free cus
 
 ### Opening it
 
-- The ✨ button in the app bar opens the AI Manager **over the current screen**. It is no longer a
+- The ✨ button in the app bar opens the Assistant Manager **over the current screen**. It is no longer a
   separate page:
   - **Phone:** a `DraggableScrollableSheet` that starts at about 60% height and can be dragged to full
     height.
@@ -39,7 +65,7 @@ New accounts get a small trial allowance, a free starter squad, and one free cus
     opacity, with a 1px light border and a soft lime glow behind the character.
   - When reduced motion is requested (`MediaQuery.disableAnimations`), animations are swapped for
     plain fades.
-- The `/ai-manager` route stays, so links still work. It opens the same panel on top of the home screen.
+- A deep-link route (`/assistant-manager`) that opens the same panel on top of the home screen is still to come.
 - Closing keeps the conversation for the rest of the session (see Context).
 
 ### Layout inside the panel
@@ -335,7 +361,7 @@ The flow mirrors `swap/`, which already has quote, build and confirm steps.
 - At most 20 messages of history, each up to 1,000 characters.
 - `maxOutputTokens` set on every call.
 
-## App: `app/lib/features/ai_manager/`
+## App: `app/lib/features/assistant_manager/`
 
 - **Data.**
   - Add the assistant methods to `FormationRepository`
@@ -376,7 +402,7 @@ The flow mirrors `swap/`, which already has quote, build and confirm steps.
 Today `_AppGate` in `app/lib/features/app/app.dart` shows `OnboardingPage`
 (`app/lib/features/onboarding/ui/pages/onboarding_page.dart`) whenever no wallet is connected. That
 page is just the logo, the tagline and `ConnectWalletView`. New accounts will instead go through three
-intro screens, connect a wallet, and then get a free starter squad from the AI Manager.
+intro screens, connect a wallet, and then get a free starter squad from their Assistant Manager.
 
 ### Part 1: three intro screens, before connecting a wallet
 
@@ -480,7 +506,7 @@ Each phase works on its own, so the work can stop after any of them:
 
 - Pack sizes and USD prices.
 - The trial credit count (default 5) and the cost of regenerating an avatar.
-- The default starter budget, and whether the starter flow can be reopened later from the AI Manager.
+- The default starter budget, and whether the starter flow can be reopened later from the Assistant Manager.
 - The Gemini text and image models and their tiers, based on cost per reply against quality.
 - Who designs the five characters and their Rive animations, and the shared art style the photo avatars
   must match.

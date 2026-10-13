@@ -119,7 +119,7 @@ flutter_launcher_icons:
   image_path: "assets/brand/formation_white.png"
   web:
     generate: true
-    background_color: "#B8FF3C"
+    background_color: "#FFFFFF"
 
 flutter_native_splash:
   color: "#0A1410"

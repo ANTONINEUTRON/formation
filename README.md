@@ -69,7 +69,7 @@ symbianss/
 ├── app/            # Flutter — wallet connect, draft, team, leagues (Android + web)
 │   └── web_wallet/ # TypeScript Wallet Standard bridge for the web build
 ├── backend/        # NestJS + Postgres — scoring engine, leagues, swap orchestration
-├── functions/      # Per-page share previews — written, not deployed (see its README)
+├── functions/      # Cloud Function: injects share previews into shared links
 ├── scripts/        # deploy-web.ps1
 └── landing_page/   # Static marketing site (index.html)
 ```
@@ -187,7 +187,7 @@ An RPC key in a web build is not a secret: the bundle ships to the browser, so
 anyone can read it out of devtools. Restrict the key by domain at the provider
 — that is the control that holds, and obfuscating the bundle is not.
 
-Deploying:
+Deploying (needs the Blaze plan on `formation-cbf24`, for the function):
 
 ```powershell
 ./scripts/deploy-web.ps1
@@ -199,12 +199,11 @@ separate step, and it warns if the RPC is still the public one.
 First time only: `firebase hosting:sites:create formation-app`, then add
 `app.formation.titalabs.xyz` to that site in the Firebase console.
 
-Shared links currently unfurl with one generic card, from the `og:*` tags in
-`app/web/index.html`. Per-page previews need something server-side that can
-rewrite the head before a crawler reads it, since a crawler never runs Flutter;
-`functions/` holds a Cloud Function that does it, deliberately not referenced
-from `firebase.json` or the deploy script so that nothing here needs a billing
-account. `functions/README.md` has the two ways to turn it on.
+Shared manager and league links get their own preview cards. A crawler never
+runs Flutter, so the `ogRender` Cloud Function in `functions/` writes each page's
+title and description into the app shell's head before serving it. Hosting
+rewrites `/managers/**` and `/leagues/**` to it, and the deploy script ships the
+two together; deploying hosting without the function would break those paths.
 
 ### Landing page
 
@@ -243,7 +242,6 @@ where they can be held.
 
 - iOS is unexercised. Web runs from the same codebase but has not been
   through a release cycle.
-- Shared links all unfurl with the same generic preview card.
 - The web app is not geofenced. xStocks are not available to US persons, and a
   public URL is easier to reach from the US than a dApp Store listing, so this
   needs settling before the web app is marketed.

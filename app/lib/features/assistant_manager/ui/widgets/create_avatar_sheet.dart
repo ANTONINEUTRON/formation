@@ -112,7 +112,7 @@ class _CreateAvatarSheetState extends State<CreateAvatarSheet> {
             ),
             const SizedBox(height: 4),
             const Text(
-              "We'll draw a character that looks like you, in four poses. The photo is only used for the "
+              'The photo is only used for the '
               "drawing and isn't kept.",
               style: TextStyle(color: AppColors.textSecondary),
             ),
@@ -170,7 +170,7 @@ class _CreateAvatarSheetState extends State<CreateAvatarSheet> {
               enabled: !_drawing,
               maxLength: 24,
               inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\n\r]'))],
-              decoration: const InputDecoration(labelText: 'Name (optional)', hintText: 'e.g. Coach Ade'),
+              decoration: const InputDecoration(labelText: 'Name (optional)', hintText: 'e.g. Coach Toly'),
             ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
