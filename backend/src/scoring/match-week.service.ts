@@ -20,6 +20,9 @@ import type { SlotScore } from './engine/types.js';
 import { PortfolioService } from './portfolio.service.js';
 import { SkillService } from './skill.service.js';
 
+/** How late a kick-off can still be announced. */
+const KICK_OFF_NOTICE_MS = 6 * 3_600_000;
+
 /**
  * The weekly rhythm (SCORING_PLAN.md §2.2). A match week is a window over the
  * points ledger: nothing here scores anything. On each tick this announces
@@ -62,7 +65,8 @@ export class MatchWeekService {
       } else if (now >= halfTime) {
         if (!marks.half_time_sent_at) await this.halfTime(week, now);
       } else if (now >= kickOff && !marks.kick_off_sent_at) {
-        await this.kickOff(week, now);
+        // Only near kick-off: a server started mid-week doesn't announce it late.
+        if (now - kickOff <= KICK_OFF_NOTICE_MS) await this.kickOff(week, now);
       }
     }
   }
