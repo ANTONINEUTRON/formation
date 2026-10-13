@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/draft/ui/widgets/jersey.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
 
-/// A tappable roster position on the formation board or bench.
+/// A tappable roster position on the formation board: the sport's jersey in
+/// the pick's tier colour with its ticker on the chest, or a dashed outline
+/// with a "+" while the slot is empty.
 class PositionSlotChip extends StatelessWidget {
   const PositionSlotChip({
+    required this.mode,
     required this.slot,
     required this.size,
-    required this.onTap,
+    this.onTap,
     this.armband,
     this.isSelected = false,
     this.isHighlighted = false,
     super.key,
   });
 
+  /// Decides the jersey: football shirt, basketball vest or gridiron jersey.
+  final SportMode mode;
   final RosterSlot slot;
   final double size;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// Dark ink on light shirts, light ink on dark ones, so the ticker reads.
+  static Color _ink(Color shirt) =>
+      shirt.computeLuminance() > 0.35 ? AppColors.textInverse : AppColors.textPrimary;
 
   /// 'C' or 'V' badge, if any.
   final String? armband;
@@ -49,7 +59,7 @@ class PositionSlotChip extends StatelessWidget {
       // A pointer has to be told this is clickable; a finger does not.
       // MouseRegion is inert off the web, so the chip is unchanged there.
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -58,37 +68,25 @@ class PositionSlotChip extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: stock == null ? AppColors.background.withValues(alpha: 0.6) : color,
-                    border: Border.all(
-                      color: ring ?? color,
-                      width: ring != null ? 3 : (stock == null ? 2 : 0),
-                    ),
-                    boxShadow: [
-                      if (ring != null)
-                        BoxShadow(color: ring.withValues(alpha: 0.7), blurRadius: 14)
-                      else if (stock != null)
-                        BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 12),
-                    ],
-                  ),
-                  alignment: Alignment.center,
+                CustomPaint(
+                  size: Size.square(size),
+                  painter: JerseyPainter(mode: mode, color: color, filled: stock != null, ring: ring),
+                ),
+                // The ticker sits on the chest, like a name on a shirt.
+                Positioned(
+                  left: size * 0.26,
+                  right: size * 0.26,
+                  top: size * (JerseyPainter.chestY(mode) - 0.16),
+                  height: size * 0.3,
                   child: stock == null
-                      ? Icon(Icons.add, color: color, size: size * 0.45)
-                      : Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: FittedBox(
-                            child: Text(
-                              symbol!,
-                              style: AppTextStyles.mono(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textInverse,
-                              ),
+                      ? Icon(Icons.add, color: color, size: size * 0.3)
+                      : FittedBox(
+                          child: Text(
+                            symbol!,
+                            style: AppTextStyles.mono(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _ink(color),
                             ),
                           ),
                         ),

@@ -186,6 +186,10 @@ export interface ManagerDto {
   leaguesPlayed: number;
   /** Their starting lineup for this sport; empty if they haven't drafted. */
   lineup: RosterSlotDto[];
+  /** Football only: the shape [lineup] slot indexes map onto. */
+  formation: string | null;
+  captainSlot: number | null;
+  viceCaptainSlot: number | null;
   /** Every eligible xStock in their wallet, for the adopt sheet. */
   holdings: ManagerHoldingDto[];
   followers: number;

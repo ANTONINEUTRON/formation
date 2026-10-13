@@ -95,7 +95,13 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
                   children: [
                     Text('Pick your ${position.label}', style: Theme.of(context).textTheme.titleLarge),
                     const Spacer(),
-                    _TierBadge(tier: position.requiredTier),
+                    if (position.requiredTier == null)
+                      const _TierBadge(tier: null)
+                    else
+                      for (final tier in position.tiers) ...[
+                        const SizedBox(width: 6),
+                        _TierBadge(tier: tier),
+                      ],
                   ],
                 ),
               ),
@@ -119,7 +125,20 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
                           final held = state.heldBalance(stock);
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text(stock.symbol, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            title: Row(
+                              children: [
+                                Text(stock.symbol, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                // A role that takes two tiers mixes them; say which is which.
+                                if (position.alsoAccepts.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(color: stock.tier.color, shape: BoxShape.circle),
+                                  ),
+                                ],
+                              ],
+                            ),
                             subtitle: Text(
                               held > 0 ? '${stock.companyName} · held ${formatShares(held)} sh' : stock.companyName,
                               style: TextStyle(color: held > 0 ? AppColors.success : AppColors.textSecondary, fontSize: 12),

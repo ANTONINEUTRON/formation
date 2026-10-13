@@ -58,7 +58,7 @@ export class ManagersService {
       streak: standing?.streak ?? 0,
       leaguesWon: record.won,
       leaguesPlayed: record.played,
-      lineup,
+      ...lineup,
       holdings,
       followers,
       following,
@@ -182,14 +182,16 @@ export class ManagersService {
     return new Set(slots.map((s) => s.token_mint));
   }
 
+  /** Their lineup, plus the formation and armbands the board needs to draw it. */
   private async lineupOf(userId: string, mode: SportMode) {
     const roster = await this.db
       .selectFrom('rosters')
-      .select(['id', 'formation'])
+      .select(['id', 'formation', 'captain_slot', 'vice_captain_slot'])
       .where('user_id', '=', userId)
       .where('sport_mode', '=', mode)
       .executeTakeFirst();
-    if (!roster) return [];
+    const none = { lineup: [], formation: null, captainSlot: null, viceCaptainSlot: null };
+    if (!roster) return none;
 
     const slots = await this.db
       .selectFrom('roster_slots')
@@ -197,13 +199,13 @@ export class ManagersService {
       .where('roster_id', '=', roster.id)
       .orderBy('slot_index')
       .execute();
-    if (slots.length === 0) return [];
+    if (slots.length === 0) return none;
 
     const shape = rosterShape(mode, roster.formation);
     const stocks = await this.xstocks.byMint();
     const priced = await this.prices.getPrices(slots.map((s) => s.token_mint));
 
-    return slots.flatMap((slot) => {
+    const lineup = slots.flatMap((slot) => {
       const row = stocks.get(slot.token_mint);
       const position = shape[slot.slot_index];
       if (!row || !position) return [];
@@ -218,6 +220,12 @@ export class ManagersService {
         },
       ];
     });
+    return {
+      lineup,
+      formation: roster.formation,
+      captainSlot: roster.captain_slot,
+      viceCaptainSlot: roster.vice_captain_slot,
+    };
   }
 
   private async leagueRecord(userId: string, mode: SportMode) {

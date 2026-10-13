@@ -9,9 +9,23 @@ export type RiskTier = (typeof RISK_TIERS)[number];
 export interface PositionSlot {
   /** Role label, also stored on roster_slots. */
   label: string;
-  /** Null means FLEX: any tier. */
+  /** The role's main tier, which also colours it. Null means FLEX: any tier. */
   tier: RiskTier | null;
+  /** Further tiers the role accepts, e.g. growth in midfield. */
+  alsoAccepts?: readonly RiskTier[];
 }
+
+/** True when a stock of [tier] can play [position]. */
+export const slotAccepts = (position: PositionSlot, tier: RiskTier): boolean =>
+  !position.tier || position.tier === tier || (position.alsoAccepts ?? []).includes(tier);
+
+/** Every tier [position] accepts; empty for FLEX. */
+export const slotTiers = (position: PositionSlot): RiskTier[] =>
+  position.tier ? [position.tier, ...(position.alsoAccepts ?? [])] : [];
+
+/** "balanced", "balanced or growth", or "any" for FLEX. */
+export const slotTierLabel = (position: PositionSlot): string =>
+  position.tier ? slotTiers(position).join(' or ') : 'any';
 
 // ── Football: 11 starters, shape decided by the formation ────────────────────
 
@@ -42,7 +56,15 @@ export const FOOTBALL_ROLE_TIERS: Record<string, RiskTier> = {
   FWD: 'momentum',
 };
 
-export const formationName = (f: Formation): string => `${f.def}-${f.mid}-${f.fwd}`;
+/**
+ * Midfield also takes growth stocks, so a growth-heavy wallet can field its
+ * best names in football too. Midfield is the biggest unit in every formation.
+ */
+export const FOOTBALL_ROLE_ALSO_ACCEPTS: Record<string, readonly RiskTier[]> = {
+  MID: ['growth'],
+};
+
+export const formationName =(f: Formation): string => `${f.def}-${f.mid}-${f.fwd}`;
 
 export const isValidFormation = (f: Formation): boolean =>
   f.def >= 3 && f.def <= 5 && f.mid >= 2 && f.mid <= 5 && f.fwd >= 1 && f.fwd <= 3 &&
@@ -54,7 +76,11 @@ export function footballShape(formation: string): PositionSlot[] {
   return [
     { label: 'GK', tier: FOOTBALL_ROLE_TIERS.GK },
     ...Array.from({ length: f.def }, () => ({ label: 'DEF', tier: FOOTBALL_ROLE_TIERS.DEF })),
-    ...Array.from({ length: f.mid }, () => ({ label: 'MID', tier: FOOTBALL_ROLE_TIERS.MID })),
+    ...Array.from({ length: f.mid }, () => ({
+      label: 'MID',
+      tier: FOOTBALL_ROLE_TIERS.MID,
+      alsoAccepts: FOOTBALL_ROLE_ALSO_ACCEPTS.MID,
+    })),
     ...Array.from({ length: f.fwd }, () => ({ label: 'FWD', tier: FOOTBALL_ROLE_TIERS.FWD })),
   ];
 }

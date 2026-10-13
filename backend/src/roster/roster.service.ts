@@ -6,7 +6,7 @@ import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { parseCaptaincy } from '../domain/captaincy.js';
 import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseFormation, remapFormation } from '../domain/formation.js';
-import { DEFAULT_FORMATION, rosterShape } from '../domain/sport.js';
+import { DEFAULT_FORMATION, rosterShape, slotAccepts, slotTierLabel } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { LeagueService } from '../league/league.service.js';
 import { ManagersService } from '../managers/managers.service.js';
@@ -80,7 +80,7 @@ export class RosterService {
               stock: this.xstocks.toDto(row, priced.get(mint)),
               balance,
               eligibleSlots: shape.flatMap((position, i) =>
-                !position.tier || position.tier === row.tier ? [i] : [],
+                slotAccepts(position, row.tier) ? [i] : [],
               ),
             },
           ];
@@ -102,9 +102,9 @@ export class RosterService {
 
     const stock = (await this.xstocks.byMint()).get(mint);
     if (!stock) throw new BadRequestException('Unsupported token');
-    if (position.tier && position.tier !== stock.tier) {
+    if (!slotAccepts(position, stock.tier)) {
       throw new BadRequestException(
-        `${stock.symbol} can't play ${position.label}: it needs a ${position.tier} stock`,
+        `${stock.symbol} can't play ${position.label}: it needs a ${slotTierLabel(position)} stock`,
       );
     }
 

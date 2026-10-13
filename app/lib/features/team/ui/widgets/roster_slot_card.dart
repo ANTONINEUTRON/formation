@@ -63,7 +63,7 @@ class RosterSlotCard extends StatelessWidget {
               Expanded(
                 child: stock == null
                     ? Text(
-                        'Empty · ${tier?.label ?? 'Any tier'}',
+                        'Empty · ${tier == null ? 'Any tier' : slot.position.tierLabel}',
                         style: const TextStyle(color: AppColors.textMuted),
                       )
                     : Column(

@@ -396,7 +396,7 @@ class FixtureRepository implements FormationRepository {
         if (!slot.position.accepts(stock)) {
           throw ValidationException(
             message: "${stock.symbol} can't play ${slot.position.label}: it "
-                'needs a ${slot.position.requiredTier?.label.toLowerCase()} stock',
+                'needs a ${slot.position.tierLabel.toLowerCase()} stock',
           );
         }
         if (balance <= 0) throw ValidationException(message: 'You do not hold ${stock.symbol}');
@@ -702,6 +702,9 @@ class FixtureRepository implements FormationRepository {
           leaguesWon: 2,
           leaguesPlayed: 5,
           lineup: roster.slots,
+          formation: roster.formation,
+          captainSlot: roster.captainSlot,
+          viceCaptainSlot: roster.viceCaptainSlot,
           holdings: [
             for (final slot in roster.slots)
               if (slot.stock != null)

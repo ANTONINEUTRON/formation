@@ -11,7 +11,7 @@ const RULES = `
 FORMATION — HOW THE GAME WORKS
 - The user is the Manager. Their players are tokenized US stocks (xStocks, e.g. AAPLx = Apple) held in their own Solana wallet. Only stocks the wallet holds can be placed in a slot; anything else must be bought first (USDC or SKR, signed by the Manager).
 - Each position requires a risk tier: blue_chip, stable, balanced, growth or momentum. A FLEX slot takes any tier.
-  - Football: GK=blue_chip, DEF=stable, MID=balanced, FWD=momentum. Formations (DEF-MID-FWD): ${formationList().join(', ')}.
+  - Football: GK=blue_chip, DEF=stable, MID=balanced or growth, FWD=momentum. Formations (DEF-MID-FWD): ${formationList().join(', ')}.
   - Basketball: PG=growth, SG=growth, SF=balanced, PF=balanced, C=blue_chip.
   - American football: QB=blue_chip, RB=growth, RB=balanced, WR=momentum, WR=growth, WR=momentum, TE=stable, FLEX=any, K=stable.
 - Scoring is continuous, 24/7. Base points: 1 point per 0.1% a pick beats the benchmark (SPYx, the S&P 500) — alpha, not raw return. If everything rises together, nobody scores.

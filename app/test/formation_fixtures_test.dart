@@ -65,6 +65,16 @@ void main() {
       expect(footballRoles('4-4-2').where((r) => r == 'MID'), hasLength(4));
     });
 
+    test('midfield takes balanced or growth stocks', () {
+      final mid = footballShape('4-4-2')[5];
+      final growth = xStockFixtures.firstWhere((s) => s.tier == RiskTier.growth);
+      final momentum = xStockFixtures.firstWhere((s) => s.tier == RiskTier.momentum);
+      expect(mid.accepts(growth), isTrue);
+      expect(mid.accepts(momentum), isFalse);
+      expect(mid.tierLabel, 'Balanced or Growth');
+      expect(footballShape('4-4-2')[9].accepts(growth), isFalse);
+    });
+
     test('preview keeps picks in role order and reports the drops', () {
       // 4-4-2: 0 GK, 1-4 DEF, 5-8 MID, 9-10 FWD
       final picks = {

@@ -17,7 +17,7 @@ import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { captaincyRules } from '../domain/captaincy.js';
 import type { AuthUser, XStockDto } from '../domain/dto.js';
 import { parseFormation } from '../domain/formation.js';
-import { DEFAULT_FORMATION, parseSportMode, rosterShape } from '../domain/sport.js';
+import { DEFAULT_FORMATION, parseSportMode, rosterShape, slotAccepts } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { requireNumber, requireString } from '../domain/validate.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
@@ -203,7 +203,7 @@ export class StarterService {
       const position = shape[slotIndex];
       const stock = typeof pick.symbol === 'string' ? bySymbol.get(pick.symbol.trim().toUpperCase()) : undefined;
       if (!position || !stock || chosen.has(slotIndex) || used.has(stock.mint)) continue;
-      if (position.tier && position.tier !== stock.tier) continue;
+      if (!slotAccepts(position, stock.tier)) continue;
       chosen.set(slotIndex, {
         stock,
         reason: typeof pick.reason === 'string' ? pick.reason.trim().slice(0, 160) : '',
@@ -216,7 +216,7 @@ export class StarterService {
     shape.forEach((position, slotIndex) => {
       if (chosen.has(slotIndex)) return;
       const candidates = catalogue
-        .filter((s) => !used.has(s.mint) && (!position.tier || s.tier === position.tier))
+        .filter((s) => !used.has(s.mint) && slotAccepts(position, s.tier))
         .sort((a, b) => Number(isHeld(b.mint)) - Number(isHeld(a.mint)) || leaning(style, a, b));
       const stock = candidates[0];
       if (!stock) return;

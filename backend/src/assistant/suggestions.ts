@@ -1,5 +1,6 @@
 import { captaincyRules } from '../domain/captaincy.js';
 import { parseFormation } from '../domain/formation.js';
+import { slotAccepts } from '../domain/sport.js';
 import type { PositionSlot, RiskTier, SportMode } from '../domain/sport.js';
 import { substitutionCost } from '../scoring/engine/score-entry.js';
 
@@ -92,7 +93,7 @@ export function validateSuggestions(raw: unknown, facts: RosterFacts): Suggestio
       const stock =
         typeof s.symbol === 'string' ? facts.catalogue.get(s.symbol.trim().toUpperCase()) : undefined;
       if (slotIndex === null || !position || !stock) continue;
-      if (position.tier && position.tier !== stock.tier) continue;
+      if (!slotAccepts(position, stock.tier)) continue;
       const current = facts.slots.get(slotIndex);
       if (current === stock.mint) continue;
       const elsewhere = [...facts.slots].some(([i, mint]) => mint === stock.mint && i !== slotIndex);

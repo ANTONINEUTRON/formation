@@ -15,7 +15,7 @@ import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE } from '../core/sources.js';
 import type { BalanceSource } from '../core/sources.js';
 import type { AuthUser, RosterDto } from '../domain/dto.js';
-import { parseSportMode, rosterShape } from '../domain/sport.js';
+import { parseSportMode, rosterShape, slotTierLabel } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { requireString } from '../domain/validate.js';
 import { RosterService } from '../roster/roster.service.js';
@@ -335,7 +335,7 @@ function buildContext(
       return {
         slotIndex: slot.slotIndex,
         position: slot.positionLabel,
-        requiredTier: shape[slot.slotIndex]?.tier ?? 'any',
+        requiredTier: shape[slot.slotIndex] ? slotTierLabel(shape[slot.slotIndex]) : 'any',
         armband:
           roster.captainSlot === slot.slotIndex
             ? 'captain'

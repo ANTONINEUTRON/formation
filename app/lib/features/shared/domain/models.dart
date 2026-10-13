@@ -79,21 +79,31 @@ class PositionSlot extends Equatable {
     required this.label,
     required this.requiredTier,
     required this.boardPosition,
+    this.alsoAccepts = const [],
   });
 
   final String label;
 
-  /// Null means FLEX: any tier is eligible.
+  /// The role's main tier, which also colours it. Null means FLEX: any tier.
   final RiskTier? requiredTier;
+
+  /// Further tiers the role takes, e.g. growth in football's midfield.
+  final List<RiskTier> alsoAccepts;
 
   /// Normalized 0..1 coordinates on the board. Client-only.
   final Offset boardPosition;
 
+  /// Every tier the role takes; empty for FLEX.
+  List<RiskTier> get tiers => requiredTier == null ? const [] : [requiredTier!, ...alsoAccepts];
+
+  /// "Balanced", "Balanced or Growth", or "Any" for FLEX.
+  String get tierLabel => requiredTier == null ? 'Any' : tiers.map((t) => t.label).join(' or ');
+
   bool accepts(XStock stock) =>
-      requiredTier == null || requiredTier == stock.tier;
+      requiredTier == null || requiredTier == stock.tier || alsoAccepts.contains(stock.tier);
 
   @override
-  List<Object?> get props => [label, requiredTier, boardPosition];
+  List<Object?> get props => [label, requiredTier, alsoAccepts, boardPosition];
 }
 
 /// A roster position, filled with a stock or empty.
@@ -525,9 +535,20 @@ class Manager extends Equatable {
     required this.following,
     required this.isCurrentUser,
     this.rank,
+    this.formation,
+    this.captainSlot,
+    this.viceCaptainSlot,
   });
 
-  factory Manager.fromJson(Map<String, dynamic> json, List<PositionSlot> shape) => Manager(
+  /// The API sends only filled slots; [lineup] has every slot in [shape], in
+  /// order, so the board can draw the empty ones too.
+  factory Manager.fromJson(Map<String, dynamic> json, List<PositionSlot> shape) {
+    final picked = {
+      for (final s in (json['lineup'] as List? ?? const []).cast<Map<String, dynamic>>())
+        if (s['stock'] != null && (s['slotIndex'] as int) < shape.length)
+          s['slotIndex'] as int: XStock.fromJson(s['stock'] as Map<String, dynamic>),
+    };
+    return Manager(
         userId: json['userId'] as String,
         username: json['username'] as String,
         bio: json['bio'] as String?,
@@ -539,15 +560,15 @@ class Manager extends Equatable {
         streak: json['streak'] as int? ?? 0,
         leaguesWon: json['leaguesWon'] as int? ?? 0,
         leaguesPlayed: json['leaguesPlayed'] as int? ?? 0,
-        lineup: [
-          for (final s in (json['lineup'] as List? ?? const []).cast<Map<String, dynamic>>())
-            RosterSlot(
-              position: shape[s['slotIndex'] as int],
-              stock: s['stock'] == null
-                  ? null
-                  : XStock.fromJson(s['stock'] as Map<String, dynamic>),
-            ),
-        ],
+        lineup: picked.isEmpty
+            ? const []
+            : [
+                for (var i = 0; i < shape.length; i++)
+                  RosterSlot(position: shape[i], stock: picked[i]),
+              ],
+        formation: json['formation'] as String?,
+        captainSlot: json['captainSlot'] as int?,
+        viceCaptainSlot: json['viceCaptainSlot'] as int?,
         holdings: [
           for (final h in (json['holdings'] as List? ?? const []))
             ManagerHolding.fromJson(h as Map<String, dynamic>),
@@ -556,6 +577,7 @@ class Manager extends Equatable {
         following: json['following'] as bool? ?? false,
         isCurrentUser: json['isCurrentUser'] as bool? ?? false,
       );
+  }
 
   final String userId;
   final String username;
@@ -569,6 +591,20 @@ class Manager extends Equatable {
   final int leaguesWon;
   final int leaguesPlayed;
   final List<RosterSlot> lineup;
+
+  /// Football only, e.g. '4-4-2'.
+  final String? formation;
+  final int? captainSlot;
+  final int? viceCaptainSlot;
+
+  /// Their lineup as a read-only roster, for the formation board.
+  Roster get roster => Roster(
+        mode: mode,
+        slots: lineup,
+        formation: formation,
+        captainSlot: captainSlot,
+        viceCaptainSlot: viceCaptainSlot,
+      );
 
   /// Everything eligible in their wallet — the adopt sheet's contents.
   final List<ManagerHolding> holdings;
@@ -589,6 +625,9 @@ class Manager extends Equatable {
         leaguesWon: leaguesWon,
         leaguesPlayed: leaguesPlayed,
         lineup: lineup,
+        formation: formation,
+        captainSlot: captainSlot,
+        viceCaptainSlot: viceCaptainSlot,
         holdings: holdings,
         followers: followers ?? this.followers,
         following: following ?? this.following,

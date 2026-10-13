@@ -31,7 +31,12 @@ const _footballRoleTiers = {
   'FWD': RiskTier.momentum,
 };
 
-const _footballRows = {'GK': 0.9, 'DEF': 0.68, 'MID': 0.43, 'FWD': 0.17};
+/// Midfield also takes growth stocks (`FOOTBALL_ROLE_ALSO_ACCEPTS` in the API).
+const _footballRoleAlsoAccepts = {
+  'MID': [RiskTier.growth],
+};
+
+const _footballRows ={'GK': 0.9, 'DEF': 0.68, 'MID': 0.43, 'FWD': 0.17};
 
 /// The 11 starters of a formation, laid out in rows on the pitch.
 List<PositionSlot> footballShape(String formation) {
@@ -49,6 +54,7 @@ List<PositionSlot> footballShape(String formation) {
         return PositionSlot(
           label: role,
           requiredTier: _footballRoleTiers[role],
+          alsoAccepts: _footballRoleAlsoAccepts[role] ?? const [],
           boardPosition: Offset(index / (counts[role]! + 1), _footballRows[role]!),
         );
       }(),

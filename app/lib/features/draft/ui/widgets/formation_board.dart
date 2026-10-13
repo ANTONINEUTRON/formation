@@ -11,10 +11,12 @@ import 'package:formation/features/shared/domain/roster_shapes.dart';
 /// Positions come from [boardLayout]: fixed per sport, or by formation for
 /// football (substitutes are shown separately in a bench strip).
 class FormationBoard extends StatelessWidget {
-  const FormationBoard({required this.roster, required this.onSlotTap, super.key});
+  const FormationBoard({required this.roster, this.onSlotTap, super.key});
 
   final Roster roster;
-  final ValueChanged<int> onSlotTap;
+
+  /// Null for a read-only board, such as another manager's team.
+  final ValueChanged<int>? onSlotTap;
 
   double get _aspectRatio => switch (roster.mode) {
         SportMode.basketball => 0.95,
@@ -49,9 +51,10 @@ class FormationBoard extends StatelessWidget {
                     top: (layout[i]!.dy * h - chip / 2).clamp(0, h - chip - labelHeight),
                     width: chip,
                     child: PositionSlotChip(
+                      mode: roster.mode,
                       slot: roster.slots[i],
                       size: chip,
-                      onTap: () => onSlotTap(i),
+                      onTap: onSlotTap == null ? null : () => onSlotTap!(i),
                       armband: roster.armband(i),
                     ),
                   ),
