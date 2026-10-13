@@ -42,4 +42,10 @@ abstract class Env {
     defaultValue: 'wss://api.mainnet-beta.solana.com',
   )
   static String solanaWsUrl = _Env.solanaWsUrl;
+
+  /// Web push certificate key (Firebase console > Project settings > Cloud
+  /// Messaging > Web Push certificates). Public by design. Empty leaves web
+  /// push to Firebase's default key; Android and iOS don't use it.
+  @EnviedField(varName: 'FCM_VAPID_KEY', defaultValue: '')
+  static String fcmVapidKey = _Env.fcmVapidKey;
 }

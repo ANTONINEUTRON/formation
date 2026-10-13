@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:formation/core/utils/app_log.dart';
+import 'package:formation/env/env.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/firebase_options.dart';
 
@@ -25,8 +26,8 @@ abstract class PushClient {
 /// FCM through firebase_messaging. Firebase is only initialised here, the
 /// first time a Manager turns pushes on, so nothing else pays for it.
 class FirebasePushClient implements PushClient {
-  /// Web push needs the project's VAPID key: `--dart-define=FCM_VAPID_KEY=…`.
-  static const _vapidKey = String.fromEnvironment('FCM_VAPID_KEY');
+  /// Web push uses the project's VAPID key, from FCM_VAPID_KEY in `app/.env`.
+  static String get _vapidKey => Env.fcmVapidKey;
 
   Future<FirebaseMessaging> _messaging() async {
     if (Firebase.apps.isEmpty) {
