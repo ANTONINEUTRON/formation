@@ -18,7 +18,7 @@ import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/team/ui/widgets/goal_card.dart';
 import 'package:formation/features/team/ui/widgets/match_week_result_sheet.dart';
 import 'package:formation/features/team/ui/widgets/session_bar.dart';
-import 'package:formation/features/team/ui/widgets/lineup_section.dart';
+import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
 import 'package:formation/features/team/ui/widgets/score_header.dart';
 
 /// Provisional goals in [next] that weren't in [previous].
@@ -111,7 +111,16 @@ class TeamTab extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 16),
-              LineupSection(roster: roster, onEdit: openDraft),
+              LineupView(
+                roster: roster,
+                ownTeam: true,
+                action: (
+                  label: roster.mode == SportMode.football ? 'Pick team' : 'Edit',
+                  icon: roster.mode == SportMode.football ? Icons.tune : Icons.edit_outlined,
+                  onPressed: openDraft,
+                ),
+                onSlotTap: (_) => openDraft(),
+              ),
               const SizedBox(height: 16),
               BenchSection(bench: roster.bench, onSubstitute: (_) => openDraft()),
             ],

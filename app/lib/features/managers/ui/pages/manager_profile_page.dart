@@ -8,7 +8,7 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/empty_state.dart';
 import 'package:formation/core/widgets/loading_indicator.dart';
 import 'package:formation/core/widgets/stat_pill.dart';
-import 'package:formation/features/draft/ui/widgets/formation_board.dart';
+import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
 import 'package:formation/features/managers/ui/widgets/adopt_wallet_sheet.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -34,9 +34,6 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
   Manager? _manager;
   String? _error;
   bool _busy = false;
-
-  /// Their lineup on the pitch first; the list is one tap away.
-  bool _showPitch = true;
 
   FormationRepository get _repository => context.read<FormationRepository>();
 
@@ -128,40 +125,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                       ],
                       const SizedBox(height: 24),
                       if (manager.lineup.isNotEmpty) ...[
-                        Row(
-                          children: [
-                            const Expanded(child: _SectionLabel('Starting lineup')),
-                            SegmentedButton<bool>(
-                              showSelectedIcon: false,
-                              style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                              segments: const [
-                                ButtonSegment(
-                                  value: true,
-                                  icon: Icon(Icons.stadium_outlined, size: 16),
-                                  label: Text('Pitch'),
-                                ),
-                                ButtonSegment(
-                                  value: false,
-                                  icon: Icon(Icons.format_list_bulleted, size: 16),
-                                  label: Text('List'),
-                                ),
-                              ],
-                              selected: {_showPitch},
-                              onSelectionChanged: (s) => setState(() => _showPitch = s.first),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        if (_showPitch)
-                          Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 480),
-                              child: FormationBoard(roster: manager.roster),
-                            ),
-                          )
-                        else
-                          for (final slot in manager.lineup)
-                            if (slot.stock != null) _LineupRow(slot: slot),
+                        LineupView(roster: manager.roster),
                         const SizedBox(height: 24),
                       ],
                       if (manager.seasons.isNotEmpty) ...[
@@ -377,41 +341,6 @@ class _SkillCard extends StatelessWidget {
               if (skill.shrewdCaptainPct != null)
                 StatPill(label: 'Shrewd captain', value: '${skill.shrewdCaptainPct}%'),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LineupRow extends StatelessWidget {
-  const _LineupRow({required this.slot});
-
-  final RosterSlot slot;
-
-  @override
-  Widget build(BuildContext context) {
-    final stock = slot.stock!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: Text(
-              slot.position.label,
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              stock.symbol,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ),
-          Text(
-            formatPct(stock.change24hPct / 100),
-            style: TextStyle(fontSize: 12, color: pnlColor(stock.change24hPct)),
           ),
         ],
       ),

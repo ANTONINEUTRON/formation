@@ -12,6 +12,7 @@ import 'package:formation/features/assistant_manager/ui/widgets/character_view.d
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/domain/roster_shapes.dart';
+import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
 
 enum _Step { setup, drafting, review, applying, done }
 
@@ -295,7 +296,9 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         child: Text(squad.text, style: const TextStyle(color: AppColors.textPrimary, height: 1.4)),
       ),
       const SizedBox(height: 12),
-      if (squad.formation != null) _Label('Formation ${squad.formation}'),
+      LineupView(roster: _asRoster(squad), title: 'Your squad', pitchOnly: true),
+      const SizedBox(height: 16),
+      const _Label('Why each pick'),
       for (final pick in squad.picks)
         _PickRow(
           pick: pick,
@@ -322,6 +325,33 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         OutlinedButton(onPressed: _draft, child: Text('Draft again (${squad.draftsLeft} left)')),
       TextButton(onPressed: _buildMyself, child: const Text("I'll build it myself")),
     ];
+  }
+
+  /// The drafted squad as a team, so it shows on the same pitch as every other.
+  Roster _asRoster(StarterSquad squad) {
+    final shape = rosterShape(squad.mode, squad.formation);
+    final bySlot = {for (final p in squad.picks) p.slotIndex: p};
+    return Roster(
+      mode: squad.mode,
+      formation: squad.formation,
+      captainSlot: squad.captainSlot,
+      viceCaptainSlot: squad.viceCaptainSlot,
+      slots: [
+        for (var i = 0; i < shape.length; i++)
+          RosterSlot(
+            position: shape[i],
+            stock: bySlot[i] == null
+                ? null
+                : XStock(
+                    symbol: bySlot[i]!.symbol,
+                    companyName: bySlot[i]!.name,
+                    mint: bySlot[i]!.mint,
+                    tier: bySlot[i]!.tier,
+                    priceUsd: bySlot[i]!.priceUsd,
+                  ),
+          ),
+      ],
+    );
   }
 
   List<Widget> _applying(StarterSquad squad) {
