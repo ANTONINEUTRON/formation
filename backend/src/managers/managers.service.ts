@@ -4,6 +4,7 @@ import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
 import type { BalanceSource, PriceSource } from '../core/sources.js';
 import type { AuthUser, ManagerDto, ManagerHoldingDto } from '../domain/dto.js';
+import { lineupFromHoldings } from '../domain/seed-lineup.js';
 import { rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { LeagueService } from '../league/league.service.js';
@@ -36,12 +37,12 @@ export class ManagersService {
   async profile(viewer: AuthUser, userId: string, mode: SportMode): Promise<ManagerDto> {
     const user = await this.db
       .selectFrom('users')
-      .select(['id', 'username', 'bio', 'wallet_address'])
+      .select(['id', 'username', 'bio', 'wallet_address', 'is_seed'])
       .where('id', '=', userId)
       .executeTakeFirst();
     if (!user) throw new NotFoundException('No such player');
 
-    const [standing, holdings, lineup, followers, following, record, seasons, badges, skill] =
+    const [standing, holdings, saved, followers, following, record, seasons, badges, skill] =
       await Promise.all([
         this.league.standing(user.id, mode),
         this.holdingsOf(user.wallet_address, user.id, mode),
@@ -53,6 +54,13 @@ export class ManagersService {
         this.seasons.badges(user.id),
         this.skill.skillFor(user.id, mode),
       ]);
+
+    // Demo players never draft, so their team is picked from what their
+    // wallet actually holds, the way a manager would fill the board.
+    const lineup =
+      saved.lineup.length === 0 && user.is_seed ? lineupFromHoldings(mode, holdings) : saved;
+    const starting = new Set(lineup.lineup.map((s) => s.stock?.mint));
+    for (const holding of holdings) holding.starting ||= starting.has(holding.stock.mint);
 
     return {
       userId: user.id,

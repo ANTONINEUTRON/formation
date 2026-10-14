@@ -2,6 +2,7 @@ import { CALENDAR } from '../../src/domain/calendar.js';
 import type { GameCalendar } from '../../src/domain/calendar.js';
 import type { AuthUser } from '../../src/domain/dto.js';
 import type { SportMode } from '../../src/domain/sport.js';
+import { ManagersService } from '../../src/managers/managers.service.js';
 import { MatchWeekService } from '../../src/scoring/match-week.service.js';
 import { SeasonService } from '../../src/scoring/season.service.js';
 import { createHarness } from './harness.js';
@@ -137,6 +138,40 @@ describe('seasons and match weeks', () => {
 
     const profile = await h.app.get(SeasonService).history(me.id);
     expect(profile[0]).toMatchObject({ season: 1, rank: 1, players: 2 });
+  });
+
+  it('puts demo players on the all-time board, and counts finished seasons once', async () => {
+    const seed = await h.createPlayer('seedling');
+    await h.db.updateTable('users').set({ is_seed: true }).where('id', '=', seed.id).execute();
+    // A demo player has a season total but no ledger behind it.
+    await h.db
+      .insertInto('classic_scores')
+      .values({ user_id: seed.id, sport_mode: 'football', total_points: 150 })
+      .execute();
+    await bank(me.id, 300, new Date(h.clock.now() - 60_000));
+    await h.app.get(SeasonService).rollover(calendar.season(2).startsAt.getTime() + 60_000);
+    await bank(me.id, 20, new Date(calendar.season(2).startsAt.getTime() + 120_000));
+
+    const career = await h.league.leaderboard('football', me.id, { period: 'all_time' });
+    expect(career.map((e) => [e.username, e.points])).toEqual([
+      ['me', 320],
+      ['seedling', 150],
+    ]);
+  });
+
+  it("shows a demo player's team, picked from their wallet", async () => {
+    const seed = await h.createPlayer('seedling'); // holds 10 of every test stock
+    await h.db.updateTable('users').set({ is_seed: true }).where('id', '=', seed.id).execute();
+
+    const profile = await h.app.get(ManagersService).profile(me, seed.id, 'football');
+    expect(profile.formation).toBe('4-4-2');
+    expect(profile.lineup.length).toBeGreaterThanOrEqual(10);
+    expect(profile.captainSlot).not.toBeNull();
+    expect(profile.holdings.filter((h) => h.starting)).toHaveLength(profile.lineup.length);
+
+    // A real player who hasn't drafted still has no team.
+    const rookie = await h.createPlayer('rookie');
+    expect((await h.app.get(ManagersService).profile(me, rookie.id, 'football')).lineup).toEqual([]);
   });
 
   it('plays private leagues as weekly head-to-head fixtures with a table', async () => {

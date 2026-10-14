@@ -17,13 +17,19 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
         {
-          "source": "**/*.@(js|wasm|otf|ttf|woff|woff2|png|jpg|svg)",
+          "source": "**",
+          "headers": [
+            { "key": "cache-control", "value": "no-cache" }
+          ]
+        },
+        {
+          "source": "/canvaskit/**",
           "headers": [
             { "key": "cache-control", "value": "public, max-age=31536000, immutable" }
           ]
         },
         {
-          "source": "/@(index.html|flutter_service_worker.js|manifest.json)",
+          "source": "/@(index.html|flutter_service_worker.js|firebase-messaging-sw.js|manifest.json|version.json)",
           "headers": [
             { "key": "cache-control", "value": "no-cache, no-store, must-revalidate" }
           ]

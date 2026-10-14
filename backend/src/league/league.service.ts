@@ -69,7 +69,9 @@ export class LeagueService {
         ? this.seasonTallies(mode, today)
         : period.kind === 'skill'
           ? this.skillTallies(mode, today)
-          : this.periodTallies(mode, period, today),
+          : period.kind === 'all_time'
+            ? this.careerTallies(mode, today)
+            : this.periodTallies(mode, period, today),
       this.skillRatings(mode),
     ]);
 
@@ -162,6 +164,46 @@ export class LeagueService {
       username: row.username,
       walletAddress: row.wallet_address,
       points: row.total_points,
+      todayPoints: today.get(row.user_id) ?? 0,
+      streak: row.streak,
+    }));
+  }
+
+  /**
+   * A whole career: this season's running total plus every finished season.
+   * Read from the totals rather than the ledger, so players whose points were
+   * never banked tick by tick (the demo players) are on it too.
+   */
+  private async careerTallies(mode: SportMode, today: Map<string, number>): Promise<Tally[]> {
+    const rows = await this.db
+      .selectFrom('classic_scores')
+      .innerJoin('users', 'users.id', 'classic_scores.user_id')
+      .leftJoin(
+        (eb) =>
+          eb
+            .selectFrom('season_results')
+            .select((s) => ['user_id', s.fn.sum<string>('points').as('points')])
+            .where('sport_mode', '=', mode)
+            .groupBy('user_id')
+            .as('past'),
+        (join) => join.onRef('past.user_id', '=', 'classic_scores.user_id'),
+      )
+      .select([
+        'classic_scores.user_id as user_id',
+        'classic_scores.total_points as total_points',
+        'classic_scores.streak as streak',
+        'past.points as past_points',
+        'users.username as username',
+        'users.wallet_address as wallet_address',
+      ])
+      .where('classic_scores.sport_mode', '=', mode)
+      .execute();
+
+    return rows.map((row) => ({
+      userId: row.user_id,
+      username: row.username,
+      walletAddress: row.wallet_address,
+      points: Math.round((row.total_points + Number(row.past_points ?? 0)) * 10) / 10,
       todayPoints: today.get(row.user_id) ?? 0,
       streak: row.streak,
     }));

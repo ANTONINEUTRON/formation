@@ -76,6 +76,31 @@ Invoke-Step 'Building the Flutter web app' {
   try { flutter build web --release } finally { Pop-Location }
 }
 
+# The app's own scripts keep the same names on every build, so a browser that
+# cached one would keep running it. Each deploy gets fresh URLs instead: the
+# bridge and bootstrap from index.html, and main.dart.js from the bootstrap.
+# (firebase.json also serves them no-cache; this is what moves browsers that
+# cached them under the old one-year headers.)
+Invoke-Step 'Stamping this build' {
+  $version = "$(git -C $repo rev-parse --short HEAD)-$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+  $web = "$repo/app/build/web"
+  $utf8 = New-Object Text.UTF8Encoding($false)
+
+  $index = [IO.File]::ReadAllText("$web/index.html")
+  $index = $index.Replace('src="wallet_bridge.js"', "src=`"wallet_bridge.js?v=$version`"")
+  $index = $index.Replace('src="flutter_bootstrap.js"', "src=`"flutter_bootstrap.js?v=$version`"")
+  [IO.File]::WriteAllText("$web/index.html", $index, $utf8)
+
+  $bootstrap = [IO.File]::ReadAllText("$web/flutter_bootstrap.js")
+  if (-not $bootstrap.Contains('"mainJsPath":"main.dart.js"')) {
+    throw 'flutter_bootstrap.js no longer names mainJsPath; update the stamping step.'
+  }
+  $bootstrap = $bootstrap.Replace('"mainJsPath":"main.dart.js"', "`"mainJsPath`":`"main.dart.js?v=$version`"")
+  [IO.File]::WriteAllText("$web/flutter_bootstrap.js", $bootstrap, $utf8)
+  Write-Host "Build $version"
+  $global:LASTEXITCODE = 0
+}
+
 Invoke-Step 'Compiling the Open Graph renderer' {
   npm --prefix "$repo/functions" install --no-audit --no-fund
   npm --prefix "$repo/functions" run build
