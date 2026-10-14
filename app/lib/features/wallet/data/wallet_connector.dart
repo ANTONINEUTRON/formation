@@ -38,6 +38,19 @@ class WalletTapRequired implements Exception {
   const WalletTapRequired();
 }
 
+/// What a player sees when Mobile Wallet Adapter couldn't reach a wallet app:
+/// none installed, or Android's chooser left without a pick.
+const unreachableWalletMessage =
+    "Couldn't reach a wallet app. If Android asked which wallet to use, pick one "
+    "(tap 'Always' to skip that next time), then try again.";
+
+/// True for Mobile Wallet Adapter's "no wallet answered" failures.
+bool isUnreachableWallet(String error) =>
+    error.contains('ERROR_SESSION_TIMEOUT') ||
+    error.contains('ERROR_WALLET_NOT_FOUND') ||
+    error.contains('Found no installed wallet') ||
+    error.contains('Failed to connect to the wallet websocket');
+
 /// A Sign In With Solana message the wallet built and signed.
 ///
 /// Produced when connecting and signing in happen in one wallet prompt, and

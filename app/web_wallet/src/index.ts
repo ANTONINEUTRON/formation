@@ -16,7 +16,6 @@ import { getWallets } from '@wallet-standard/app';
 import {
   createDefaultAuthorizationCache,
   createDefaultChainSelector,
-  createDefaultWalletNotFoundHandler,
   registerMwa,
   SolanaMobileWalletAdapterWalletName,
 } from '@solana-mobile/wallet-standard-mobile';
@@ -65,7 +64,11 @@ registerMwa({
   chains: [CHAIN],
   authorizationCache: createDefaultAuthorizationCache(),
   chainSelector: createDefaultChainSelector(),
-  onWalletNotFound: createDefaultWalletNotFoundHandler(),
+  // The library's own handler opens a white "can't find a wallet" page. The
+  // app explains a missing or unreachable wallet itself (wallet_cubit.dart),
+  // and with several wallets installed that page was a false alarm: Android's
+  // chooser was still waiting for a pick (see scripts/patch-mwa.mjs).
+  onWalletNotFound: async () => {},
   // No `remoteHostAuthority`, so we never fall back to the hosted reflector:
   // this stays an on-device handoff, Android Chrome to Seed Vault.
 });

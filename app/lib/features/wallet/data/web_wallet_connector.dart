@@ -37,7 +37,7 @@ class WebWalletConnector implements WalletConnector {
 
   @override
   Future<WalletConnection?> connect({String? walletName, bool silent = false}) async {
-    final result = await _bridge.connect(walletName, silent).toDart;
+    final result = await _tapAware(() => _bridge.connect(walletName, silent).toDart);
     if (result == null) return null;
     // The browser wallet keeps the session itself, so there is no token to
     // carry: the address is the whole of what we need to remember.
@@ -93,7 +93,8 @@ class WebWalletConnector implements WalletConnector {
     return WalletSignature(value: signature.toDart);
   }
 
-  /// Turns the bridge's "needs a tap" refusal into [WalletTapRequired].
+  /// Turns the bridge's "needs a tap" refusal into [WalletTapRequired], and a
+  /// wallet app that never answered into a message a player can act on.
   ///
   /// The bridge marks it with a fixed string because a JS rejection reaches
   /// Dart as an opaque object; its text is the one thing reliably readable.
@@ -101,8 +102,12 @@ class WebWalletConnector implements WalletConnector {
     try {
       return await call();
     } catch (e) {
-      if (e.toString().contains('FORMATION_TAP_REQUIRED')) {
+      final text = e.toString();
+      if (text.contains('FORMATION_TAP_REQUIRED')) {
         throw const WalletTapRequired();
+      }
+      if (isUnreachableWallet(text)) {
+        throw const WalletException(message: unreachableWalletMessage);
       }
       rethrow;
     }

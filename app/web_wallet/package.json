@@ -5,7 +5,9 @@
   "description": "Wallet Standard bridge exposed to the Flutter web build as window.formationWallet",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --format=iife --target=es2020 --minify --outfile=../web/wallet_bridge.js",
+    "postinstall": "node scripts/patch-mwa.mjs",
+    "prebuild": "node scripts/patch-mwa.mjs",
+    "build":"esbuild src/index.ts --bundle --format=iife --target=es2020 --minify --outfile=../web/wallet_bridge.js",
     "dev": "esbuild src/index.ts --bundle --format=iife --target=es2020 --sourcemap --watch --outfile=../web/wallet_bridge.js",
     "typecheck": "tsc --noEmit"
   },
