@@ -17,7 +17,6 @@ nobody an advantage. And nothing is ever pooled or staked: there is no prize
 pool and no entry fee, you keep every share, and winning gets you standing on a
 leaderboard.
 
-- **App** — [Android release](https://github.com/ANTONINEUTRON/formation/releases/tag/stocklana)
 - **Site** — <https://formation.titalabs.xyz>
 
 ---
@@ -108,15 +107,11 @@ npm run db:migrate
 npm run start:dev        # http://localhost:3000
 ```
 
-`.env.example` documents every variable, including several with sharp edges —
-Jupiter fee accounts must be *token* accounts rather than wallet addresses, and
-`SKR_DECIMALS` must match the mint exactly. Read it before filling `.env` in.
 
 The xStocks catalogue loads from Jupiter at boot when the table is empty, so
 seeding isn't required. `npm run seed` adds demo managers for a populated
 leaderboard.
 
-Tests need `TEST_DATABASE_URL` set:
 
 ```bash
 npm test          # unit
@@ -135,11 +130,6 @@ flutter run
 
 Point the app at your backend via its Envied configuration; it defaults to the
 deployed API.
-
-### Landing page
-
-Static — open `landing_page/index.html`, or serve the directory with any static
-file server. Deployed through Firebase Hosting (`firebase.json`).
 
 ---
 
@@ -162,18 +152,7 @@ against the benchmark, and a pool holding a few dollars can be moved a long way
 for a few dollars more. `CATALOGUE_MIN_LIQUIDITY_USD` is the control: `0` lists
 all ~100 xStocks, roughly 41 clear $1,000 and 30 clear $5,000.
 
-**Availability.** xStocks are issued under Regulation S and are not available to
-US, Canadian, UK or Australian persons. Formation serves the ~110 countries
+**Availability.** Formation serves the ~110 countries
 where they can be held.
 
 ---
-
-## Known gaps
-
-- Android-first; iOS and web are unexercised.
-- Role events trigger on a pick's own return rather than its alpha, so a broad
-  rally still pays points that the "beat the market" framing says it shouldn't.
-- `classic_scores.streak` is read by the API and rendered in the app, but only
-  the seed script ever writes it — real users can't build a streak yet.
-- Event thresholds were tuned for crypto volatility rather than equities and are
-  still being adjusted.
