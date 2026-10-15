@@ -6,6 +6,7 @@ import 'package:formation/features/draft/ui/pages/draft_board_page.dart';
 import 'package:formation/features/leagues/ui/pages/league_detail_page.dart';
 import 'package:formation/features/managers/ui/pages/manager_profile_page.dart';
 import 'package:formation/features/leagues/ui/pages/leagues_page.dart';
+import 'package:formation/features/guide/ui/pages/how_to_play_page.dart';
 import 'package:formation/features/home/ui/pages/home_page.dart';
 import 'package:formation/features/notifications/ui/pages/notifications_page.dart';
 import 'package:formation/features/profile/ui/pages/profile_page.dart';
@@ -44,8 +45,11 @@ class AppRouter extends RootStackRouter {
         // A new Manager's free starter squad, drafted by their Assistant Manager
     AutoRoute(page: StarterSquadRoute.page, path: '/starter-squad'),
 
-    // Transaction History
+    // Transaction History (no entry point until it reads real on-chain data)
         AutoRoute(page: TransactionHistoryRoute.page, path: '/transactions'),
+
+        // The rules, opened from the profile and the Team tab
+        AutoRoute(page: HowToPlayRoute.page, path: '/how-to-play'),
       ];
 
   @override

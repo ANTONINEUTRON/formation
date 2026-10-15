@@ -492,8 +492,7 @@ class LeaderboardEntry extends Equatable {
   final int streak;
   final bool isCurrentUser;
 
-  /// Skill rating (0–100); null before their first full match week. On the
-  /// Skill board [points] carries it too.
+  /// Skill rating (0–100); null before their first full match week.
   final double? skill;
 
   @override
@@ -505,7 +504,6 @@ class LeaderboardEntry extends Equatable {
 enum LeaguePeriodKind {
   matchWeek('match_week', 'This week'),
   season('season', 'Season'),
-  skill('skill', 'Skill'),
   allTime('all_time', 'All time'),
   monthly('monthly', 'Month'),
   custom('custom', 'Custom');

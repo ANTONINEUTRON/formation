@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:auto_route/auto_route.dart';
-import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 
 /// Shown in the profile tab when a wallet is connected.
@@ -119,30 +117,18 @@ class ConnectedWalletView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      context.router.push(const TransactionHistoryRoute()),
-                  icon: const Icon(Icons.history, size: 18),
-                  label: const Text('History'),
-                ),
+          // Transaction history is hidden until it reads real on-chain data.
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: isLoading ? null : onDisconnect,
+              icon: const Icon(Icons.link_off, size: 18),
+              label: const Text('Disconnect'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isLoading ? null : onDisconnect,
-                  icon: const Icon(Icons.link_off, size: 18),
-                  label: const Text('Disconnect'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

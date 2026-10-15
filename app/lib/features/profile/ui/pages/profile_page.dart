@@ -153,10 +153,11 @@ class ProfilePage extends StatelessWidget {
 
             SectionHeader(title: 'Account'),
             const SizedBox(height: 12),
+            // Transaction history is hidden until it reads real on-chain data.
             ActionTile(
-              icon: Icons.receipt_long_outlined,
-              title: 'Transaction history',
-              onTap: () => context.router.push(const TransactionHistoryRoute()),
+              icon: Icons.menu_book_outlined,
+              title: 'How to play',
+              onTap: () => context.router.push(HowToPlayRoute()),
             ),
             ActionTile(
               icon: Icons.notifications_active_outlined,

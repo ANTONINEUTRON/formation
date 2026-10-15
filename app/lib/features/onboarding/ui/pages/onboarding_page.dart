@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/core/widgets/legal_links.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
 import 'package:formation/features/onboarding/data/onboarding_prefs.dart';
@@ -307,13 +308,20 @@ class _Connect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WalletCubit, WalletState>(
-      builder: (context, wallet) => ConnectWalletView(
-        isLoading: wallet.isLoading,
-        error: wallet.error,
-        wallets: wallet.wallets,
-        onConnect: onConnect,
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        BlocBuilder<WalletCubit, WalletState>(
+          builder: (context, wallet) => ConnectWalletView(
+            isLoading: wallet.isLoading,
+            error: wallet.error,
+            wallets: wallet.wallets,
+            onConnect: onConnect,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const LegalLinks(),
+      ],
     );
   }
 }

@@ -65,9 +65,12 @@ class _NotificationsView extends StatelessWidget {
             buildWhen: (a, b) => a.items != b.items,
             builder: (context, state) {
               final hasUnread = state.items.any((n) => !n.read);
-              return TextButton(
+              return IconButton(
                 onPressed: hasUnread ? cubit.markAllRead : null,
-                child: const Text('Mark all read'),
+                icon: Icon(
+                  Icons.mark_email_read,
+                  color: hasUnread ? AppColors.textPrimary : AppColors.textMuted,
+                )
               );
             },
           ),

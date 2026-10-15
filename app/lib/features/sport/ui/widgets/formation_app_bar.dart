@@ -11,7 +11,7 @@ import 'package:formation/features/notifications/ui/cubits/notifications_cubit.d
 import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
 
 /// App bar shared by the three sport pages: the sport's name plus the
-/// Assistant Manager, Notifications and Profile actions.
+/// How to play, Assistant Manager, Notifications and Profile actions.
 class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
   const FormationAppBar({required this.mode, this.bottom, super.key});
 
@@ -29,6 +29,11 @@ class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       bottom: bottom,
       actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline_rounded),
+          onPressed: () => context.router.push(HowToPlayRoute(mode: mode)),
+          tooltip: 'How to play',
+        ),
         IconButton(
           icon: const Icon(Icons.auto_awesome_outlined),
           onPressed: () => showAssistantSheet(context, AssistantContext(mode: mode)),

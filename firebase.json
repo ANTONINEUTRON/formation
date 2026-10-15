@@ -4,6 +4,15 @@
       "target": "landing",
       "public": "landing_page",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "cleanUrls": true,
+      "headers": [
+        {
+          "source": "**/*.@(html|css|js)",
+          "headers": [
+            { "key": "cache-control", "value": "no-cache" }
+          ]
+        }
+      ],
       "rewrites": [
         {
           "source": "**",

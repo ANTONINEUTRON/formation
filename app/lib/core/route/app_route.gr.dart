@@ -74,6 +74,55 @@ class HomeRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [HowToPlayPage]
+class HowToPlayRoute extends PageRouteInfo<HowToPlayRouteArgs> {
+  HowToPlayRoute({
+    SportMode mode = SportMode.football,
+    Key? key,
+    List<PageRouteInfo>? children,
+  }) : super(
+         HowToPlayRoute.name,
+         args: HowToPlayRouteArgs(mode: mode, key: key),
+         initialChildren: children,
+       );
+
+  static const String name = 'HowToPlayRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<HowToPlayRouteArgs>(
+        orElse: () => const HowToPlayRouteArgs(),
+      );
+      return HowToPlayPage(mode: args.mode, key: args.key);
+    },
+  );
+}
+
+class HowToPlayRouteArgs {
+  const HowToPlayRouteArgs({this.mode = SportMode.football, this.key});
+
+  final SportMode mode;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'HowToPlayRouteArgs{mode: $mode, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! HowToPlayRouteArgs) return false;
+    return mode == other.mode && key == other.key;
+  }
+
+  @override
+  int get hashCode => mode.hashCode ^ key.hashCode;
+}
+
+/// generated route for
 /// [LeagueDetailPage]
 class LeagueDetailRoute extends PageRouteInfo<LeagueDetailRouteArgs> {
   LeagueDetailRoute({

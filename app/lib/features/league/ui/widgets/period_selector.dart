@@ -33,44 +33,60 @@ class PeriodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Centred when the chips fit (large screens); scrolls from the left when
+    // they don't (phones).
     return SizedBox(
       height: 36,
       width: double.infinity,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: LeaguePeriodKind.values.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final kind = LeaguePeriodKind.values[i];
-          final selected = period.kind == kind;
-          // The custom chip shows the chosen range once there is one.
-          final label = selected ? period.label : kind.label;
-
-          return ChoiceChip(
-            label: Text(label),
-            selected: selected,
-            showCheckmark: false,
-            labelStyle: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected ? AppColors.background : AppColors.textSecondary,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: (constraints.maxWidth - 32).clamp(0, double.infinity),
             ),
-            backgroundColor: AppColors.surface,
-            selectedColor: AppColors.primary,
-            side: BorderSide(
-              color: selected ? AppColors.primary : AppColors.border,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final kind in LeaguePeriodKind.values) ...[
+                  if (kind != LeaguePeriodKind.values.first) const SizedBox(width: 8),
+                  _chip(context, kind),
+                ],
+              ],
             ),
-            onSelected: (_) {
-              if (kind == LeaguePeriodKind.custom) {
-                _pickCustom(context);
-              } else {
-                onChanged(LeaguePeriod(kind));
-              }
-            },
-          );
-        },
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _chip(BuildContext context, LeaguePeriodKind kind) {
+    final selected = period.kind == kind;
+    // The custom chip shows the chosen range once there is one.
+    final label = selected ? period.label : kind.label;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: selected ? AppColors.background : AppColors.textSecondary,
+      ),
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primary,
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.border,
+      ),
+      onSelected: (_) {
+        if (kind == LeaguePeriodKind.custom) {
+          _pickCustom(context);
+        } else {
+          onChanged(LeaguePeriod(kind));
+        }
+      },
     );
   }
 }

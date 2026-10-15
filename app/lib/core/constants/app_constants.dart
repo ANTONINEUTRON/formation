@@ -14,6 +14,10 @@ class AppConstants {
   static const String appIdentityUri = 'https://formation.titalabs.xyz';
   static const String appIdentityIcon = 'favicon.png';
 
+  /// The legal pages, served by the landing site.
+  static const String termsUrl = '$appIdentityUri/terms';
+  static const String privacyUrl = '$appIdentityUri/privacy';
+
   /// NestJS backend base URL. Empty means fixture mode (in-memory data).
   /// Set in `app/.env`; see [Env].
   static String apiUrl = Env.apiUrl;

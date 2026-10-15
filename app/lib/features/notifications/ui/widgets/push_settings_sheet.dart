@@ -127,11 +127,7 @@ class _PushSettingsSheetState extends State<PushSettingsSheet> {
           children: [
             Text('Push notifications', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text(
-              'Goals as they happen, your full-time result, and the moments worth a look. '
-              'At most ${settings.dailyBudget} a day; everything still lands in your inbox.',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
+            
             if (!settings.available) ...[
               const SizedBox(height: 10),
               const Text(
