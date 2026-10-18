@@ -7,6 +7,8 @@ class EmptyState extends StatelessWidget {
     this.icon,
     this.actionLabel,
     this.onAction,
+    this.secondaryLabel,
+    this.onSecondary,
     super.key,
   });
 
@@ -14,6 +16,10 @@ class EmptyState extends StatelessWidget {
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// A quieter second choice under the main action.
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +51,10 @@ class EmptyState extends StatelessWidget {
                 onPressed: onAction,
                 child: Text(actionLabel!),
               ),
+            ],
+            if (secondaryLabel != null && onSecondary != null) ...[
+              const SizedBox(height: 8),
+              TextButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
             ],
           ],
         ),

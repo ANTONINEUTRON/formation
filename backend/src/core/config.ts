@@ -55,6 +55,14 @@ export interface AppConfig {
   maxRoundTripLossPct: number;
   /** Pause between Jupiter quote calls; keyless access allows about one a second. */
   quoteSpacingMs: number;
+  /**
+   * The least a holding must be worth, in USD, to count as held: to be placed
+   * in a team, sit on the bench, or score. Points don't depend on how much is
+   * held, so without it a few cents of a stock would score like a full one.
+   */
+  minHoldingUsd: number;
+  /** Credits for an Assistant Manager squad draft once the free ones are used. */
+  squadDraftCredits: number;
   /** ET date in the week season 1 kicks off; seasons run 12 match weeks from it. */
   seasonAnchor: string;
   /** Points at full time for a team spanning [teamBalanceSectors]+ sectors. 0 turns it off. */
@@ -141,6 +149,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     depthProbeUsd: number(env.DEPTH_PROBE_USD, 500),
     maxRoundTripLossPct: number(env.MAX_ROUND_TRIP_LOSS_PCT, 2),
     quoteSpacingMs: number(env.QUOTE_SPACING_MS, jupiterApiKey ? 250 : 1_100),
+    minHoldingUsd: number(env.MIN_HOLDING_USD, 1),
+    squadDraftCredits: number(env.SQUAD_DRAFT_CREDITS, 3),
     seasonAnchor: env.SEASON_ANCHOR?.trim() || DEFAULT_SEASON_ANCHOR,
     teamBalanceBonus: number(env.TEAM_BALANCE_BONUS, 5),
     teamBalanceSectors: number(env.TEAM_BALANCE_SECTORS, 4),

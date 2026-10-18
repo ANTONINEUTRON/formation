@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/empty_state.dart';
@@ -43,6 +44,11 @@ class DraftBoardPage extends StatelessWidget {
             appBar: AppBar(
               title: Text('${mode == SportMode.football ? 'Pick team' : 'Draft'} · ${mode.label}'),
               actions: [
+                IconButton(
+                  tooltip: 'Assistant draft',
+                  icon: const Icon(Icons.auto_awesome),
+                  onPressed: () => context.router.push(StarterSquadRoute(mode: mode)),
+                ),
                 if (roster != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 16),

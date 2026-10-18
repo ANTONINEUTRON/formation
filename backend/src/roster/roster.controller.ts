@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   ParseIntPipe,
   Post,
@@ -10,6 +11,9 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser } from '../auth/auth.guard.js';
 import { ChainService } from '../core/chain.service.js';
+import { CONFIG } from '../core/config.js';
+import type { AppConfig } from '../core/config.js';
+import { counts } from '../domain/holdings.js';
 import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseSportMode } from '../domain/sport.js';
 import { requireString } from '../domain/validate.js';
@@ -72,20 +76,26 @@ export class RosterController {
 @UseGuards(AuthGuard)
 export class WalletController {
   constructor(
+    @Inject(CONFIG) private readonly config: AppConfig,
     private readonly chain: ChainService,
     private readonly xstocks: XStocksService,
   ) {}
 
-  /** The user's xStock balances, keyed by mint. */
+  /**
+   * The user's xStock balances, keyed by mint: only holdings that count
+   * (worth at least MIN_HOLDING_USD), so the app never offers dust as held.
+   */
   @Get('balances')
   async balances(@CurrentUser() user: AuthUser) {
     const [balances, stocks] = await Promise.all([
       this.chain.getBalances(user.walletAddress),
       this.xstocks.byMint(),
     ]);
+    const owned = [...balances].filter(([mint, amount]) => stocks.has(mint) && amount > 0);
+    const prices = await this.chain.getPrices(owned.map(([mint]) => mint));
     return {
       balances: Object.fromEntries(
-        [...balances].filter(([mint, amount]) => stocks.has(mint) && amount > 0),
+        owned.filter(([mint, amount]) => counts(amount, prices.get(mint)?.usdPrice, this.config.minHoldingUsd)),
       ),
     };
   }

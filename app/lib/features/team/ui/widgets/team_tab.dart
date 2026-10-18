@@ -77,6 +77,8 @@ class TeamTab extends StatelessWidget {
                 'and start duelling.',
             actionLabel: 'Draft your team',
             onAction: openDraft,
+            secondaryLabel: 'Let my Assistant Manager draft it',
+            onSecondary: () => context.router.push(StarterSquadRoute(mode: cubit.mode)),
           );
         }
 

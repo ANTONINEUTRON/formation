@@ -325,18 +325,48 @@ class ProfileRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [StarterSquadPage]
-class StarterSquadRoute extends PageRouteInfo<void> {
-  const StarterSquadRoute({List<PageRouteInfo>? children})
-    : super(StarterSquadRoute.name, initialChildren: children);
+class StarterSquadRoute extends PageRouteInfo<StarterSquadRouteArgs> {
+  StarterSquadRoute({SportMode? mode, Key? key, List<PageRouteInfo>? children})
+    : super(
+        StarterSquadRoute.name,
+        args: StarterSquadRouteArgs(mode: mode, key: key),
+        initialChildren: children,
+      );
 
   static const String name = 'StarterSquadRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const StarterSquadPage();
+      final args = data.argsAs<StarterSquadRouteArgs>(
+        orElse: () => const StarterSquadRouteArgs(),
+      );
+      return StarterSquadPage(mode: args.mode, key: args.key);
     },
   );
+}
+
+class StarterSquadRouteArgs {
+  const StarterSquadRouteArgs({this.mode, this.key});
+
+  final SportMode? mode;
+
+  final Key? key;
+
+  @override
+  String toString() {
+    return 'StarterSquadRouteArgs{mode: $mode, key: $key}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! StarterSquadRouteArgs) return false;
+    return mode == other.mode && key == other.key;
+  }
+
+  @override
+  int get hashCode => mode.hashCode ^ key.hashCode;
 }
 
 /// generated route for

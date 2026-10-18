@@ -123,6 +123,7 @@ class AssistantProfile extends Equatable {
     this.packs = const [],
     this.canBuyCredits = false,
     this.starterDraftsLeft = 0,
+    this.squadDraftCredits = 3,
     this.avatarVersion,
     this.avatarCost = 0,
   });
@@ -139,6 +140,7 @@ class AssistantProfile extends Equatable {
     ],
     canBuyCredits: json['canBuyCredits'] as bool? ?? false,
     starterDraftsLeft: json['starterDraftsLeft'] as int? ?? 0,
+    squadDraftCredits: (json['squadDraftCredits'] as num?)?.toInt() ?? 3,
     avatarVersion: (json['avatarVersion'] as num?)?.toInt(),
     avatarCost: (json['avatarCost'] as num?)?.toInt() ?? 0,
   );
@@ -153,6 +155,12 @@ class AssistantProfile extends Equatable {
 
   /// Free starter-squad drafts left: 2 for a brand-new Manager.
   final int starterDraftsLeft;
+
+  /// Credits for an Assistant Manager squad draft once the free ones are used.
+  final int squadDraftCredits;
+
+  /// What the next squad draft costs in credits: 0 while free ones remain.
+  int get nextDraftCost => starterDraftsLeft > 0 ? 0 : squadDraftCredits;
 
   /// Whether credits can be bought (SKR is configured on the server).
   final bool canBuyCredits;
@@ -180,6 +188,7 @@ class AssistantProfile extends Equatable {
     packs: packs,
     canBuyCredits: canBuyCredits,
     starterDraftsLeft: starterDraftsLeft ?? this.starterDraftsLeft,
+    squadDraftCredits: squadDraftCredits,
     avatarVersion: avatarVersion,
     avatarCost: avatarCost,
   );

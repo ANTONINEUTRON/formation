@@ -46,6 +46,18 @@ describe('rosters', () => {
     expect(defensive.slots.filter((s) => s.stock).length).toBe(6);
   });
 
+  it("doesn't count a few cents of a stock as holding it", async () => {
+    // Test prices are $100, so 0.005 is 50 cents: under the $1 minimum.
+    h.balances.set(user.walletAddress, 'mint-AAPL', 0.005);
+    await expect(h.rosters.fillSlot(user, 'football', 0, 'mint-AAPL')).rejects.toThrow(/at least \$1/);
+    const roster = await h.rosters.getRoster(user, 'football');
+    expect(roster.bench.some((b) => b.stock.mint === 'mint-AAPL')).toBe(false);
+    // 0.01 is exactly $1: that counts.
+    h.balances.set(user.walletAddress, 'mint-AAPL', 0.01);
+    const filled = await h.rosters.fillSlot(user, 'football', 0, 'mint-AAPL');
+    expect(filled.slots[0].stock?.symbol).toBe('AAPLx');
+  });
+
   it('says so when nothing held can play', async () => {
     const empty = await h.createPlayer('empty');
     h.balances.setAll(empty.walletAddress, TEST_STOCKS.map((s) => s.mint), 0);

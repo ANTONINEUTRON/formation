@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
       return; // offline or signed out; it'll be offered next time
     }
     await prefs.markStarterOffered();
-    if (mounted) await router.push(const StarterSquadRoute());
+    if (mounted) await router.push(StarterSquadRoute());
   }
 
   @override

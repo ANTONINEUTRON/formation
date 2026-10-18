@@ -107,7 +107,7 @@ void main() {
   });
 
   group('starter squad (fixture backend)', () {
-    test('drafts a complete squad, regenerates once, then is used up', () async {
+    test('drafts a complete squad, regenerates once, then charges credits', () async {
       final repository = FixtureRepository(walletAddress: 'w');
       expect((await repository.getAssistant()).starterDraftsLeft, 2);
 
@@ -120,10 +120,10 @@ void main() {
 
       final second = await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
       expect(second.draftsLeft, 0);
-      expect(
-        () => repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10),
-        throwsA(isA<Exception>()),
-      );
+      final before = await repository.getAssistant();
+      expect(before.nextDraftCost, before.squadDraftCredits);
+      await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
+      expect((await repository.getAssistant()).credits, before.credits - before.squadDraftCredits);
     });
 
     test('parses the backend squad', () {

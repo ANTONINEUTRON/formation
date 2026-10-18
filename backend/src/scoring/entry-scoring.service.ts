@@ -7,6 +7,7 @@ import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
 import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { benchmarkMintFor, DEFAULT_ASSET_CLASS } from '../domain/assets.js';
+import { countedBalance } from '../domain/holdings.js';
 import { rosterShape } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { priceAt } from './engine/metrics.js';
@@ -109,7 +110,12 @@ export class EntryScoringService {
         role: shape[slot.slot_index]?.label ?? '',
         mint: slot.token_mint,
         symbol: stocks.get(slot.token_mint)?.symbol ?? slot.token_mint,
-        startBalance: balances.get(slot.token_mint) ?? 0,
+        // A pick worth less than the minimum isn't held: it starts the window out.
+        startBalance: countedBalance(
+          balances.get(slot.token_mint) ?? 0,
+          prices.get(slot.token_mint)?.usdPrice,
+          this.config.minHoldingUsd,
+        ),
         startPrice: prices.get(slot.token_mint)?.usdPrice ?? 0,
         ...(benchmark === this.config.benchmarkMint
           ? {}
@@ -229,7 +235,14 @@ export class EntryScoringService {
       this.priceBook([...mints, ...benchmarks], window),
       this.xstocks.notScoring(),
     ]);
-    const endBalances = Object.fromEntries(mints.map((m) => [m, balances.get(m) ?? 0]));
+    // Sold down to dust counts as sold: the pick exits at that moment.
+    const endBalances = Object.fromEntries(
+      snapshot.slots.map((s) => {
+        const series = prices.get(s.mint) ?? [];
+        const latest = series.at(-1)?.price ?? s.startPrice;
+        return [s.mint, countedBalance(balances.get(s.mint) ?? 0, latest, this.config.minHoldingUsd)];
+      }),
+    );
     const observedAt = Math.min(Math.max(at, window.start), window.end);
     const nextExits = this.withExits(snapshot, endBalances, prices, exits, observedAt);
 

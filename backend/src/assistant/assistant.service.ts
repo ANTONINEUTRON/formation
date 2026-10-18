@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { CLOCK } from '../core/clock.js';
 import type { Clock } from '../core/clock.js';
+import { CONFIG } from '../core/config.js';
+import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE } from '../core/sources.js';
@@ -66,6 +68,8 @@ export interface AssistantProfileDto {
   canBuyCredits: boolean;
   /** Free starter-squad drafts left (0, 1 or 2). */
   starterDraftsLeft: number;
+  /** Credits for a squad draft once the free ones are used. */
+  squadDraftCredits: number;
   /** When the Manager's custom avatar was drawn (for image caching); null if none. */
   avatarVersion: number | null;
   /** Credits the next custom avatar costs: 0 for the first. */
@@ -94,6 +98,7 @@ export class AssistantService {
 
   constructor(
     @Inject(DB) private readonly db: Db,
+    @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
@@ -129,6 +134,7 @@ export class AssistantService {
       packs: this.purchases.packs,
       canBuyCredits: this.purchases.enabled,
       starterDraftsLeft,
+      squadDraftCredits: this.config.squadDraftCredits,
       avatarVersion,
       avatarCost,
     };

@@ -8,6 +8,7 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/assistant_manager/ui/widgets/buy_credits_sheet.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -24,7 +25,10 @@ enum _PickState { waiting, buying, placing, done, failed }
 /// what they don't hold (each buy signed in the wallet) and fills the slots.
 @RoutePage()
 class StarterSquadPage extends StatefulWidget {
-  const StarterSquadPage({super.key});
+  const StarterSquadPage({this.mode, super.key});
+
+  /// The sport to start on; basketball when opened from onboarding.
+  final SportMode? mode;
 
   @override
   State<StarterSquadPage> createState() => _StarterSquadPageState();
@@ -44,6 +48,12 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
 
   /// Supported stocks the wallet already holds; 0 until checked.
   int _heldCount = 0;
+
+  /// Sports whose team already has players, where a draft replaces picks.
+  final Set<SportMode> _teamsWithPlayers = {};
+
+  /// The last draft failed for want of credits: offer to buy some.
+  bool _needsCredits = false;
   bool _usingWallet = false;
 
   /// Teams filled from the wallet, by sport, once "Use what I hold" ran.
@@ -54,10 +64,25 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
   @override
   void initState() {
     super.initState();
+    _mode = widget.mode ?? SportMode.basketball;
+    final slots = rosterShape(_mode).length;
+    if ((double.tryParse(_budget.text) ?? 0) < slots) _budget.text = '$slots';
     _repository.getPayTokens().then((tokens) {
       if (mounted && tokens.isNotEmpty) setState(() => _payTokens = tokens);
     }).ignore();
     _countHoldings();
+    _findTeamsWithPlayers();
+  }
+
+  Future<void> _findTeamsWithPlayers() async {
+    for (final mode in SportMode.values) {
+      try {
+        final roster = await _repository.getRoster(mode);
+        if (mounted && roster.slots.any((s) => s.isFilled)) setState(() => _teamsWithPlayers.add(mode));
+      } catch (_) {
+        // Unknown counts as empty: the draft still works, just without the warning.
+      }
+    }
   }
 
   Future<void> _countHoldings() async {
@@ -94,9 +119,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       });
       return;
     }
-    await _repository.dismissStarterSquad().catchError((_) {});
     if (!mounted) return;
-    context.read<AssistantCubit>().load().ignore();
     setState(() {
       _usingWallet = false;
       _step = _Step.fromWallet;
@@ -127,25 +150,32 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     try {
       final squad = await _repository.draftStarterSquad(_mode, budgetUsd: budget, style: _style);
       if (!mounted) return;
+      // Free drafts left and credits both move with a draft.
+      context.read<AssistantCubit>().load().ignore();
       setState(() {
         _squad = squad;
         _step = _Step.review;
+        _needsCredits = false;
       });
     } catch (e) {
       if (mounted) {
+        final message = errorText(e);
         setState(() {
-          _error = errorText(e);
+          _error = message;
+          _needsCredits = message.contains('credits');
           _step = _squad == null ? _Step.setup : _Step.review;
         });
       }
     }
   }
 
-  Future<void> _buildMyself() async {
-    final router = context.router;
-    await _repository.dismissStarterSquad().catchError((_) {});
-    if (mounted) context.read<AssistantCubit>().load().ignore();
-    await router.maybePop();
+  /// Leaves without drafting. The free drafts stay for another time.
+  Future<void> _buildMyself() => context.router.maybePop();
+
+  void _buyCredits() {
+    final profile = context.read<AssistantCubit>().state.profile;
+    if (profile == null || !profile.canBuyCredits) return;
+    BuyCreditsSheet.show(context, profile.packs);
   }
 
   Future<void> _confirm(StarterSquad squad) async {
@@ -216,6 +246,8 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     final character =
         context.select<AssistantCubit, AssistantCharacter?>((c) => c.state.profile?.character) ??
         presetCharacters[3];
+    final profile = context.select<AssistantCubit, AssistantProfile?>((c) => c.state.profile);
+    final firstSquad = _teamsWithPlayers.isEmpty && (profile?.starterDraftsLeft ?? 0) > 0;
     final pose = switch (_step) {
       _Step.drafting || _Step.applying => AssistantPose.thinking,
       _Step.review || _Step.done || _Step.fromWallet => AssistantPose.celebrating,
@@ -225,7 +257,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Your first squad'),
+        title: Text(firstSquad ? 'Your first squad' : 'Assistant draft'),
         automaticallyImplyLeading: _step != _Step.applying,
       ),
       body: Center(
@@ -239,9 +271,9 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
               ),
               const SizedBox(height: 12),
               ...switch (_step) {
-                _Step.setup => _setup(character),
+                _Step.setup => _setup(character, profile, firstSquad),
                 _Step.drafting => [_note('${character.name} is scouting the market…')],
-                _Step.review => _review(_squad!),
+                _Step.review => _review(_squad!, profile),
                 _Step.applying || _Step.done => _applying(_squad!),
                 _Step.fromWallet => _walletTeams(),
               },
@@ -252,6 +284,14 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
                     _error!,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.error),
+                  ),
+                ),
+              if (_needsCredits && (profile?.canBuyCredits ?? false))
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _buyCredits,
+                    icon: const Icon(Icons.bolt, size: 16),
+                    label: const Text('Buy credits'),
                   ),
                 ),
             ],
@@ -267,14 +307,17 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
   );
 
-  List<Widget> _setup(AssistantCharacter character) => [
-    if (_heldCount > 0) ...[
+  List<Widget> _setup(AssistantCharacter character, AssistantProfile? profile, bool firstSquad) => [
+    // Filling from the wallet only works on empty teams, so it's a first-squad offer.
+    if (_heldCount > 0 && firstSquad) ...[
       _HoldingsCard(count: _heldCount, busy: _usingWallet, onUse: _useWhatIHold),
       const SizedBox(height: 20),
       const _Label('Or let your Assistant Manager draft one'),
     ],
     Text(
-      'Your first squad is on ${character.name.replaceFirst('The ', 'your ')}',
+      firstSquad
+          ? 'Your first squad is on ${character.name.replaceFirst('The ', 'your ')}'
+          : 'Let ${character.name.replaceFirst('The ', 'your ')} draft a squad',
       textAlign: TextAlign.center,
       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
     ),
@@ -343,13 +386,28 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       selected: {_style ?? character.style},
       onSelectionChanged: (s) => setState(() => _style = s.first),
     ),
+    if (_teamsWithPlayers.contains(_mode)) ...[
+      const SizedBox(height: 16),
+      Text(
+        'Your ${_mode.label.toLowerCase()} team already has players. Picks that replace them count as '
+        "substitutions, so beyond today's free ones they cost points.",
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: AppColors.warning),
+      ),
+    ],
     const SizedBox(height: 24),
-    FilledButton(onPressed: _draft, child: const Text('Draft my squad')),
+    FilledButton(onPressed: _draft, child: Text('Draft my squad${_costLabel(profile)}')),
     const SizedBox(height: 8),
     TextButton(onPressed: _buildMyself, child: const Text("I'll build it myself")),
   ];
 
-  List<Widget> _review(StarterSquad squad) {
+  /// " · 3 credits" once the free drafts are used; nothing while they last.
+  String _costLabel(AssistantProfile? profile) {
+    final cost = profile?.nextDraftCost ?? 0;
+    return cost == 0 ? '' : ' · $cost credits';
+  }
+
+  List<Widget> _review(StarterSquad squad, AssistantProfile? profile) {
     final spend = squad.toSpendUsd;
     final inSkr = _payWith.symbol == 'SKR' && squad.skrUsd != null;
     return [
@@ -387,8 +445,12 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       ),
       const SizedBox(height: 16),
       FilledButton(onPressed: () => _confirm(squad), child: const Text('Confirm & buy')),
-      if (squad.draftsLeft > 0)
-        OutlinedButton(onPressed: _draft, child: Text('Draft again (${squad.draftsLeft} left)')),
+      OutlinedButton(
+        onPressed: _draft,
+        child: Text(
+          squad.draftsLeft > 0 ? 'Draft again (${squad.draftsLeft} free left)' : 'Draft again${_costLabel(profile)}',
+        ),
+      ),
       TextButton(onPressed: _buildMyself, child: const Text("I'll build it myself")),
     ];
   }

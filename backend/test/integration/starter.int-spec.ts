@@ -60,6 +60,13 @@ describe('free starter squad', () => {
     expect(squad.draftsLeft).toBe(1);
   });
 
+  it('buys a stock held only as dust, rather than counting it as held', async () => {
+    h.balances.set(manager.walletAddress, 'mint-AAPL', 0.005); // $0.50 at $100
+    h.llm.reply = { text: 'ok', picks: [{ slotIndex: 4, symbol: 'AAPLx', reason: 'blue chip at C' }] };
+    const squad = await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
+    expect(squad.picks.find((p) => p.symbol === 'AAPLx')).toMatchObject({ needsPurchase: true });
+  });
+
   it('skips buying what the Manager already holds', async () => {
     h.balances.set(manager.walletAddress, 'mint-AAPL', 3);
     h.llm.reply = { text: 'ok', picks: [{ slotIndex: 4, symbol: 'AAPLx', reason: 'you own it' }] };
@@ -69,7 +76,7 @@ describe('free starter squad', () => {
     expect(squad.picks.filter((p) => p.needsPurchase).every((p) => p.amountUsd === 5)).toBe(true);
   });
 
-  it('allows a draft and one regenerate, and hands a failed draft back', async () => {
+  it('gives two free drafts, then charges credits, refunding a failed one', async () => {
     h.llm.reply = { text: 'ok', picks: [] };
     h.llm.fail = true;
     await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/still yours/);
@@ -77,8 +84,20 @@ describe('free starter squad', () => {
 
     await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
     await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
-    await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/already been used/);
-    expect((await assistant.profile(manager)).starterDraftsLeft).toBe(0);
+    const profile = await assistant.profile(manager);
+    expect(profile.starterDraftsLeft).toBe(0);
+    const credits = profile.credits; // the trial allowance, 5
+
+    // The third costs 3 credits; a failed one gives them back.
+    h.llm.fail = true;
+    await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/refunded/);
+    expect((await assistant.profile(manager)).credits).toBe(credits);
+    h.llm.fail = false;
+    await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
+    expect((await assistant.profile(manager)).credits).toBe(credits - 3);
+
+    // Two credits left: not enough for another.
+    await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/costs 3 credits/);
   });
 
   it('needs at least the minimum buy per player, and can be declined', async () => {

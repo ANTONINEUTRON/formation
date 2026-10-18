@@ -1,6 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { CONFIG } from '../core/config.js';
+import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
+import { counts } from '../domain/holdings.js';
 import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
 import type { BalanceSource, PriceSource } from '../core/sources.js';
 import type { AuthUser, ManagerDto, ManagerHoldingDto } from '../domain/dto.js';
@@ -25,6 +28,7 @@ import { XStocksService } from '../xstocks/xstocks.service.js';
 export class ManagersService {
   constructor(
     @Inject(DB) private readonly db: Db,
+    @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
@@ -180,6 +184,8 @@ export class ManagersService {
         const row = stocks.get(mint);
         if (!row) return [];
         const dto = this.xstocks.toDto(row, priced.get(mint));
+        // Dust isn't a holding: not shown, not copied, not fielded.
+        if (!counts(balance, dto.priceUsd, this.config.minHoldingUsd)) return [];
         return [
           {
             stock: dto,

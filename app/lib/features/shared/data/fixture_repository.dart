@@ -1015,7 +1015,12 @@ class FixtureRepository implements FormationRepository {
   Future<StarterSquad> draftStarterSquad(SportMode mode, {required double budgetUsd, String? style}) =>
       _delay(() {
         if (_starterDraftsLeft <= 0) {
-          throw const ValidationException(message: 'Your free starter squad has already been used');
+          // After the free drafts, a draft costs 3 credits, as on the server.
+          if (_assistantCredits < 3) {
+            throw const ValidationException(message: 'A squad draft costs 3 credits');
+          }
+          _assistantCredits -= 3;
+          _starterDraftsLeft = 1; // spent again just below
         }
         final formation = mode == SportMode.football ? (_starterDraftsLeft == 2 ? '4-4-2' : '4-3-3') : null;
         final shape = rosterShape(mode, formation);

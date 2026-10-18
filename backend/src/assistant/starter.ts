@@ -1,7 +1,8 @@
 import {
   BadGatewayException,
   BadRequestException,
-  ConflictException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   Logger,
@@ -17,12 +18,14 @@ import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { captaincyRules } from '../domain/captaincy.js';
 import type { AuthUser, XStockDto } from '../domain/dto.js';
 import { parseFormation } from '../domain/formation.js';
+import { counts } from '../domain/holdings.js';
 import { DEFAULT_FORMATION, parseSportMode, rosterShape, slotAccepts } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { requireNumber, requireString } from '../domain/validate.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 import { AvatarService, CUSTOM_ID } from './avatars.js';
 import { characterById } from './characters.js';
+import { CreditsService } from './credits.service.js';
 import type { AdviceStyle } from './characters.js';
 import { LLM_PROVIDER, LlmError } from './llm.js';
 import type { LlmProvider } from './llm.js';
@@ -62,10 +65,11 @@ export interface StarterSquadDto {
 }
 
 /**
- * The free starter squad: the Assistant Manager drafts a complete, valid
- * lineup for a new Manager's budget. The Manager reviews it and confirms; the
- * app then buys what they don't hold and fills the slots. Nothing here
- * spends or moves anything.
+ * The squad draft: the Assistant Manager drafts a complete, valid lineup for
+ * a Manager's budget. The Manager reviews it and confirms; the app then buys
+ * what they don't hold and fills the slots. Nothing here moves any money.
+ * The first [STARTER_DRAFTS] are free; each one after costs
+ * SQUAD_DRAFT_CREDITS, refunded if the draft fails.
  */
 @Injectable()
 export class StarterService {
@@ -78,6 +82,7 @@ export class StarterService {
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
+    private readonly credits: CreditsService,
   ) {}
 
   async draftsLeft(userId: string): Promise<number> {
@@ -109,6 +114,7 @@ export class StarterService {
     }
     if (!this.llm.available) throw new ServiceUnavailableException('Your Assistant Manager is off duty right now');
 
+    // The free drafts first; after those, each draft costs credits.
     const claimed = await this.db
       .updateTable('users')
       .set({ starter_drafts: sql<number>`starter_drafts + 1` })
@@ -116,20 +122,34 @@ export class StarterService {
       .where('starter_drafts', '<', STARTER_DRAFTS)
       .returning('starter_drafts')
       .executeTakeFirst();
-    if (!claimed) throw new ConflictException('Your free starter squad has already been used');
+    const cost = claimed ? 0 : this.config.squadDraftCredits;
+    if (!claimed) {
+      const balance = await this.credits.charge(user.id, cost);
+      if (balance === null) {
+        throw new HttpException(`A squad draft costs ${cost} credits`, HttpStatus.PAYMENT_REQUIRED);
+      }
+    }
 
     try {
-      return await this.build(user, mode, budgetUsd, style, STARTER_DRAFTS - claimed.starter_drafts);
+      return await this.build(user, mode, budgetUsd, style, claimed ? STARTER_DRAFTS - claimed.starter_drafts : 0);
     } catch (e) {
       // Hand the draft back: a failure shouldn't cost the Manager their go.
-      await this.db
-        .updateTable('users')
-        .set({ starter_drafts: sql<number>`greatest(starter_drafts - 1, 0)` })
-        .where('id', '=', user.id)
-        .execute();
+      if (claimed) {
+        await this.db
+          .updateTable('users')
+          .set({ starter_drafts: sql<number>`greatest(starter_drafts - 1, 0)` })
+          .where('id', '=', user.id)
+          .execute();
+      } else {
+        await this.credits.refund(user.id, cost);
+      }
       if (e instanceof LlmError) {
-        this.logger.warn(`Starter draft failed: ${e.message}`);
-        throw new BadGatewayException("Your Assistant Manager couldn't draft a squad just now. Your free draft is still yours.");
+        this.logger.warn(`Squad draft failed: ${e.message}`);
+        throw new BadGatewayException(
+          claimed
+            ? "Your Assistant Manager couldn't draft a squad just now. Your free draft is still yours."
+            : "Your Assistant Manager couldn't draft a squad just now. Your credits were refunded.",
+        );
       }
       throw e;
     }
@@ -160,7 +180,9 @@ export class StarterService {
         ? AvatarService.customCharacter(profile.personality, profile.custom_name)
         : (characterById(profile?.character_id) ?? characterById('mentor')!);
     const style = requestedStyle ?? character.style;
-    const isHeld = (mint: string) => (held.get(mint) ?? 0) > 0;
+    // Dust doesn't count as held: a stock worth under the minimum gets bought.
+    const priceOf = new Map(stocks.map((s) => [s.mint, s.priceUsd]));
+    const isHeld = (mint: string) => counts(held.get(mint) ?? 0, priceOf.get(mint), this.config.minHoldingUsd);
     // A paused stock can't be placed in a lineup until it scores again, and its
     // price is usually poor too, so the starter squad never includes one.
     const catalogue = stocks.filter(

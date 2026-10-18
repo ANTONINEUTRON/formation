@@ -8,6 +8,7 @@ import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { parseCaptaincy } from '../domain/captaincy.js';
 import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseFormation, remapFormation } from '../domain/formation.js';
+import { counts } from '../domain/holdings.js';
 import { lineupFromHoldings } from '../domain/seed-lineup.js';
 import { DEFAULT_FORMATION, rosterShape, slotAccepts, slotTierLabel } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
@@ -51,8 +52,12 @@ export class RosterService {
       this.league.standing(user.id, mode),
       this.general.sessionFor(user.id, mode),
     ]);
-    const held = [...balances].filter(([mint, amount]) => stocks.has(mint) && amount > 0);
-    const priced = await this.prices.getPrices(held.map(([mint]) => mint));
+    const owned = [...balances].filter(([mint, amount]) => stocks.has(mint) && amount > 0);
+    const priced = await this.prices.getPrices([...new Set([...owned.map(([mint]) => mint), ...mints])]);
+    // Dust (a few cents of a stock) isn't a holding: it can't sit on the bench.
+    const held = owned.filter(([mint, amount]) =>
+      counts(amount, priced.get(mint)?.usdPrice, this.config.minHoldingUsd),
+    );
     const bySlot = new Map(slots.map((s) => [s.slot_index, s]));
     const started = new Set(mints);
 
@@ -113,8 +118,16 @@ export class RosterService {
     }
 
     const balances = await this.balances.getBalances(user.walletAddress, { fresh: true });
-    if ((balances.get(mint) ?? 0) <= 0) {
+    const amount = balances.get(mint) ?? 0;
+    if (amount <= 0) {
       throw new BadRequestException(`You do not hold ${stock.symbol}`);
+    }
+    const price = (await this.prices.getPrices([mint])).get(mint)?.usdPrice;
+    if (!counts(amount, price, this.config.minHoldingUsd)) {
+      throw new BadRequestException(
+        `You hold only about $${(amount * (price ?? 0)).toFixed(2)} of ${stock.symbol}. ` +
+          `A stock needs to be worth at least $${this.config.minHoldingUsd} in your wallet to play.`,
+      );
     }
 
     const slots = await this.slotsOf(roster.id);
@@ -264,7 +277,9 @@ export class RosterService {
       ([mint, amount]) => amount > 0 && stocks.has(mint) && mint !== this.config.benchmarkMint,
     );
     const prices = await this.prices.getPrices(held.map(([mint]) => mint));
-    const holdings = held.map(([mint, balance]) => {
+    const holdings = held
+      .filter(([mint, balance]) => counts(balance, prices.get(mint)?.usdPrice, this.config.minHoldingUsd))
+      .map(([mint, balance]) => {
       const stock = this.xstocks.toDto(stocks.get(mint)!, prices.get(mint));
       return { stock, balance, valueUsd: balance * stock.priceUsd, starting: false };
     });
