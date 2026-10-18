@@ -23,7 +23,6 @@
 
   var NAV = [
     ['How it works', '/#how'],
-    ['Scoring', '/#score'],
     ['Features', '/#features'],
     ['Rules', '/how-to-play'],
   ];
