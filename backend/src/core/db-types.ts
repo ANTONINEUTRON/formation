@@ -22,7 +22,9 @@ export interface XStocksTable {
   mint: string;
   symbol: string;
   company_name: string;
-  tier: 'blue_chip' | 'stable' | 'balanced' | 'growth' | 'momentum';
+  tier: 'blue_chip' | 'balanced' | 'momentum';
+  /** 'formula' when the season's tier run set it; 'manual' is never overwritten by it. */
+  tier_source: Generated<'formula' | 'manual'>;
   decimals: Generated<number>;
   logo_url: string | null;
   /** Decides the benchmark (domain/assets.ts). */
@@ -42,6 +44,14 @@ export interface AssetScoringStatusTable {
   passing_since: Timestamp | null;
   checked_at: Timestamp;
   metrics: ColumnType<unknown, unknown, unknown>;
+}
+
+export interface MarketDepthTable {
+  mint: string;
+  /** Percent a buy-and-sell-back of [probe_usd] loses; null when there's no route. */
+  round_trip_loss_pct: number | null;
+  probe_usd: number;
+  checked_at: Timestamp;
 }
 
 export interface ScoringAnomaliesTable {
@@ -410,6 +420,7 @@ export interface Database {
   credit_purchases: CreditPurchasesTable;
   assistant_avatars: AssistantAvatarsTable;
   asset_scoring_status: AssetScoringStatusTable;
+  market_depth: MarketDepthTable;
   scoring_anomalies: ScoringAnomaliesTable;
   seasons: SeasonsTable;
   match_weeks: MatchWeeksTable;

@@ -163,11 +163,11 @@ export class PortfolioService {
         `${short} more sector${short === 1 ? '' : 's'} and your team earns the +${this.config.teamBalanceBonus} balance bonus at full time.`,
       );
     }
-    const defence = [...byPick.entries()]
-      .filter(([mint]) => tierOf.get(mint) === 'stable' || tierOf.get(mint) === 'blue_chip')
+    const steady = [...byPick.entries()]
+      .filter(([mint]) => tierOf.get(mint) === 'blue_chip')
       .reduce((sum, [, p]) => sum + p, 0);
-    if (weekPoints < 0 && defence >= 0 && byPick.size > 0) {
-      lessons.push('Your defence held while the rest fell: that is what defence is for.');
+    if (weekPoints < 0 && steady >= 0 && byPick.size > 0) {
+      lessons.push('Your blue chips held while the rest fell: that is what they are for.');
     }
     if (carried && dragged) {
       lessons.push(

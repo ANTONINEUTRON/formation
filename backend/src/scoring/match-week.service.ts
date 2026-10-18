@@ -458,6 +458,7 @@ export class MatchWeekService {
         fullTime: week.fullTime.toISOString(),
         nextKickOff: week.nextKickOff.toISOString(),
         points: round1(points),
+        preSeason: now < this.calendar.season(1).startsAt.getTime(),
       },
       final: now >= week.fullTime.getTime(),
       points: round1(points),

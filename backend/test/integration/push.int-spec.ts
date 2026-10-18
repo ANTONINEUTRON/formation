@@ -2,7 +2,7 @@ import type { AuthUser } from '../../src/domain/dto.js';
 import { NotificationsService } from '../../src/notifications/notifications.service.js';
 import { PushService } from '../../src/notifications/push.service.js';
 import { DAILY_PUSH_BUDGET } from '../../src/notifications/push-rules.js';
-import { XStocksService } from '../../src/xstocks/xstocks.service.js';
+import { MarketDepthService } from '../../src/scoring/market-depth.service.js';
 import { createHarness } from './harness.js';
 import type { Harness } from './harness.js';
 
@@ -84,13 +84,13 @@ describe('push notifications', () => {
     await h.rosters.setCaptaincy(me, 'football', { captainSlot: fwd.slotIndex, viceCaptainSlot: 0 });
 
     await h.priceTicks.tick(); // TSLA is scoring
-    await h.db.updateTable('xstocks').set({ liquidity_usd: 10 }).where('mint', '=', 'mint-TSLA').execute();
-    h.app.get(XStocksService).invalidate();
+    h.depth.set('mint-TSLA', 15);
+    await h.app.get(MarketDepthService).checkAll();
     h.clock.advance(30);
     await h.priceTicks.tick();
 
     const warning = h.pushes.sent.find((s) => s.message.title.startsWith("Your captain isn't scoring"));
-    expect(warning?.message.title).toBe("Your captain isn't scoring: thin liquidity");
+    expect(warning?.message.title).toBe("Your captain isn't scoring: thin market");
   });
 
   it('validates settings', async () => {

@@ -98,47 +98,33 @@ describe('xStocks catalogue filtering', () => {
   });
 });
 
-describe('xStocks catalogue tiering', () => {
-  it('keeps the hand-assigned tier for a curated stock', () => {
-    // Tesla is a mega-cap that plays as momentum; market cap cannot derive that,
-    // so the curated placement has to win.
+describe('xStocks catalogue starting tiers', () => {
+  it('starts a seeded stock in its seed tier', () => {
     const { tiers } = build();
-    const tsla = token({ symbol: 'TSLAx', mcap: 9e12 });
-    const aapl = token({ symbol: 'AAPLx', mcap: 9e12 });
-    const assigned = tiers([tsla, aapl]);
+    const tsla = token({ symbol: 'TSLAx' });
+    const ko = token({ symbol: 'KOx' });
+    const assigned = tiers([tsla, ko]);
     expect(assigned.get(tsla.id)).toBe('momentum');
-    expect(assigned.get(aapl.id)).toBe('blue_chip');
+    expect(assigned.get(ko.id)).toBe('blue_chip');
   });
 
-  it('bands uncurated stocks by liquidity, deepest into blue_chip', () => {
+  it('places leveraged and T-bill funds by what they are', () => {
     const { tiers } = build();
-    const tokens = Array.from({ length: 10 }, (_, i) =>
-      token({ symbol: `NEW${String(i)}x`, liquidity: (10 - i) * 1_000 }),
-    );
-    const assigned = tiers(tokens);
-    expect(assigned.get(tokens[0].id)).toBe('blue_chip');
-    expect(assigned.get(tokens[9].id)).toBe('momentum');
-    // Two per band across five tiers, and every stock placed.
-    expect(assigned.size).toBe(10);
-    expect(new Set(assigned.values())).toEqual(new Set(RISK_TIERS));
+    const lev = token({ symbol: 'TQQQx' });
+    const bills = token({ symbol: 'SGOVx' });
+    const assigned = tiers([lev, bills]);
+    expect(assigned.get(lev.id)).toBe('momentum');
+    expect(assigned.get(bills.id)).toBe('blue_chip');
   });
 
-  it('does not let a distorted market cap buy a blue_chip slot', () => {
-    // A near-empty pool makes the price, and therefore the market cap,
-    // meaningless. Ranking on market cap would put this junk in the anchor
-    // slots; ranking on liquidity puts it where its risk belongs.
+  it('starts anything else as balanced, whatever its pool, until the formula measures it', () => {
+    // Pool depth says how easy a stock is to trade, not how risky it is.
     const { tiers } = build();
-    const junk = token({ symbol: 'JUNKx', liquidity: 4, mcap: 9e15 });
-    const real = token({ symbol: 'REALx', liquidity: 2_000_000, mcap: 1e9 });
-    const assigned = tiers([junk, real]);
-    expect(assigned.get(real.id)).toBe('blue_chip');
-    expect(assigned.get(junk.id)).not.toBe('blue_chip');
-  });
-
-  it('gives every stock a tier even when there are fewer than one per band', () => {
-    const { tiers } = build();
-    const tokens = [token({ symbol: 'ONLYx' })];
-    const assigned = tiers(tokens);
-    expect(RISK_TIERS).toContain(assigned.get(tokens[0].id));
+    const deep = token({ symbol: 'DEEPx', liquidity: 5_000_000 });
+    const thin = token({ symbol: 'THINx', liquidity: 4 });
+    const assigned = tiers([deep, thin]);
+    expect(assigned.get(deep.id)).toBe('balanced');
+    expect(assigned.get(thin.id)).toBe('balanced');
+    expect(RISK_TIERS).toContain(assigned.get(deep.id));
   });
 });

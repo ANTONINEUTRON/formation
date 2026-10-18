@@ -5,8 +5,8 @@
  * it from Jupiter at boot when the table is empty and refreshes it on a timer
  * (`XStocksCatalogueService`), which is what gets you the full ~100 xStocks.
  * This script remains useful for two reasons: it works with Jupiter
- * unreachable, and it is what establishes the hand-assigned risk tiers for the
- * original thirty, which the refresh then preserves rather than overwriting.
+ * unreachable, and it gives the original thirty their starting tiers, which
+ * the season's tier formula (`npm run tiers`) then takes over.
  *
  * Demo leaderboard players are NOT seeded by default. They are invented users
  * with invented point totals, and on a live deployment they sit on the ladder
@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import bs58 from 'bs58';
 import { createDb } from '../core/db.js';
 import { SPORT_MODES } from '../domain/sport.js';
+import { defaultUsername } from '../users/users.service.js';
 import { XSTOCKS_SEED } from '../xstocks/xstocks.seed.js';
 
 const SEED_PLAYERS = [
@@ -53,10 +54,11 @@ await db
     })),
   )
   .onConflict((oc) =>
+    // The tier is only a starting point; the tier formula owns it once a
+    // stock exists, so re-running the seed never undoes a season's tiers.
     oc.column('mint').doUpdateSet((eb) => ({
       symbol: eb.ref('excluded.symbol'),
       company_name: eb.ref('excluded.company_name'),
-      tier: eb.ref('excluded.tier'),
     })),
   )
   .execute();
@@ -76,11 +78,11 @@ const digest = (text: string) => createHash('sha256').update(text).digest();
 const users = await db
   .insertInto('users')
   .values(
-    SEED_PLAYERS.map((name) => ({
-      wallet_address: bs58.encode(digest(`formation-seed-${name}`)),
-      username: name,
-      is_seed: true,
-    })),
+    SEED_PLAYERS.map((name) => {
+      const wallet = bs58.encode(digest(`formation-seed-${name}`));
+      // Named by their wallet, like a new player who hasn't picked a name.
+      return { wallet_address: wallet, username: defaultUsername(wallet), is_seed: true };
+    }),
   )
   .onConflict((oc) =>
     oc.column('wallet_address').doUpdateSet((eb) => ({ username: eb.ref('excluded.username') })),

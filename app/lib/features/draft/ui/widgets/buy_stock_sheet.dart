@@ -12,7 +12,9 @@ import 'package:formation/core/widgets/pay_token_picker.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/ui/widgets/thin_market_warning.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
+import 'package:formation/features/wallet/ui/widgets/fund_wallet_sheet.dart';
 
 /// Quote preview and confirm for buying an xStock with USDC via Jupiter.
 class BuyStockSheet extends StatefulWidget {
@@ -149,9 +151,22 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     }
   }
 
+  /// "If you sold straight after buying…", when the round trip loses enough to mention.
+  String? _thinMarketMessage(SwapQuote quote) {
+    final loss = quote.roundTripLoss;
+    if (loss == null || loss <= thinMarketWarnAt) return null;
+    return "Thin market: if you sold straight after buying, you'd get back about "
+        '${formatAmount(quote.sellBackAmount!)} of your ${formatAmount(quote.inputAmount)} ${quote.payWith} '
+        '(${(loss * 100).round()}% less). Very little money trades ${widget.stock.symbol} right now.';
+  }
+
   Future<void> _confirm() async {
     final quote = _quote;
     if (quote == null) return;
+    final thin = _thinMarketMessage(quote);
+    if (thin != null && (quote.roundTripLoss ?? 0) > thinMarketConfirmAt) {
+      if (!await confirmThinMarket(context, message: thin) || !mounted) return;
+    }
     setState(() => _buying = true);
     try {
       final shares = await context.read<DraftCubit>().buyAndFill(widget.slotIndex, quote);
@@ -226,11 +241,22 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
                           '${formatAmount(quote.inputAmount)} ${quote.payWith}',
                         ),
                         _QuoteRow('You receive (est.)', '${formatShares(quote.estimatedShares)} ${widget.stock.symbol}'),
-                        
                         const _QuoteRow('Route', 'Jupiter'),
                       ],
                     ),
             ),
+            if (quote != null && _thinMarketMessage(quote) != null) ...[
+              const SizedBox(height: 12),
+              ThinMarketWarning(message: _thinMarketMessage(quote)!),
+            ],
+            if (!widget.stock.isScoring) ...[
+              const SizedBox(height: 12),
+              Text(
+                "${widget.stock.symbol} isn't scoring right now, so it banks nothing in your team "
+                'until its price is reliable again.',
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+              ),
+            ],
             if (_lowOnSol) ...[
               const SizedBox(height: 12),
               Container(
@@ -255,6 +281,10 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
                     ),
                   ],
                 ),
+              ),
+              TextButton(
+                onPressed: () => FundWalletSheet.show(context),
+                child: const Text('How to add money to your wallet'),
               ),
             ],
             const SizedBox(height: 12),

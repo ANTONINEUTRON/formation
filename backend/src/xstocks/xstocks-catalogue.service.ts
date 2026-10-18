@@ -4,8 +4,8 @@ import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
-import { RISK_TIERS } from '../domain/sport.js';
 import type { RiskTier } from '../domain/sport.js';
+import { fixedTier, NEW_LISTING_TIER } from '../domain/tiers.js';
 import { XSTOCKS_SEED } from './xstocks.seed.js';
 import { XStocksService } from './xstocks.service.js';
 
@@ -33,8 +33,8 @@ interface JupiterToken {
   mcap?: number;
 }
 
-/** Tiers chosen by hand for the original catalogue, keyed by symbol. */
-const CURATED_TIERS = new Map<string, RiskTier>(XSTOCKS_SEED.map((s) => [s.symbol, s.tier]));
+/** Starting tiers for the original catalogue, keyed by symbol, until the formula runs. */
+const SEED_TIERS = new Map<string, RiskTier>(XSTOCKS_SEED.map((s) => [s.symbol, s.tier]));
 
 export interface RefreshResult {
   fetched: number;
@@ -137,8 +137,8 @@ export class XStocksCatalogueService implements OnModuleInit {
           logo_url: eb.ref('excluded.logo_url'),
           liquidity_usd: eb.ref('excluded.liquidity_usd'),
           // asset_class isn't touched either: it's set once, by whoever lists
-          // a new kind of asset. And tier is deliberately not updated: it is game balance, and a stock
-          // silently changing tier would invalidate rosters built around it.
+          // a new kind of asset. And tier is deliberately not updated: the tier formula owns it
+          // from here (TiersService), once a season.
         })),
       )
       .execute();
@@ -188,37 +188,20 @@ export class XStocksCatalogueService implements OnModuleInit {
   }
 
   /**
-   * Tiers decide which roster slots a stock can fill, so they are game balance
-   * rather than a property of the stock.
-   *
-   * The original thirty were placed by hand and those placements are kept —
-   * market cap cannot reproduce them, since Tesla is a mega-cap that plays as
-   * momentum. Everything else is banded by pool liquidity, deepest into
-   * blue_chip.
-   *
-   * Liquidity rather than market cap, deliberately. Market cap here is price
-   * times supply, and a stock with a near-empty pool has a meaningless price —
-   * PayPal's xStock quotes at six figures — so ranking on it sorts precisely the
-   * least trustworthy stocks into the most valuable anchor slots. Liquidity is
-   * measured money in a pool: harder to distort, and it lines up with what the
-   * tiers are meant to express, since a deep pool really is the steadier pick.
+   * The tier a stock starts with when it's first listed. Tiers decide which
+   * slots a stock can fill, and the real decision is the tier formula
+   * (TiersService), which measures beta and volatility once there's enough
+   * price history. Until then: what kind of fund it is, if that settles it,
+   * then the seed's starting tier, then balanced. Pool liquidity says how
+   * easy a stock is to trade, not how risky it is, so it plays no part.
    */
   private assignTiers(tokens: JupiterToken[]): Map<string, RiskTier> {
-    const tiers = new Map<string, RiskTier>();
-    const uncurated: JupiterToken[] = [];
-
-    for (const t of tokens) {
-      const curated = CURATED_TIERS.get(t.symbol);
-      if (curated) tiers.set(t.id, curated);
-      else uncurated.push(t);
-    }
-
-    uncurated.sort((a, b) => (b.liquidity ?? 0) - (a.liquidity ?? 0));
-    const band = Math.ceil(uncurated.length / RISK_TIERS.length) || 1;
-    uncurated.forEach((t, i) => {
-      tiers.set(t.id, RISK_TIERS[Math.min(Math.floor(i / band), RISK_TIERS.length - 1)]);
-    });
-    return tiers;
+    return new Map(
+      tokens.map((t) => [
+        t.id,
+        fixedTier(t.symbol, companyNameOf(t)) ?? SEED_TIERS.get(t.symbol) ?? NEW_LISTING_TIER,
+      ]),
+    );
   }
 }
 

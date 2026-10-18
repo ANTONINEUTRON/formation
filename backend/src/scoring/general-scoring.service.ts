@@ -460,6 +460,8 @@ export class GeneralScoringService {
         fullTime: week.fullTime.toISOString(),
         nextKickOff: week.nextKickOff.toISOString(),
         points: await this.pointsSince(userId, mode, week.kickOff.getTime(), week.fullTime.getTime()),
+        // Before season 1 kicks off: points bank but don't count (LedgerService).
+        preSeason: now < this.calendar.season(1).startsAt.getTime(),
       },
       transferWindowOpen: this.calendar.inTransferWindow(now),
       liveEvents: await this.liveEvents(userId, mode, start),

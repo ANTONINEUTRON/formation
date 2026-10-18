@@ -19,16 +19,16 @@ const MAX_JUMPS = 1;
 export type NotScoringReason =
   | 'no_price'
   | 'stale_price'
+  | 'thin_market'
   | 'price_not_updating'
-  | 'thin_liquidity'
   | 'erratic_price'
   | 'recovering';
 
 export const NOT_SCORING_LABELS: Record<NotScoringReason, string> = {
   no_price: 'no price',
   stale_price: 'stale price',
+  thin_market: 'thin market',
   price_not_updating: 'price not updating',
-  thin_liquidity: 'thin liquidity',
   erratic_price: 'erratic price',
   recovering: 'price recovering',
 };
@@ -40,9 +40,14 @@ export interface AssessInput {
   benchmark: PriceTick[];
   now: number;
   tickMinutes: number;
-  /** Pool depth in USD; null when unknown, which doesn't count against it. */
-  liquidityUsd: number | null;
-  minLiquidityUsd: number;
+  /**
+   * What buying a fixed amount and selling it straight back loses, in percent
+   * (MarketDepthService). Null means no route at all; undefined means it
+   * hasn't been measured yet, which doesn't count against it.
+   */
+  roundTripLossPct?: number | null;
+  /** The most a round trip may lose for the stock to score. */
+  maxRoundTripLossPct: number;
   maxMove?: number;
 }
 
@@ -54,7 +59,7 @@ export interface Assessment {
     lastTickAt: number | null;
     benchmarkMoves: number;
     updateRatio: number | null;
-    liquidityUsd: number | null;
+    roundTripLossPct: number | null;
     jumps: number;
   };
   /** When each confirmed jump in the window happened. */
@@ -67,7 +72,7 @@ export interface Assessment {
  * soon as its price is reliable, with no code change.
  */
 export function assessAsset(input: AssessInput): Assessment {
-  const { ticks, benchmark, now, liquidityUsd } = input;
+  const { ticks, benchmark, now, roundTripLossPct } = input;
   const last = ticks.at(-1);
 
   // How often the price changed on ticks where the benchmark did. A pool that
@@ -99,18 +104,23 @@ export function assessAsset(input: AssessInput): Assessment {
     lastTickAt: last?.at ?? null,
     benchmarkMoves,
     updateRatio,
-    liquidityUsd,
+    roundTripLossPct: roundTripLossPct ?? null,
     jumps,
   };
 
+  // A thin market is checked before a frozen price: it's usually why the
+  // price froze, and it's the reason a Manager can act on.
+  const thin =
+    roundTripLossPct === null ||
+    (roundTripLossPct !== undefined && roundTripLossPct > input.maxRoundTripLossPct);
   const failure: NotScoringReason | null = !last
     ? 'no_price'
     : now - last.at > 2 * Math.max(1, input.tickMinutes) * 60_000
       ? 'stale_price'
-      : benchmarkMoves >= MIN_BENCHMARK_MOVES && updates / benchmarkMoves < MIN_PRICE_UPDATE_RATIO
-        ? 'price_not_updating'
-        : liquidityUsd !== null && liquidityUsd < input.minLiquidityUsd
-          ? 'thin_liquidity'
+      : thin
+        ? 'thin_market'
+        : benchmarkMoves >= MIN_BENCHMARK_MOVES && updates / benchmarkMoves < MIN_PRICE_UPDATE_RATIO
+          ? 'price_not_updating'
           : jumps > MAX_JUMPS
             ? 'erratic_price'
             : null;

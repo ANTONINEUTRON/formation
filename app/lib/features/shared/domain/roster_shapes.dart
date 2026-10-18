@@ -14,6 +14,16 @@ List<PositionSlot> rosterShape(SportMode mode, [String? formation]) =>
       SportMode.americanFootball => _americanFootball,
     };
 
+/// Substitutes shown on the bench, as each sport's fantasy game has them:
+/// 4 in Fantasy Premier League, 3 on a standard fantasy basketball roster,
+/// 6 in standard fantasy American football. The bench is the wallet, so any
+/// further held stocks are a tap away under "More".
+int benchSpots(SportMode mode) => switch (mode) {
+      SportMode.football => 4,
+      SportMode.basketball => 3,
+      SportMode.americanFootball => 6,
+    };
+
 Roster emptyRoster(SportMode mode) => Roster(
       mode: mode,
       slots: [for (final p in rosterShape(mode)) RosterSlot(position: p)],
@@ -26,15 +36,13 @@ List<Offset?> boardLayout(Roster roster) =>
 
 const _footballRoleTiers = {
   'GK': RiskTier.blueChip,
-  'DEF': RiskTier.stable,
+  'DEF': RiskTier.blueChip,
   'MID': RiskTier.balanced,
   'FWD': RiskTier.momentum,
 };
 
-/// Midfield also takes growth stocks (`FOOTBALL_ROLE_ALSO_ACCEPTS` in the API).
-const _footballRoleAlsoAccepts = {
-  'MID': [RiskTier.growth],
-};
+/// Further tiers a football role accepts (`FOOTBALL_ROLE_ALSO_ACCEPTS` in the API). None today.
+const _footballRoleAlsoAccepts = <String, List<RiskTier>>{};
 
 const _footballRows ={'GK': 0.9, 'DEF': 0.68, 'MID': 0.43, 'FWD': 0.17};
 
@@ -62,8 +70,8 @@ List<PositionSlot> footballShape(String formation) {
 }
 
 const _basketball = [
-  PositionSlot(label: 'PG', requiredTier: RiskTier.growth, boardPosition: Offset(0.5, 0.82)),
-  PositionSlot(label: 'SG', requiredTier: RiskTier.growth, boardPosition: Offset(0.18, 0.62)),
+  PositionSlot(label: 'PG', requiredTier: RiskTier.momentum, boardPosition: Offset(0.5, 0.82)),
+  PositionSlot(label: 'SG', requiredTier: RiskTier.momentum, boardPosition: Offset(0.18, 0.62)),
   PositionSlot(label: 'SF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.82, 0.62)),
   PositionSlot(label: 'PF', requiredTier: RiskTier.balanced, boardPosition: Offset(0.28, 0.3)),
   PositionSlot(label: 'C', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.72, 0.3)),
@@ -71,13 +79,13 @@ const _basketball = [
 
 // Offensive formation, line of scrimmage around y = 0.45.
 const _americanFootball = [
-  PositionSlot(label: 'QB', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.5, 0.64)),
-  PositionSlot(label: 'RB', requiredTier: RiskTier.growth, boardPosition: Offset(0.38, 0.84)),
+  PositionSlot(label: 'QB', requiredTier: RiskTier.balanced, boardPosition: Offset(0.5, 0.64)),
+  PositionSlot(label: 'RB', requiredTier: RiskTier.balanced, boardPosition: Offset(0.38, 0.84)),
   PositionSlot(label: 'RB', requiredTier: RiskTier.balanced, boardPosition: Offset(0.62, 0.84)),
   PositionSlot(label: 'WR', requiredTier: RiskTier.momentum, boardPosition: Offset(0.1, 0.4)),
-  PositionSlot(label: 'WR', requiredTier: RiskTier.growth, boardPosition: Offset(0.9, 0.4)),
+  PositionSlot(label: 'WR', requiredTier: RiskTier.momentum, boardPosition: Offset(0.9, 0.4)),
   PositionSlot(label: 'WR', requiredTier: RiskTier.momentum, boardPosition: Offset(0.26, 0.2)),
-  PositionSlot(label: 'TE', requiredTier: RiskTier.stable, boardPosition: Offset(0.74, 0.2)),
+  PositionSlot(label: 'TE', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.74, 0.2)),
   PositionSlot(label: 'FLEX', requiredTier: null, boardPosition: Offset(0.5, 0.4)),
-  PositionSlot(label: 'K', requiredTier: RiskTier.stable, boardPosition: Offset(0.5, 0.08)),
+  PositionSlot(label: 'K', requiredTier: RiskTier.blueChip, boardPosition: Offset(0.5, 0.08)),
 ];

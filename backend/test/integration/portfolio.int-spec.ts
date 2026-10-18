@@ -61,12 +61,12 @@ describe('portfolio layer', () => {
 
     const card = await portfolio.health(me.id, 'basketball', h.clock.now());
     expect(card.sectors.map((s) => s.label)).toEqual(
-      expect.arrayContaining(['Technology', 'Communication', 'Financials']),
+      expect.arrayContaining(['Technology', 'Financials']),
     );
     expect(card.sectors.reduce((sum, s) => sum + s.sharePct, 0)).toBeGreaterThanOrEqual(99);
     expect(card.tiers).toEqual(
       expect.arrayContaining([
-        { tier: 'growth', count: 2 },
+        { tier: 'momentum', count: 2 },
         { tier: 'balanced', count: 2 },
         { tier: 'blue_chip', count: 1 },
       ]),

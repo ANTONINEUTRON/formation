@@ -24,22 +24,31 @@ enum SportMode {
       values.firstWhere((m) => m.apiValue == value);
 }
 
-/// Risk category a position slot accepts.
+/// How much a stock swings, which decides the positions it can play. Set each
+/// season by the backend's tier formula from beta and volatility.
 enum RiskTier {
-  blueChip('blue_chip', 'Blue chip', AppColors.tierBlueChip),
-  stable('stable', 'Stable', AppColors.tierStable),
-  balanced('balanced', 'Balanced', AppColors.tierBalanced),
-  growth('growth', 'Growth', AppColors.tierGrowth),
-  momentum('momentum', 'Momentum', AppColors.tierMomentum);
+  blueChip('blue_chip', 'Blue chip', 'Calm, barely follows the market', AppColors.tierBlueChip),
+  balanced('balanced', 'Balanced', 'Moves with the market', AppColors.tierBalanced),
+  momentum('momentum', 'Momentum', 'Big swings', AppColors.tierMomentum);
 
-  const RiskTier(this.apiValue, this.label, this.color);
+  const RiskTier(this.apiValue, this.label, this.meaning, this.color);
 
   final String apiValue;
   final String label;
+
+  /// One line on what the tier means, for legends and How to play.
+  final String meaning;
   final Color color;
 
+  /// Tier names an older server may still send, mapped to where those stocks
+  /// landed: "stable" was this tier's name for a few days in October 2026.
+  static const _legacy = {
+    'stable': blueChip,
+    'growth': momentum,
+  };
+
   static RiskTier fromApi(String value) =>
-      values.firstWhere((t) => t.apiValue == value);
+      values.where((t) => t.apiValue == value).firstOrNull ?? _legacy[value] ?? balanced;
 }
 
 /// One tokenized equity (xStock) tradeable on Solana.
@@ -98,7 +107,7 @@ class PositionSlot extends Equatable {
   /// The role's main tier, which also colours it. Null means FLEX: any tier.
   final RiskTier? requiredTier;
 
-  /// Further tiers the role takes, e.g. growth in football's midfield.
+  /// Further tiers the role takes. None do today.
   final List<RiskTier> alsoAccepts;
 
   /// Normalized 0..1 coordinates on the board. Client-only.
@@ -952,6 +961,7 @@ class SwapQuote extends Equatable {
     required this.platformFeeBps,
     required this.platformFee,
     this.quoteId,
+    this.sellBackAmount,
   });
 
   factory SwapQuote.fromJson(XStock stock, Map<String, dynamic> json) =>
@@ -964,7 +974,16 @@ class SwapQuote extends Equatable {
         priceImpactPct: _double(json['priceImpactPct']),
         platformFeeBps: json['platformFeeBps'] as int,
         platformFee: _double(json['platformFee']),
+        sellBackAmount: json['sellBackAmount'] == null ? null : _double(json['sellBackAmount']),
       );
+
+  /// What selling the shares straight back would return, in [payWith]. Null
+  /// when it couldn't be quoted.
+  final double? sellBackAmount;
+
+  /// Share of the spend a buy-and-sell-back would lose (0.52 = 52%); null when unknown.
+  double? get roundTripLoss =>
+      sellBackAmount == null || inputAmount <= 0 ? null : (1 - sellBackAmount! / inputAmount).clamp(0, 1);
 
   /// Backend handle for building the swap transaction. Null in fixture mode.
   final String? quoteId;
@@ -984,6 +1003,54 @@ class SwapQuote extends Equatable {
 
   @override
   List<Object?> get props => [stock, payWith, inputAmount, estimatedShares];
+}
+
+/// A quote for selling held shares for USDC.
+class SellQuote extends Equatable {
+  const SellQuote({
+    required this.stock,
+    required this.shares,
+    required this.estimatedUsdc,
+    required this.priceImpactPct,
+    required this.platformFeeBps,
+    required this.platformFee,
+    this.buyBackShares,
+    this.quoteId,
+  });
+
+  factory SellQuote.fromJson(XStock stock, Map<String, dynamic> json) => SellQuote(
+        quoteId: json['quoteId'] as String?,
+        stock: stock,
+        shares: _double(json['shares']),
+        estimatedUsdc: _double(json['estimatedUsdc']),
+        priceImpactPct: _double(json['priceImpactPct']),
+        platformFeeBps: json['platformFeeBps'] as int,
+        platformFee: _double(json['platformFee']),
+        buyBackShares: json['buyBackShares'] == null ? null : _double(json['buyBackShares']),
+      );
+
+  /// Backend handle for building the swap transaction. Null in fixture mode.
+  final String? quoteId;
+  final XStock stock;
+  final double shares;
+
+  /// USDC received, after the fee.
+  final double estimatedUsdc;
+  final double priceImpactPct;
+  final int platformFeeBps;
+
+  /// The platform fee, in USDC.
+  final double platformFee;
+
+  /// Shares the USDC would buy straight back; null when it couldn't be quoted.
+  final double? buyBackShares;
+
+  /// Share of the position a sell-and-buy-back would lose; null when unknown.
+  double? get roundTripLoss =>
+      buyBackShares == null || shares <= 0 ? null : (1 - buyBackShares! / shares).clamp(0, 1);
+
+  @override
+  List<Object?> get props => [stock, shares, estimatedUsdc];
 }
 
 /// What a formation change did: the new team, and who dropped out.

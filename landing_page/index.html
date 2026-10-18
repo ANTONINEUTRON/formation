@@ -255,18 +255,14 @@
   .dn { color: var(--down); }
   .flat { color: var(--chalk-faint); }
   /* Tier tints: the legend below the pitch refers to these. */
-  .slot--bc { border-color: rgba(127,216,255,0.45); }
-  .slot--bc .slot__pos { color: #7FD8FF; }
-  .slot--st { border-color: rgba(157,179,165,0.45); }
-  .slot--st .slot__pos { color: #9DB3A5; }
-  .slot--ba { border-color: rgba(201,180,255,0.45); }
-  .slot--ba .slot__pos { color: #C9B4FF; }
-  .slot--gr { border-color: rgba(184,255,60,0.4); }
-  .slot--gr .slot__pos { color: var(--lime); }
+  .slot--de { border-color: rgba(127,216,255,0.45); }
+  .slot--de .slot__pos { color: #7FD8FF; }
+  .slot--mi { border-color: rgba(201,180,255,0.45); }
+  .slot--mi .slot__pos { color: #C9B4FF; }
   /* FLEX takes any tier, so it reads as dashed rather than tinted. */
   .slot--fx { border-style: dashed; border-color: var(--chalk-faint); }
-  .slot--mo { border-color: rgba(255,180,60,0.5); }
-  .slot--mo .slot__pos { color: var(--amber); }
+  .slot--at { border-color: rgba(255,180,60,0.5); }
+  .slot--at .slot__pos { color: var(--amber); }
   /* Captain is a role, not a tier, so it reads as a ring rather than a tint. */
   .slot--c { box-shadow: inset 0 0 0 1px var(--amber); }
   .slot--c .slot__tkr::after { content: " C"; color: var(--amber); font-size: 9px; vertical-align: super; }
@@ -294,11 +290,9 @@
     background: currentColor;
     flex: none;
   }
-  .key--bc { color: #7FD8FF; }
-  .key--st { color: #9DB3A5; }
-  .key--ba { color: #C9B4FF; }
-  .key--gr { color: var(--lime); }
-  .key--mo { color: var(--amber); }
+  .key--de { color: #7FD8FF; }
+  .key--mi { color: #C9B4FF; }
+  .key--at { color: var(--amber); }
 
   /* ── Section furniture ───────────────────────────────────────────────── */
   .sec { padding-block: 72px; border-top: 1px solid var(--line); }
@@ -635,139 +629,139 @@
         <div class="forms">
           <div class="form is-on" data-sport="football" aria-label="Football, 4-4-2">
           <div class="row">
-            <div class="slot slot--mo">
+            <div class="slot slot--at">
               <div class="slot__pos">FWD</div>
               <div class="slot__tkr">TSLAx</div>
               <div class="slot__d up">+2.1α</div>
             </div>
-            <div class="slot slot--mo slot--c">
+            <div class="slot slot--at slot--c">
               <div class="slot__pos">FWD</div>
               <div class="slot__tkr">GMEx</div>
               <div class="slot__d up">+4.8α</div>
             </div>
           </div>
           <div class="row">
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">MID</div>
               <div class="slot__tkr">JPMx</div>
               <div class="slot__d up">+0.6α</div>
             </div>
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">MID</div>
               <div class="slot__tkr">Vx</div>
               <div class="slot__d flat">0.0α</div>
             </div>
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">MID</div>
-              <div class="slot__tkr">ORCLx</div>
+              <div class="slot__tkr">MSFTx</div>
               <div class="slot__d up">+1.9α</div>
             </div>
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">MID</div>
-              <div class="slot__tkr">LLYx</div>
+              <div class="slot__tkr">AAPLx</div>
               <div class="slot__d dn">−0.8α</div>
             </div>
           </div>
           <div class="row">
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">DEF</div>
               <div class="slot__tkr">KOx</div>
               <div class="slot__d up">+0.3α</div>
             </div>
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">DEF</div>
               <div class="slot__tkr">MCDx</div>
               <div class="slot__d up">+0.9α</div>
             </div>
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">DEF</div>
               <div class="slot__tkr">WMTx</div>
               <div class="slot__d flat">0.0α</div>
             </div>
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">DEF</div>
               <div class="slot__tkr">XOMx</div>
               <div class="slot__d dn">−1.2α</div>
             </div>
           </div>
           <div class="row" style="padding-inline:33%">
-            <div class="slot slot--bc">
+            <div class="slot slot--de">
               <div class="slot__pos">GK</div>
-              <div class="slot__tkr">AAPLx</div>
+              <div class="slot__tkr">BRK.Bx</div>
               <div class="slot__d up">+0.4α</div>
             </div>
           </div>
           </div>
           <div class="form" data-sport="basketball" aria-label="Basketball, five slots">
           <div class="row" style="padding-inline:14%">
-            <div class="slot slot--gr">
+            <div class="slot slot--at">
               <div class="slot__pos">PG</div>
               <div class="slot__tkr">NVDAx</div>
               <div class="slot__d up">+3.4α</div>
             </div>
-            <div class="slot slot--gr slot--c">
+            <div class="slot slot--at slot--c">
               <div class="slot__pos">SG</div>
               <div class="slot__tkr">METAx</div>
               <div class="slot__d up">+1.1α</div>
             </div>
           </div>
           <div class="row" style="padding-inline:14%">
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">SF</div>
               <div class="slot__tkr">JPMx</div>
               <div class="slot__d up">+0.6α</div>
             </div>
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">PF</div>
-              <div class="slot__tkr">ORCLx</div>
+              <div class="slot__tkr">MSFTx</div>
               <div class="slot__d up">+1.9α</div>
             </div>
           </div>
           <div class="row" style="padding-inline:33%">
-            <div class="slot slot--bc">
+            <div class="slot slot--de">
               <div class="slot__pos">C</div>
-              <div class="slot__tkr">AAPLx</div>
+              <div class="slot__tkr">KOx</div>
               <div class="slot__d up">+0.4α</div>
             </div>
           </div>
           </div>
           <div class="form" data-sport="amfootball" aria-label="American Football, nine slots">
           <div class="row">
-            <div class="slot slot--mo">
+            <div class="slot slot--at">
               <div class="slot__pos">WR</div>
               <div class="slot__tkr">TSLAx</div>
               <div class="slot__d up">+2.1α</div>
             </div>
-            <div class="slot slot--gr">
+            <div class="slot slot--at">
               <div class="slot__pos">WR</div>
               <div class="slot__tkr">AMDx</div>
               <div class="slot__d dn">−0.5α</div>
             </div>
-            <div class="slot slot--mo">
+            <div class="slot slot--at">
               <div class="slot__pos">WR</div>
               <div class="slot__tkr">COINx</div>
               <div class="slot__d up">+3.8α</div>
             </div>
           </div>
           <div class="row">
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">TE</div>
               <div class="slot__tkr">KOx</div>
               <div class="slot__d up">+0.3α</div>
             </div>
-            <div class="slot slot--gr">
+            <div class="slot slot--mi">
               <div class="slot__pos">RB</div>
-              <div class="slot__tkr">AVGOx</div>
+              <div class="slot__tkr">GOOGLx</div>
               <div class="slot__d up">+1.4α</div>
             </div>
-            <div class="slot slot--ba">
+            <div class="slot slot--mi">
               <div class="slot__pos">RB</div>
-              <div class="slot__tkr">LLYx</div>
+              <div class="slot__tkr">AMZNx</div>
               <div class="slot__d dn">−0.8α</div>
             </div>
           </div>
           <div class="row" style="padding-inline:33%">
-            <div class="slot slot--bc">
+            <div class="slot slot--mi">
               <div class="slot__pos">QB</div>
               <div class="slot__tkr">MSFTx</div>
               <div class="slot__d up">+0.7α</div>
@@ -779,7 +773,7 @@
               <div class="slot__tkr">GLDx</div>
               <div class="slot__d up">+1.6α</div>
             </div>
-            <div class="slot slot--st">
+            <div class="slot slot--de">
               <div class="slot__pos">K</div>
               <div class="slot__tkr">PGx</div>
               <div class="slot__d up">+0.1α</div>
@@ -791,11 +785,9 @@
 
       <div class="sheet__foot">
         <span class="sheet__label" style="width:100%">Each position suits one kind of stock</span>
-        <span class="key key--bc"><i></i>Blue chip</span>
-        <span class="key key--st"><i></i>Stable</span>
-        <span class="key key--ba"><i></i>Balanced</span>
-        <span class="key key--gr"><i></i>Growth</span>
-        <span class="key key--mo"><i></i>Momentum</span>
+        <span class="key key--de"><i></i>Blue chip · calm</span>
+        <span class="key key--mi"><i></i>Balanced · moves with the market</span>
+        <span class="key key--at"><i></i>Momentum · big swings</span>
       </div>
     </div>
   </div>
@@ -844,7 +836,7 @@
       <div class="step">
         <p class="step__n">02</p>
         <h3>Set your lineup</h3>
-        <p>Each position suits a different kind of stock — steady names in defence, bolder ones up front.</p>
+        <p>Blue chips hold the back, balanced ones move with the market, momentum names swing big up front. Tiers come from how each stock really moves.</p>
       </div>
       <div class="step">
         <p class="step__n">03</p>

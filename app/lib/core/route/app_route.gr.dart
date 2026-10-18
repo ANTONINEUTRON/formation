@@ -78,11 +78,16 @@ class HomeRoute extends PageRouteInfo<void> {
 class HowToPlayRoute extends PageRouteInfo<HowToPlayRouteArgs> {
   HowToPlayRoute({
     SportMode mode = SportMode.football,
+    bool showAssistant = true,
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
          HowToPlayRoute.name,
-         args: HowToPlayRouteArgs(mode: mode, key: key),
+         args: HowToPlayRouteArgs(
+           mode: mode,
+           showAssistant: showAssistant,
+           key: key,
+         ),
          initialChildren: children,
        );
 
@@ -94,32 +99,44 @@ class HowToPlayRoute extends PageRouteInfo<HowToPlayRouteArgs> {
       final args = data.argsAs<HowToPlayRouteArgs>(
         orElse: () => const HowToPlayRouteArgs(),
       );
-      return HowToPlayPage(mode: args.mode, key: args.key);
+      return HowToPlayPage(
+        mode: args.mode,
+        showAssistant: args.showAssistant,
+        key: args.key,
+      );
     },
   );
 }
 
 class HowToPlayRouteArgs {
-  const HowToPlayRouteArgs({this.mode = SportMode.football, this.key});
+  const HowToPlayRouteArgs({
+    this.mode = SportMode.football,
+    this.showAssistant = true,
+    this.key,
+  });
 
   final SportMode mode;
+
+  final bool showAssistant;
 
   final Key? key;
 
   @override
   String toString() {
-    return 'HowToPlayRouteArgs{mode: $mode, key: $key}';
+    return 'HowToPlayRouteArgs{mode: $mode, showAssistant: $showAssistant, key: $key}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! HowToPlayRouteArgs) return false;
-    return mode == other.mode && key == other.key;
+    return mode == other.mode &&
+        showAssistant == other.showAssistant &&
+        key == other.key;
   }
 
   @override
-  int get hashCode => mode.hashCode ^ key.hashCode;
+  int get hashCode => mode.hashCode ^ showAssistant.hashCode ^ key.hashCode;
 }
 
 /// generated route for

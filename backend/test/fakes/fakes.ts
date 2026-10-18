@@ -3,7 +3,7 @@ import { LlmError } from '../../src/assistant/llm.js';
 import type { ObservedPayment, SkrPayments, TransferRequest } from '../../src/assistant/skr-payments.js';
 import type { PriceInfo } from '../../src/core/chain.service.js';
 import type { Clock } from '../../src/core/clock.js';
-import type { BalanceSource, PriceSource } from '../../src/core/sources.js';
+import type { BalanceSource, DepthSource, PriceSource } from '../../src/core/sources.js';
 import type { PushMessage, PushResult, PushSender } from '../../src/notifications/fcm.js';
 
 /** Records pushes instead of calling FCM. Tokens in [invalid] answer as gone. */
@@ -69,6 +69,24 @@ export class FakePriceSource implements PriceSource {
         }),
       ),
     );
+  }
+}
+
+/** Market depth the tests control: every market deep (0.3% round trip) unless set. */
+export class FakeDepthSource implements DepthSource {
+  private readonly losses = new Map<string, number | null>();
+
+  /** Sets a stock's round-trip loss; null means no route. */
+  set(mint: string, lossPct: number | null) {
+    this.losses.set(mint, lossPct);
+  }
+
+  reset() {
+    this.losses.clear();
+  }
+
+  async roundTripLossPct(mint: string): Promise<number | null> {
+    return this.losses.has(mint) ? this.losses.get(mint)! : 0.3;
   }
 }
 

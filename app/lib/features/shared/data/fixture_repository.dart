@@ -60,14 +60,15 @@ class FixtureRepository implements FormationRepository {
     for (final mode in SportMode.values) {
       _rosters[mode] = emptyRoster(mode);
       _classicPoints[mode] = 0;
-      final names = List.of(seedUsernames)..shuffle(_rng);
+      // Demo players go by their wallet, like a player who hasn't picked a name.
+      final wallets = [for (var i = 0; i < 30; i++) _fakeAddress()];
       _seedBoards[mode] = [
         for (var i = 0; i < 30; i++)
           LeaderboardEntry(
             rank: 0,
             userId: 'seed-${mode.apiValue}-$i',
-            username: names[i],
-            walletAddress: _fakeAddress(),
+            username: '${wallets[i].substring(0, 4)}_${wallets[i].substring(wallets[i].length - 4)}',
+            walletAddress: wallets[i],
             points: (600 - i * 19 + _rng.nextInt(15)).toDouble(),
             todayPoints: (_rng.nextInt(70) - 25).toDouble(),
             streak: _rng.nextInt(6),
@@ -78,8 +79,8 @@ class FixtureRepository implements FormationRepository {
     // Football arrives pre-drafted so League and Team have content;
     // Basketball and American Football start empty to demo the draft.
     final picks = [
-      'AAPLx', 'KOx', 'PGx', 'JNJx', 'WMTx',
-      'JPMx', 'Vx', 'ORCLx', 'MAx',
+      'UNHx', 'KOx', 'PGx', 'JNJx', 'WMTx',
+      'AAPLx', 'JPMx', 'Vx', 'MAx',
       'TSLAx', 'HOODx',
     ];
     final football = emptyRoster(SportMode.football);
@@ -656,6 +657,8 @@ class FixtureRepository implements FormationRepository {
         // Fixtures price everything in dollars, so non-USDC tokens need a
         // notional rate to turn an amount into shares.
         final rate = switch (payWith.symbol) { 'SKR' => 0.5, _ => 1.0 };
+        // A paused stock's market is thin: selling straight back loses half.
+        final keep = stock.isScoring ? 0.994 : 0.52;
         return SwapQuote(
           stock: stock,
           payWith: payWith.symbol,
@@ -664,6 +667,7 @@ class FixtureRepository implements FormationRepository {
           priceImpactPct: 0.0008 + amount / 2e6,
           platformFeeBps: _platformFeeBps,
           platformFee: fee,
+          sellBackAmount: amount * keep,
         );
       });
 
@@ -674,6 +678,74 @@ class FixtureRepository implements FormationRepository {
         ifAbsent: () => quote.estimatedShares);
     _notify();
     return quote.estimatedShares;
+  }
+
+  /// A simple stand-in for the backend's lineupFromHoldings: each slot, in
+  /// order, takes the most valuable held stock that fits.
+  @override
+  Future<Roster> fillFromHoldings(SportMode mode) => _delay(() {
+        final roster = _rosters[mode]!;
+        if (!roster.isEmpty) {
+          throw const ValidationException(message: 'Your team already has players. Change them on the draft board.');
+        }
+        final held = [
+          for (final e in _held.entries)
+            if (e.value > 0) (stock: _byMint(e.key), balance: e.value),
+        ]..sort((a, b) => (b.balance * b.stock.priceUsd).compareTo(a.balance * a.stock.priceUsd));
+        final used = <String>{};
+        final slots = [
+          for (final slot in roster.slots)
+            () {
+              final pick = held.where((h) => slot.position.accepts(h.stock) && !used.contains(h.stock.mint)).firstOrNull;
+              if (pick == null) return slot;
+              used.add(pick.stock.mint);
+              return slot.fill(pick.stock, pick.balance);
+            }(),
+        ];
+        if (used.isEmpty) {
+          throw const ValidationException(message: 'None of the stocks you hold can play yet. Buy one to start your team.');
+        }
+        final filled = [for (var i = 0; i < slots.length; i++) if (slots[i].isFilled) i];
+        _rosters[mode] = roster.copyWith(slots: slots);
+        if (mode != SportMode.americanFootball && filled.isNotEmpty) {
+          _rosters[mode] = Roster(
+            mode: mode,
+            slots: slots,
+            formation: roster.formation,
+            captainSlot: filled.first,
+            viceCaptainSlot: mode == SportMode.football && filled.length > 1 ? filled[1] : null,
+          );
+        }
+        if (_sessions[mode] == null) _openSession(mode);
+        _notify();
+        return _withStanding(mode);
+      });
+
+  @override
+  Future<SellQuote> getSellQuote(XStock stock, double shares) => _delay(() {
+        final held = _held[stock.mint] ?? 0;
+        if (shares <= 0 || shares > held + 1e-9) {
+          throw ValidationException(message: 'You hold ${held.toStringAsFixed(4)} ${stock.symbol}');
+        }
+        final gross = shares * stock.priceUsd * (stock.isScoring ? 0.998 : 0.6);
+        final fee = gross * _platformFeeBps / 10000;
+        return SellQuote(
+          stock: stock,
+          shares: shares,
+          estimatedUsdc: gross - fee,
+          priceImpactPct: 0.0008,
+          platformFeeBps: _platformFeeBps,
+          platformFee: fee,
+          buyBackShares: shares * (stock.isScoring ? 0.994 : 0.52),
+        );
+      });
+
+  @override
+  Future<double> executeSell(SellQuote quote) async {
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    _held.update(quote.stock.mint, (v) => (v - quote.shares).clamp(0, double.infinity));
+    _notify();
+    return quote.estimatedUsdc;
   }
 
   // ── Leagues ────────────────────────────────────────────────────────────────

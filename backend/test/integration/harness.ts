@@ -5,7 +5,7 @@ import { AppModule } from '../../src/app.module.js';
 import { CLOCK } from '../../src/core/clock.js';
 import { DB } from '../../src/core/db.js';
 import type { Db } from '../../src/core/db.js';
-import { BALANCE_SOURCE, PRICE_SOURCE } from '../../src/core/sources.js';
+import { BALANCE_SOURCE, DEPTH_SOURCE, PRICE_SOURCE } from '../../src/core/sources.js';
 import type { AuthUser } from '../../src/domain/dto.js';
 import { rosterShape } from '../../src/domain/sport.js';
 import type { SportMode } from '../../src/domain/sport.js';
@@ -23,6 +23,7 @@ import { PUSH_SENDER } from '../../src/notifications/fcm.js';
 import {
   FakeBalanceSource,
   FakeClock,
+  FakeDepthSource,
   FakeLlmProvider,
   FakePriceSource,
   FakePushSender,
@@ -36,23 +37,24 @@ export const BENCHMARK_MINT = 'SPYx-test-mint';
 
 /** A small, tier-complete stock pool: enough for every roster shape. */
 export const TEST_STOCKS = [
-  { mint: BENCHMARK_MINT, symbol: 'SPYx', company_name: 'S&P 500', tier: 'blue_chip' as const },
+  { mint: BENCHMARK_MINT, symbol: 'SPYx', company_name: 'S&P 500', tier: 'balanced' as const },
   { mint: 'mint-AAPL', symbol: 'AAPLx', company_name: 'Apple', tier: 'blue_chip' as const },
-  { mint: 'mint-MSFT', symbol: 'MSFTx', company_name: 'Microsoft', tier: 'blue_chip' as const },
-  { mint: 'mint-KO', symbol: 'KOx', company_name: 'Coca-Cola', tier: 'stable' as const },
-  { mint: 'mint-PG', symbol: 'PGx', company_name: 'P&G', tier: 'stable' as const },
-  { mint: 'mint-JNJ', symbol: 'JNJx', company_name: 'J&J', tier: 'stable' as const },
-  { mint: 'mint-WMT', symbol: 'WMTx', company_name: 'Walmart', tier: 'stable' as const },
-  { mint: 'mint-MCD', symbol: 'MCDx', company_name: "McDonald's", tier: 'stable' as const },
+  { mint: 'mint-MSFT', symbol: 'MSFTx', company_name: 'Microsoft', tier: 'balanced' as const },
+  { mint: 'mint-KO', symbol: 'KOx', company_name: 'Coca-Cola', tier: 'blue_chip' as const },
+  { mint: 'mint-PG', symbol: 'PGx', company_name: 'P&G', tier: 'blue_chip' as const },
+  { mint: 'mint-JNJ', symbol: 'JNJx', company_name: 'J&J', tier: 'blue_chip' as const },
+  { mint: 'mint-WMT', symbol: 'WMTx', company_name: 'Walmart', tier: 'blue_chip' as const },
+  { mint: 'mint-MCD', symbol: 'MCDx', company_name: "McDonald's", tier: 'blue_chip' as const },
   { mint: 'mint-JPM', symbol: 'JPMx', company_name: 'JPMorgan', tier: 'balanced' as const },
   { mint: 'mint-V', symbol: 'Vx', company_name: 'Visa', tier: 'balanced' as const },
   { mint: 'mint-MA', symbol: 'MAx', company_name: 'Mastercard', tier: 'balanced' as const },
   { mint: 'mint-ORCL', symbol: 'ORCLx', company_name: 'Oracle', tier: 'balanced' as const },
-  { mint: 'mint-UNH', symbol: 'UNHx', company_name: 'UnitedHealth', tier: 'balanced' as const },
-  { mint: 'mint-NVDA', symbol: 'NVDAx', company_name: 'NVIDIA', tier: 'growth' as const },
-  { mint: 'mint-META', symbol: 'METAx', company_name: 'Meta', tier: 'growth' as const },
-  { mint: 'mint-AMD', symbol: 'AMDx', company_name: 'AMD', tier: 'growth' as const },
+  { mint: 'mint-UNH', symbol: 'UNHx', company_name: 'UnitedHealth', tier: 'blue_chip' as const },
+  { mint: 'mint-NVDA', symbol: 'NVDAx', company_name: 'NVIDIA', tier: 'momentum' as const },
+  // Second momentum stock, so it plays up front in every sport's drafted team.
   { mint: 'mint-TSLA', symbol: 'TSLAx', company_name: 'Tesla', tier: 'momentum' as const },
+  { mint: 'mint-META', symbol: 'METAx', company_name: 'Meta', tier: 'momentum' as const },
+  { mint: 'mint-AMD', symbol: 'AMDx', company_name: 'AMD', tier: 'momentum' as const },
   { mint: 'mint-HOOD', symbol: 'HOODx', company_name: 'Robinhood', tier: 'momentum' as const },
   { mint: 'mint-PLTR', symbol: 'PLTRx', company_name: 'Palantir', tier: 'momentum' as const },
 ];
@@ -78,6 +80,7 @@ const TABLES = [
   'credit_quotes',
   'assistant_avatars',
   'asset_scoring_status',
+  'market_depth',
   'scoring_anomalies',
   'league_fixtures',
   'live_events',
@@ -100,6 +103,8 @@ export interface Harness {
   clock: FakeClock;
   prices: FakePriceSource;
   balances: FakeBalanceSource;
+  /** Market depth; every market is deep unless a test sets otherwise. */
+  depth: FakeDepthSource;
   /** Gemini is never called from tests. */
   llm: FakeLlmProvider;
   /** Nor is the chain, for credit purchases. */
@@ -155,6 +160,10 @@ export async function createHarness(): Promise<Harness> {
   const llm = new FakeLlmProvider();
   const skrPayments = new FakeSkrPayments();
   const pushes = new FakePushSender();
+  // Every market deep unless a test says otherwise; Jupiter is never called.
+  const depth = new FakeDepthSource();
+  process.env.DEPTH_CHECK_MINUTES = '0';
+  process.env.QUOTE_SPACING_MS = '0';
   process.env.SKR_MINT = TEST_SKR.mint;
   process.env.SKR_DECIMALS = String(TEST_SKR.decimals);
   process.env.ASSISTANT_TREASURY = TEST_SKR.treasury;
@@ -172,6 +181,8 @@ export async function createHarness(): Promise<Harness> {
     .useValue(prices)
     .overrideProvider(BALANCE_SOURCE)
     .useValue(balances)
+    .overrideProvider(DEPTH_SOURCE)
+    .useValue(depth)
     .compile();
 
   const app = moduleRef.createNestApplication();
@@ -188,6 +199,7 @@ export async function createHarness(): Promise<Harness> {
     clock,
     prices,
     balances,
+    depth,
     llm,
     skrPayments,
     pushes,
@@ -211,6 +223,7 @@ export async function createHarness(): Promise<Harness> {
       skrPayments.reset();
       pushes.reset();
       prices.set(TEST_SKR.mint, 0.02);
+      depth.reset();
       // Tuesday 6 January 2026, 10am ET: match week 1 of season 1 is under way.
       clock.set(Date.UTC(2026, 0, 6, 15, 0, 0));
     },

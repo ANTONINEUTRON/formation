@@ -15,10 +15,14 @@ import 'package:formation/features/shared/domain/roster_shapes.dart';
 /// Assistant Manager's rules (`backend/src/assistant/prompt.ts`) by hand.
 @RoutePage()
 class HowToPlayPage extends StatefulWidget {
-  const HowToPlayPage({this.mode = SportMode.football, super.key});
+  const HowToPlayPage({this.mode = SportMode.football, this.showAssistant = true, super.key});
 
   /// The sport shown first; the Manager can switch.
   final SportMode mode;
+
+  /// Off before a wallet is connected (onboarding), when there's no
+  /// Assistant Manager to ask yet.
+  final bool showAssistant;
 
   @override
   State<HowToPlayPage> createState() => _HowToPlayPageState();
@@ -53,10 +57,30 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                 icon: Icons.grid_view_rounded,
                 title: 'Positions',
                 children: [
+                  const _Para('Every stock has a tier, and each position takes one tier:'),
+                  const SizedBox(height: 8),
+                  for (final tier in RiskTier.values)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          _TierTag(label: tier.label, color: tier.color),
+                          const SizedBox(width: 10),
+                          Expanded(child: _Para(tier.meaning)),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
                   const _Para(
-                    'Each position takes one kind of stock, from steady blue chips to bold momentum '
-                    'names. Pick a sport to see its positions.',
+                    'Tiers come from how each stock actually behaved over the last 90 days: how much it '
+                    'moves with the market (beta) and how much it swings on its own (volatility). The '
+                    'calmest third are blue chips, the middle third balanced, the wildest third momentum. '
+                    "They're recalculated each season, a stock moves at most one tier at a time, and a "
+                    'pick already in your team keeps its place.',
+                    muted: true,
                   ),
+                  const SizedBox(height: 12),
+                  const _Para('Pick a sport to see its positions.'),
                   const SizedBox(height: 12),
                   _SportPicker(mode: _mode, onChanged: (m) => setState(() => _mode = m)),
                   const SizedBox(height: 12),
@@ -118,20 +142,34 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                   ),
                   _Bullet('Each pick can earn or lose at most 150 base points a day, and 60 in events.'),
                   _Bullet(
-                    'A stock marked "not scoring" has an unreliable price right now (stale, not '
-                    'updating, a thin market or erratic). It banks nothing and can\'t be captain until '
-                    'it has been reliable for a full day. You can still buy and sell it.',
+                    'A stock only scores while its market is deep: buying \$500 of it and selling '
+                    'straight back must lose under 2%. A thin market is cheap to push around, so it '
+                    "can't count for points.",
+                  ),
+                  _Bullet(
+                    "A stock that fails that, or whose price is stale or erratic, isn't scoring: it shows "
+                    "a small orange ⓘ. It banks nothing and can't be captain until its price has been "
+                    'reliable for a full day. You can still pick it, buy it or sell it, and the app shows '
+                    'what a thin market would cost you first.',
                   ),
                 ],
               ),
               const _Section(
                 icon: Icons.swap_horiz_rounded,
-                title: 'Substitutions',
+                title: 'Substitutes',
                 children: [
+                  _Bullet(
+                    'Every stock you hold that isn\'t starting sits on your bench (4 spots in football, 3 '
+                    'in basketball, 6 in American football; "More" shows the rest). Bring one on in any '
+                    'spot its tier fits.',
+                  ),
                   _Bullet('3 free substitutions a day; each one after that costs 4 points.'),
                   _Bullet('Filling an empty slot is always free.'),
                   _Bullet('Weekend substitutions are free: the transfer window is open.'),
-                  _Bullet('Buying and selling stocks never costs points.'),
+                  _Bullet(
+                    'Buying and selling stocks never costs points. Selling a pick in your team takes it '
+                    'off at the points it has banked.',
+                  ),
                 ],
               ),
               const _Section(
@@ -140,6 +178,10 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                 children: [
                   _Bullet('A match week runs from Monday 9:30am ET (kick-off) to Friday 4pm ET (full time).'),
                   _Bullet('Twelve match weeks make a season. The Season board is the main table.'),
+                  _Bullet(
+                    'Before a season starts it\'s pre-season (friendlies in football, preseason games in '
+                    "basketball and American football): points bank, but they don't count toward the season.",
+                  ),
                   _Bullet(
                     'Balance bonus: +5 points at full time when your picks cover 4 or more sectors.',
                   ),
@@ -165,15 +207,17 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                onPressed: () => showAssistantSheet(
-                  context,
-                  AssistantContext(mode: _mode, screen: 'profile'),
+              if (widget.showAssistant) ...[
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () => showAssistantSheet(
+                    context,
+                    AssistantContext(mode: _mode, screen: 'profile'),
+                  ),
+                  icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                  label: const Text('Ask your Assistant Manager'),
                 ),
-                icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-                label: const Text('Ask your Assistant Manager'),
-              ),
+              ],
               const SizedBox(height: 24),
               const LegalLinks(lead: 'By playing ${AppConstants.appName}, you agree to the'),
             ],

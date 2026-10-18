@@ -7,6 +7,7 @@ import type { GameCalendar } from '../domain/calendar.js';
 import { SPORT_MODES } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { TiersService } from '../xstocks/tiers.service.js';
 
 /** Share of a season's table that earns the top-10% badge. */
 const TOP_SHARE = 0.1;
@@ -42,6 +43,7 @@ export class SeasonService {
     @Inject(DB) private readonly db: Db,
     @Inject(CALENDAR) private readonly calendar: GameCalendar,
     private readonly notifications: NotificationsService,
+    private readonly tiers: TiersService,
   ) {}
 
   /** Finalises any season that has ended by [now]. Safe to call on every tick. */
@@ -57,6 +59,15 @@ export class SeasonService {
       .execute();
     for (const { number } of open) {
       await this.finalize(number, now);
+    }
+    // A new season gets fresh tiers. Failing must not hold up the rollover:
+    // last season's tiers are a fine fallback.
+    if (open.length > 0) {
+      try {
+        await this.tiers.apply(now);
+      } catch (e) {
+        this.logger.error(`Season tier update failed: ${String(e)}`);
+      }
     }
   }
 

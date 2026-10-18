@@ -3,7 +3,11 @@ import { BadRequestException } from '@nestjs/common';
 export const SPORT_MODES = ['football', 'basketball', 'american_football'] as const;
 export type SportMode = (typeof SPORT_MODES)[number];
 
-export const RISK_TIERS = ['blue_chip', 'stable', 'balanced', 'growth', 'momentum'] as const;
+/**
+ * How much a stock swings, calmest first. Set by the tier formula
+ * (`domain/tiers.ts`) from each stock's beta and volatility.
+ */
+export const RISK_TIERS = ['blue_chip', 'balanced', 'momentum'] as const;
 export type RiskTier = (typeof RISK_TIERS)[number];
 
 export interface PositionSlot {
@@ -11,7 +15,7 @@ export interface PositionSlot {
   label: string;
   /** The role's main tier, which also colours it. Null means FLEX: any tier. */
   tier: RiskTier | null;
-  /** Further tiers the role accepts, e.g. growth in midfield. */
+  /** Further tiers the role accepts. None do today; kept for game balance. */
   alsoAccepts?: readonly RiskTier[];
 }
 
@@ -23,7 +27,7 @@ export const slotAccepts = (position: PositionSlot, tier: RiskTier): boolean =>
 export const slotTiers = (position: PositionSlot): RiskTier[] =>
   position.tier ? [position.tier, ...(position.alsoAccepts ?? [])] : [];
 
-/** "balanced", "balanced or growth", or "any" for FLEX. */
+/** "balanced", "balanced or momentum", or "any" for FLEX. */
 export const slotTierLabel = (position: PositionSlot): string =>
   position.tier ? slotTiers(position).join(' or ') : 'any';
 
@@ -51,18 +55,13 @@ export const DEFAULT_FORMATION = '4-4-2';
 
 export const FOOTBALL_ROLE_TIERS: Record<string, RiskTier> = {
   GK: 'blue_chip',
-  DEF: 'stable',
+  DEF: 'blue_chip',
   MID: 'balanced',
   FWD: 'momentum',
 };
 
-/**
- * Midfield also takes growth stocks, so a growth-heavy wallet can field its
- * best names in football too. Midfield is the biggest unit in every formation.
- */
-export const FOOTBALL_ROLE_ALSO_ACCEPTS: Record<string, readonly RiskTier[]> = {
-  MID: ['growth'],
-};
+/** Further tiers a football role accepts. None today. */
+export const FOOTBALL_ROLE_ALSO_ACCEPTS: Record<string, readonly RiskTier[]> = {};
 
 export const formationName =(f: Formation): string => `${f.def}-${f.mid}-${f.fwd}`;
 
@@ -95,23 +94,23 @@ export function formationCounts(formation: string): Formation {
 }
 
 const BASKETBALL_SHAPE: PositionSlot[] = [
-  { label: 'PG', tier: 'growth' },
-  { label: 'SG', tier: 'growth' },
+  { label: 'PG', tier: 'momentum' },
+  { label: 'SG', tier: 'momentum' },
   { label: 'SF', tier: 'balanced' },
   { label: 'PF', tier: 'balanced' },
   { label: 'C', tier: 'blue_chip' },
 ];
 
 const AMERICAN_FOOTBALL_SHAPE: PositionSlot[] = [
-  { label: 'QB', tier: 'blue_chip' },
-  { label: 'RB', tier: 'growth' },
+  { label: 'QB', tier: 'balanced' },
+  { label: 'RB', tier: 'balanced' },
   { label: 'RB', tier: 'balanced' },
   { label: 'WR', tier: 'momentum' },
-  { label: 'WR', tier: 'growth' },
   { label: 'WR', tier: 'momentum' },
-  { label: 'TE', tier: 'stable' },
+  { label: 'WR', tier: 'momentum' },
+  { label: 'TE', tier: 'blue_chip' },
   { label: 'FLEX', tier: null },
-  { label: 'K', tier: 'stable' },
+  { label: 'K', tier: 'blue_chip' },
 ];
 
 /**

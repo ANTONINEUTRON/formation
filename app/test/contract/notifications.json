@@ -1,24 +1,11 @@
 [
   {
-    "id": "e863d0e2-048f-4012-b652-0171724670a9",
-    "kind": "match_week",
-    "title": "Match week 1 kicks off",
-    "body": "Season 1: your football team is on the pitch until Friday 4pm ET.",
-    "data": {
-      "mode": "football",
-      "week": 1,
-      "phase": "kick_off"
-    },
-    "read": false,
-    "createdAt": "2026-01-06T15:00:00.000Z"
-  },
-  {
-    "id": "7bdc9f24-73c1-4e77-9ab5-69102d43ea98",
+    "id": "e1315b1d-48f1-4863-88f3-639c5bae1fca",
     "kind": "new_follower",
-    "title": "BsC8_noLp is following you",
+    "title": "4SuS_V8iT is following you",
     "body": "They will see when you change your starting lineup.",
     "data": {
-      "userId": "b4231a02-c889-4679-82b6-3f209b156a66"
+      "userId": "0a882886-9e0b-4d08-a24a-6242eacbe574"
     },
     "read": false,
     "createdAt": "2026-01-06T15:00:00.000Z"

@@ -90,6 +90,84 @@ class NotificationService {
     );
   }
 
+  /// An in-app notification, popped in at the top for a few seconds: the
+  /// title, the body, and a tap through to the inbox.
+  static void showNotification(
+    BuildContext context, {
+    required String title,
+    required String body,
+    VoidCallback? onTap,
+    Duration duration = const Duration(seconds: 6),
+  }) {
+    styled_toast.showToastWidget(
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Material(
+                color: AppColors.surfaceElevated,
+                elevation: 8,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    styled_toast.dismissAllToast();
+                    onTap?.call();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.notifications_active_outlined, size: 20, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                body,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      context: context,
+      position: styled_toast.StyledToastPosition.top,
+      animation: styled_toast.StyledToastAnimation.slideFromTop,
+      reverseAnimation: styled_toast.StyledToastAnimation.fade,
+      duration: duration,
+      // Taps reach the card, so it can open the inbox.
+      isIgnoring: false,
+    );
+  }
+
   static Color _getBackgroundColor(NotificationType type) {
     switch (type) {
       case NotificationType.success:

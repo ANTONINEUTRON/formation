@@ -160,8 +160,12 @@ export class StarterService {
         ? AvatarService.customCharacter(profile.personality, profile.custom_name)
         : (characterById(profile?.character_id) ?? characterById('mentor')!);
     const style = requestedStyle ?? character.style;
-    const catalogue = stocks.filter((s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint);
     const isHeld = (mint: string) => (held.get(mint) ?? 0) > 0;
+    // A paused stock can't be placed in a lineup until it scores again, and its
+    // price is usually poor too, so the starter squad never includes one.
+    const catalogue = stocks.filter(
+      (s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint && s.notScoring === null,
+    );
 
     const reply = await this.llm.generate({
       system: starterPrompt(character, style, {

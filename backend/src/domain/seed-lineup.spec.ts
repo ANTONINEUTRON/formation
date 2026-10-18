@@ -22,10 +22,10 @@ const holding = (symbol: string, tier: RiskTier, valueUsd: number): ManagerHoldi
 describe('lineupFromHoldings', () => {
   const wallet = [
     holding('AAPLx', 'blue_chip', 900),
-    holding('MSFTx', 'blue_chip', 400),
-    holding('KOx', 'stable', 300),
+    holding('MSFTx', 'balanced', 400),
+    holding('KOx', 'blue_chip', 300),
     holding('JPMx', 'balanced', 250),
-    holding('NVDAx', 'growth', 1200),
+    holding('NVDAx', 'momentum', 1200),
     holding('TSLAx', 'momentum', 50),
   ];
 
@@ -35,13 +35,13 @@ describe('lineupFromHoldings', () => {
     expect(formation).toBe('4-4-2');
     for (const slot of lineup) expect(slotAccepts(shape[slot.slotIndex], slot.stock!.tier)).toBe(true);
     expect(new Set(lineup.map((s) => s.stock!.mint)).size).toBe(lineup.length);
-    // GK, one DEF, two MIDs (balanced or growth) and one FWD.
-    expect(lineup.map((s) => s.stock!.symbol).sort()).toEqual(['AAPLx', 'JPMx', 'KOx', 'NVDAx', 'TSLAx']);
+    // Two blue chips (GK and a DEF), two balanced and two momentum forwards.
+    expect(lineup.map((s) => s.stock!.symbol).sort()).toEqual(['AAPLx', 'JPMx', 'KOx', 'MSFTx', 'NVDAx', 'TSLAx']);
   });
 
   it('covers a scarce tier before spending a flexible stock elsewhere', () => {
-    // American football's FLEX takes anything; the only stable stock must go
-    // to TE or K, not FLEX.
+    // American football's FLEX takes anything; the blue-chip stocks must go to
+    // TE and K, not FLEX.
     const { lineup } = lineupFromHoldings('american_football', wallet);
     const ko = lineup.find((s) => s.stock!.symbol === 'KOx')!;
     expect(['TE', 'K']).toContain(ko.positionLabel);

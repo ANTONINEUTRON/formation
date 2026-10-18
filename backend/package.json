@@ -15,6 +15,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "seed": "nest build && node dist/scripts/seed.js",
+    "tiers": "nest build && node dist/scripts/tiers.js",
+    "season:reset": "nest build && node dist/scripts/reset-season.js",
     "db:migrate": "nest build && node dist/scripts/migrate.js",
     "db:migrate:test": "nest build && node dist/scripts/migrate.js --test",
     "db:reset:test": "nest build && node dist/scripts/migrate.js --test --reset",

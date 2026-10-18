@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/empty_state.dart';
@@ -11,13 +12,12 @@ import 'package:formation/features/league/ui/cubits/league_cubit.dart';
 import 'package:formation/features/shared/domain/load_status.dart';
 import 'package:formation/features/team/ui/cubits/team_cubit.dart';
 import 'package:formation/features/team/ui/cubits/team_state.dart';
-import 'package:formation/features/team/ui/widgets/bench_section.dart';
+import 'package:formation/features/team/ui/widgets/substitutes_bench.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/team/ui/widgets/goal_card.dart';
 import 'package:formation/features/team/ui/widgets/match_week_result_sheet.dart';
-import 'package:formation/features/team/ui/widgets/session_bar.dart';
 import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
 import 'package:formation/features/team/ui/widgets/score_header.dart';
 
@@ -64,6 +64,11 @@ class TeamTab extends StatelessWidget {
               : const LoadingIndicator();
         }
 
+        // Holding stocks already: field them with one tap.
+        if (roster.isEmpty && roster.bench.isNotEmpty) {
+          return _UseWhatIHold(mode: cubit.mode, held: roster.bench.length, onDraft: openDraft);
+        }
+
         if (roster.isEmpty) {
           return EmptyState(
             icon: cubit.mode.icon,
@@ -82,10 +87,9 @@ class TeamTab extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
             children: [
-              ScoreHeader(roster: roster, totalPlayers: totalPlayers),
-              const SizedBox(height: 8),
-              SessionBar(
-                session: roster.session,
+              ScoreHeader(
+                roster: roster,
+                totalPlayers: totalPlayers,
                 onRunTick: kDebugMode ? cubit.runTick : null,
                 onOpenResult: () => MatchWeekResultSheet.show(
                   context,
@@ -122,7 +126,7 @@ class TeamTab extends StatelessWidget {
                 onSlotTap: (_) => openDraft(),
               ),
               const SizedBox(height: 16),
-              BenchSection(bench: roster.bench, onSubstitute: (_) => openDraft()),
+              SubstitutesBench(roster: roster, onAddStock: openDraft),
             ],
           ),
         );
@@ -181,6 +185,71 @@ class _FixtureLine extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An empty team for a wallet that already holds stocks: field them, or draft.
+class _UseWhatIHold extends StatefulWidget {
+  const _UseWhatIHold({required this.mode, required this.held, required this.onDraft});
+
+  final SportMode mode;
+  final int held;
+  final VoidCallback onDraft;
+
+  @override
+  State<_UseWhatIHold> createState() => _UseWhatIHoldState();
+}
+
+class _UseWhatIHoldState extends State<_UseWhatIHold> {
+  bool _busy = false;
+
+  Future<void> _use() async {
+    setState(() => _busy = true);
+    try {
+      // The team reloads by itself once the repository reports the change.
+      await context.read<FormationRepository>().fillFromHoldings(widget.mode);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      context.showErrorToast(message: errorText(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(widget.mode.icon, size: 48, color: AppColors.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              'You hold ${widget.held} stock${widget.held == 1 ? '' : 's'} that can play',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Field them as your ${widget.mode.label.toLowerCase()} team now, with nothing to buy. '
+              'You can change anyone afterwards.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _busy ? null : _use,
+              icon: _busy
+                  ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.bolt, size: 18),
+              label: const Text('Use what I hold'),
+            ),
+            TextButton(onPressed: _busy ? null : widget.onDraft, child: const Text('Pick them myself')),
           ],
         ),
       ),

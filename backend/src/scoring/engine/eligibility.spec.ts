@@ -16,8 +16,8 @@ const assess = (series: PriceTick[], extra: Partial<Parameters<typeof assessAsse
     benchmark: market,
     now: NOW,
     tickMinutes: 60,
-    liquidityUsd: 50_000,
-    minLiquidityUsd: 1_000,
+    roundTripLossPct: 0.3,
+    maxRoundTripLossPct: 2,
     ...extra,
   });
 
@@ -30,9 +30,11 @@ describe('assessAsset', () => {
     // $428.67 unchanged for most of the day, then four steps to $251.36.
     const steps = [380.1, 335.4, 291.2, 251.36];
     const jnj = ticks((i) => (i < 18 ? 428.67 : (steps[i - 18] ?? 251.36)));
-    const { failure, metrics } = assess(jnj, { liquidityUsd: 1_200 });
+    const { failure, metrics } = assess(jnj);
     expect(failure).toBe('price_not_updating');
     expect(metrics.jumps).toBeGreaterThan(1);
+    // When the market is also thin, that's the reason given: it's the cause.
+    expect(assess(jnj, { roundTripLossPct: 24 }).failure).toBe('thin_market');
   });
 
   it('fails a price that steps around even while it updates', () => {
@@ -44,13 +46,17 @@ describe('assessAsset', () => {
     expect(assess(erratic).metrics.jumps).toBe(0);
   });
 
-  it('fails a stale price, a missing one, and a thin pool', () => {
-    const old = ticks((i) => 100 + i * 0.1).slice(0, 20);
+  it('fails a stale price, a missing one, and a thin market', () => {
+    const fine = ticks((i) => 100 + i * 0.1);
+    const old = fine.slice(0, 20);
     expect(assess(old).failure).toBe('stale_price');
     expect(assess([]).failure).toBe('no_price');
-    expect(assess(ticks((i) => 100 + i * 0.1), { liquidityUsd: 400 }).failure).toBe('thin_liquidity');
-    // Unknown depth doesn't count against an asset.
-    expect(assess(ticks((i) => 100 + i * 0.1), { liquidityUsd: null }).failure).toBeNull();
+    // A round trip losing more than the limit, or with no route at all.
+    expect(assess(fine, { roundTripLossPct: 2.5 }).failure).toBe('thin_market');
+    expect(assess(fine, { roundTripLossPct: null }).failure).toBe('thin_market');
+    expect(assess(fine, { roundTripLossPct: 2 }).failure).toBeNull();
+    // Not measured yet doesn't count against an asset.
+    expect(assess(fine, { roundTripLossPct: undefined }).failure).toBeNull();
   });
 
   it("can't judge updates while the market is shut, so it passes", () => {

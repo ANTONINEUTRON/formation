@@ -15,9 +15,7 @@ abstract class AppColors {
   // Risk tiers. Their own tokens, not aliases of the brand colours, so
   // re-theming the app can never change what a tier looks like.
   static const tierBlueChip = Color(0xFF7FD8FF);
-  static const tierStable = Color(0xFF9DB3A5);
   static const tierBalanced = Color(0xFFC9B4FF);
-  static const tierGrowth = Color(0xFFB8FF3C);
   static const tierMomentum = Color(0xFFFFB43C);
 
   // Background (night pitch)

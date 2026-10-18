@@ -14,13 +14,15 @@ import {
 } from './engine/eligibility.js';
 import type { NotScoringReason, ScoringStatus } from './engine/eligibility.js';
 import type { PriceTick } from './engine/types.js';
+import { MarketDepthService } from './market-depth.service.js';
 
 /**
  * Decides, on every price tick, which assets score (SCORING_PLAN.md §1.2).
  *
  * The rules are the same for every asset and are measured from its own price
- * data over the trailing day, so nothing is hand-picked: an asset whose pool
- * stops trading stops scoring, and starts again a day after it recovers.
+ * data over the trailing day and its market depth, so nothing is hand-picked:
+ * an asset whose market thins out or stops trading stops scoring, and starts
+ * again a day after it recovers.
  */
 @Injectable()
 export class AssetScoringService {
@@ -31,6 +33,7 @@ export class AssetScoringService {
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly xstocks: XStocksService,
     private readonly notifications: NotificationsService,
+    private readonly depth: MarketDepthService,
   ) {}
 
   /** Re-assesses every listed asset as of [now]. */
@@ -64,6 +67,7 @@ export class AssetScoringService {
       ]),
     );
     const mintBySymbol = new Map(rows.map((r) => [r.symbol, r.mint]));
+    const depth = await this.depth.latest();
 
     const statuses: {
       mint: string;
@@ -86,8 +90,9 @@ export class AssetScoringService {
               benchmark: book.get(benchmark) ?? [],
               now,
               tickMinutes: this.config.priceTickMinutes,
-              liquidityUsd: row.liquidity_usd,
-              minLiquidityUsd: this.config.scoringMinLiquidityUsd,
+              // Undefined until first measured, which doesn't count against it.
+              roundTripLossPct: depth.has(row.mint) ? depth.get(row.mint)!.lossPct : undefined,
+              maxRoundTripLossPct: this.config.maxRoundTripLossPct,
               maxMove: this.config.maxTickMove,
             });
       const before = previous.get(row.mint);

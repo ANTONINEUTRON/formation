@@ -7,6 +7,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/legal_links.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
+import 'package:formation/features/guide/ui/pages/how_to_play_page.dart';
 import 'package:formation/features/onboarding/data/onboarding_prefs.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
@@ -321,6 +322,14 @@ class _Connect extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const LegalLinks(),
+        // Before connecting there's no router, and no Assistant Manager to ask.
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const HowToPlayPage(showAssistant: false)),
+          ),
+          icon: const Icon(Icons.menu_book_outlined, size: 16),
+          label: const Text('How the game works'),
+        ),
       ],
     );
   }
@@ -376,9 +385,9 @@ class _IntroPlayers extends StatelessWidget {
           alignment: WrapAlignment.center,
           children: [
             for (final (position, tier, symbol) in [
-              ('GK', RiskTier.blueChip, 'AAPLx'),
-              ('DEF', RiskTier.stable, 'KOx'),
-              ('MID', RiskTier.balanced, 'JPMx'),
+              ('GK', RiskTier.blueChip, 'BRK.Bx'),
+              ('DEF', RiskTier.blueChip, 'KOx'),
+              ('MID', RiskTier.balanced, 'MSFTx'),
               ('FWD', RiskTier.momentum, 'TSLAx'),
             ])
               Container(
@@ -405,8 +414,9 @@ class _IntroPlayers extends StatelessWidget {
       ),
       title: 'Your stocks are your players',
       body:
-          'Pick real tokenized stocks for each position in your team. Every position suits one kind '
-          'of stock: steady names at the back, bolder ones up front.',
+          'Pick real tokenized stocks for each position in your team. Blue chips hold the back, '
+          'balanced ones move with the market, and momentum names swing big up front. Already hold '
+          'some? They line up for you, and the rest wait on your bench.',
     );
   }
 }
@@ -423,8 +433,9 @@ class _IntroScoring extends StatelessWidget {
       ),
       title: 'You score when they beat the market',
       body:
-          'Points come from beating the S&P 500, not just rising with it. Name a captain for bonus '
-          'points, make 3 free substitutions a day, and climb the table or take on your friends.',
+          'Points come from beating the S&P 500, not just rising with it. Match weeks run Monday to '
+          'Friday and twelve make a season. Name a captain for bonus points, make 3 free substitutions '
+          'a day, and climb the table or take on your friends.',
     );
   }
 }

@@ -19,9 +19,19 @@ import 'package:formation/features/shared/domain/models.dart';
 
 /// Opens the Assistant Manager over the current screen: a glass sheet the
 /// Manager can drag taller on a phone, a glass dialog on a wider window.
-Future<void> showAssistantSheet(BuildContext context, AssistantContext assistantContext) {
+///
+/// With [explain], the conversation opens on that question already answered,
+/// from text the app supplies: the AI isn't asked and no credit is spent.
+Future<void> showAssistantSheet(
+  BuildContext context,
+  AssistantContext assistantContext, {
+  ({String question, String answer})? explain,
+}) {
   final cubit = context.read<AssistantCubit>();
   if (cubit.state.profile == null) cubit.load();
+  if (explain != null) {
+    cubit.explain(assistantContext.mode, question: explain.question, answer: explain.answer);
+  }
   final content = BlocProvider.value(
     value: cubit,
     child: AssistantSheet(context: assistantContext),

@@ -108,21 +108,8 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                         const SizedBox(height: 16),
                         _SkillCard(skill: manager.skill!),
                       ],
-                      if (manager.badges.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            for (final badge in manager.badges)
-                              Chip(
-                                avatar: const Icon(Icons.emoji_events, size: 16, color: AppColors.warning),
-                                label: Text(badge.label, style: const TextStyle(fontSize: 12)),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                          ],
-                        ),
-                      ],
+                      // Badges (Golden Boot, Shrewd captain…) are hidden for now. The
+                      // backend still awards them and sends them as `manager.badges`.
                       const SizedBox(height: 24),
                       if (manager.lineup.isNotEmpty) ...[
                         LineupView(roster: manager.roster),

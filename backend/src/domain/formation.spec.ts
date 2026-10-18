@@ -24,18 +24,19 @@ describe('footballShape', () => {
       'GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD',
     ]);
     expect(shape[0].tier).toBe('blue_chip');
+    expect(shape[1].tier).toBe('blue_chip');
     expect(shape.at(-1)!.tier).toBe('momentum');
   });
 
-  it('lets midfield take balanced or growth, and nothing else', () => {
-    const mid = footballShape('4-4-2')[5];
+  it('gives each line its own tier', () => {
+    const shape = footballShape('4-4-2');
+    const mid = shape[5];
     expect(mid.label).toBe('MID');
     expect(slotAccepts(mid, 'balanced')).toBe(true);
-    expect(slotAccepts(mid, 'growth')).toBe(true);
     expect(slotAccepts(mid, 'momentum')).toBe(false);
-    expect(slotTierLabel(mid)).toBe('balanced or growth');
-    // Other roles are unchanged.
-    expect(slotAccepts(footballShape('4-4-2')[9], 'growth')).toBe(false);
+    expect(slotTierLabel(mid)).toBe('balanced');
+    expect(slotAccepts(shape[9], 'momentum')).toBe(true);
+    expect(slotAccepts(shape[9], 'blue_chip')).toBe(false);
   });
 
   it('is the shape rosterShape returns for football', () => {

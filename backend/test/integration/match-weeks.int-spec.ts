@@ -3,6 +3,7 @@ import type { GameCalendar } from '../../src/domain/calendar.js';
 import type { AuthUser } from '../../src/domain/dto.js';
 import type { SportMode } from '../../src/domain/sport.js';
 import { ManagersService } from '../../src/managers/managers.service.js';
+import { LedgerService, PRE_SEASON } from '../../src/scoring/ledger.service.js';
 import { MatchWeekService } from '../../src/scoring/match-week.service.js';
 import { SeasonService } from '../../src/scoring/season.service.js';
 import { createHarness } from './harness.js';
@@ -71,7 +72,8 @@ describe('seasons and match weeks', () => {
   /** Swaps the GK back and forth [times] times: each swap is a substitution. */
   const swapKeeper = async (times: number) => {
     for (let i = 0; i < times; i++) {
-      await h.rosters.fillSlot(me, 'football', 0, i % 2 === 0 ? 'mint-MSFT' : 'mint-AAPL');
+      // MCDx is a blue-chip stock left on the bench by the draft.
+      await h.rosters.fillSlot(me, 'football', 0, i % 2 === 0 ? 'mint-MCD' : 'mint-AAPL');
     }
   };
 
@@ -90,6 +92,26 @@ describe('seasons and match weeks', () => {
     const roster = await h.rosters.getRoster(me, 'football');
     expect(roster.session!.transferWindowOpen).toBe(true);
     expect(roster.session!.matchWeek).toMatchObject({ number: 1, season: 1, weekOfSeason: 1 });
+  });
+
+  it('keeps points banked before season 1 kicks off out of the season total', async () => {
+    const ledger = h.app.get(LedgerService);
+    const kickOff = calendar.season(1).startsAt.getTime();
+    await ledger.award(me.id, 'football', 'alpha', 25, kickOff - 3_600_000);
+    await ledger.award(me.id, 'football', 'alpha', 10, kickOff + 3_600_000);
+
+    const rows = await h.db
+      .selectFrom('points_ledger')
+      .select(['points', 'season'])
+      .where('user_id', '=', me.id)
+      .orderBy('at')
+      .execute();
+    expect(rows).toEqual([
+      { points: 25, season: PRE_SEASON },
+      { points: 10, season: 1 },
+    ]);
+    const season = await h.league.leaderboard('football', me.id);
+    expect(season.find((e) => e.username === 'me')?.points).toBe(10);
   });
 
   it('ranks the This week board by points since kick-off', async () => {

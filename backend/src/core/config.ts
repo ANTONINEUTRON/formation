@@ -44,10 +44,17 @@ export interface AppConfig {
    */
   maxTickMove: number;
   /**
-   * Pool depth, in USD, an asset needs to score. It stays listed and tradable
-   * below it; it just banks nothing. 0 turns the check off.
+   * Market depth (MarketDepthService): every [depthCheckMinutes], each stock
+   * is bought for [depthProbeUsd] and sold straight back through Jupiter's
+   * quotes. It scores only while that round trip loses at most
+   * [maxRoundTripLossPct] percent, which makes its price expensive to push
+   * around. 0 minutes turns the check off; nothing is ever traded.
    */
-  scoringMinLiquidityUsd: number;
+  depthCheckMinutes: number;
+  depthProbeUsd: number;
+  maxRoundTripLossPct: number;
+  /** Pause between Jupiter quote calls; keyless access allows about one a second. */
+  quoteSpacingMs: number;
   /** ET date in the week season 1 kicks off; seasons run 12 match weeks from it. */
   seasonAnchor: string;
   /** Points at full time for a team spanning [teamBalanceSectors]+ sectors. 0 turns it off. */
@@ -130,7 +137,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     // SPYx
     benchmarkMint: env.BENCHMARK_MINT ?? 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
     maxTickMove: number(env.MAX_TICK_MOVE, 0.1),
-    scoringMinLiquidityUsd: number(env.SCORING_MIN_LIQUIDITY_USD, 1_000),
+    depthCheckMinutes: number(env.DEPTH_CHECK_MINUTES, 60),
+    depthProbeUsd: number(env.DEPTH_PROBE_USD, 500),
+    maxRoundTripLossPct: number(env.MAX_ROUND_TRIP_LOSS_PCT, 2),
+    quoteSpacingMs: number(env.QUOTE_SPACING_MS, jupiterApiKey ? 250 : 1_100),
     seasonAnchor: env.SEASON_ANCHOR?.trim() || DEFAULT_SEASON_ANCHOR,
     teamBalanceBonus: number(env.TEAM_BALANCE_BONUS, 5),
     teamBalanceSectors: number(env.TEAM_BALANCE_SECTORS, 4),

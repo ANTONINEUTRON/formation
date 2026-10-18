@@ -133,7 +133,7 @@ void main() {
           {
             'type': 'squadBubbles',
             'bubbles': [
-              {'symbol': 'KOx', 'tier': 'stable', 'position': 'DEF', 'valueUsd': 40, 'alphaPct': -0.4},
+              {'symbol': 'KOx', 'tier': 'blue_chip', 'position': 'DEF', 'valueUsd': 40, 'alphaPct': -0.4},
             ],
           },
           {'type': 'html', 'title': 'Tier matrix', 'html': '<!doctype html><p>hi</p>', 'height': 200},

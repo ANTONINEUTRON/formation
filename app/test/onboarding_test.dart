@@ -89,6 +89,21 @@ void main() {
     await _pump(tester, _Prefs(seen: true));
     expect(find.text('Your stocks are your players'), findsNothing);
     expect(find.text('Next'), findsNothing);
+
+    // The rules are readable before connecting, without an Assistant Manager.
+    await tester.ensureVisible(find.text('How the game works'));
+    await tester.tap(find.text('How the game works'));
+    await tester.pumpAndSettle();
+    expect(find.text('How to play'), findsOneWidget);
+    expect(find.text('Ask your Assistant Manager'), findsNothing);
+  });
+
+  test('"Use what I hold" fields an empty team from the wallet, once', () async {
+    final repository = FixtureRepository(walletAddress: 'w');
+    final team = await repository.fillFromHoldings(SportMode.basketball);
+    expect(team.slots.where((s) => s.isFilled), isNotEmpty);
+    expect(team.captainSlot, isNotNull);
+    await expectLater(repository.fillFromHoldings(SportMode.basketball), throwsA(isA<Exception>()));
   });
 
   group('starter squad (fixture backend)', () {
@@ -124,7 +139,7 @@ void main() {
             'mint': 'm',
             'symbol': 'AAPLx',
             'name': 'Apple',
-            'tier': 'blue_chip',
+            'tier': 'balanced',
             'priceUsd': 230,
             'reason': 'Steady hands',
             'needsPurchase': true,
@@ -137,7 +152,7 @@ void main() {
         'draftsLeft': 1,
       });
       expect(squad.mode, SportMode.football);
-      expect(squad.picks.single.tier, RiskTier.blueChip);
+      expect(squad.picks.single.tier, RiskTier.balanced);
       expect(squad.toSpendUsd, 2.5);
     });
   });

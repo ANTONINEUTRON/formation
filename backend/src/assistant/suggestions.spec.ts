@@ -8,7 +8,7 @@ const stock = (symbol: string, tier: RiskTier) => [
   { mint: `mint-${symbol}`, symbol, tier },
 ] as const;
 
-/** Basketball: PG growth, SG growth, SF balanced, PF balanced, C blue_chip. */
+/** Basketball: PG momentum, SG momentum, SF balanced, PF balanced, C blue chip. */
 function facts(over: Partial<RosterFacts> = {}): RosterFacts {
   return {
     mode: 'basketball',
@@ -26,8 +26,8 @@ function facts(over: Partial<RosterFacts> = {}): RosterFacts {
       ['mint-METAx', 1],
     ]),
     catalogue: new Map([
-      stock('NVDAx', 'growth'),
-      stock('METAx', 'growth'),
+      stock('NVDAx', 'momentum'),
+      stock('METAx', 'momentum'),
       stock('AAPLx', 'blue_chip'),
       stock('MSFTx', 'blue_chip'),
       stock('JPMx', 'balanced'),

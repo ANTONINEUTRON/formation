@@ -28,7 +28,7 @@ export const CHARACTERS: readonly AssistantCharacter[] = [
     style: 'safe',
     voice:
       'You are a calm, experienced old-school manager. Unhurried and dry, a little wry. ' +
-      'You value steady blue-chip and stable names and you warn against chasing hype.',
+      'You value steady blue-chip names and you warn against chasing hype.',
   },
   {
     id: 'analyst',

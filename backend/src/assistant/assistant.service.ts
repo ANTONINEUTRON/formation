@@ -200,7 +200,10 @@ export class AssistantService {
       viceCaptainSlot: roster.viceCaptainSlot,
       held: new Map([...held].filter(([, amount]) => amount > 0)),
       catalogue: new Map(
-        rows.map((r) => [r.symbol.toUpperCase(), { mint: r.mint, symbol: r.symbol, tier: r.tier }]),
+        rows.map((r) => [
+          r.symbol.toUpperCase(),
+          { mint: r.mint, symbol: r.symbol, tier: r.tier, paused: r.not_scoring !== null },
+        ]),
       ),
       substitutionsToday,
     };

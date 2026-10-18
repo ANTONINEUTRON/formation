@@ -135,15 +135,11 @@ class _DraftBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-          child: Text(
-            _isFootball
-                ? 'Tap a player to give out the armband or change the stock. '
-                    'The captain scores double; changes count from the next tick.'
-                : 'Tap a position. Stocks you hold fill instantly; anything else you can buy here.',
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Text('Tap a position to pick a stock.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
         ),
         if (_isFootball) ...[

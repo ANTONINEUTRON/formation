@@ -10,10 +10,16 @@ import type { SportMode } from '../domain/sport.js';
 
 export type LedgerKind = PointsLedgerTable['kind'];
 
+/** Season recorded on points banked before season 1 kicks off. */
+export const PRE_SEASON = 0;
+
 /**
  * The one way points move: a ledger row, plus the running season total moved
  * by the same amount, in one transaction. Every kind of points (alpha, role
  * events, substitutions, bonuses, corrections) goes through here.
+ *
+ * Points banked before season 1 kicks off are pre-season: kept in the ledger
+ * as season 0, but never added to a season total, so the season starts level.
  */
 @Injectable()
 export class LedgerService {
@@ -32,6 +38,7 @@ export class LedgerService {
     detail?: unknown,
   ): Promise<void> {
     if (points === 0) return;
+    const preSeason = at < this.calendar.season(1).startsAt.getTime();
     await this.db.transaction().execute(async (trx) => {
       await trx
         .insertInto('points_ledger')
@@ -42,9 +49,10 @@ export class LedgerService {
           points,
           detail: detail === undefined ? null : JSON.stringify(detail),
           at: new Date(at),
-          season: this.calendar.weekAt(at).season,
+          season: preSeason ? PRE_SEASON : this.calendar.weekAt(at).season,
         })
         .execute();
+      if (preSeason) return;
       await trx
         .insertInto('classic_scores')
         .values({ user_id: userId, sport_mode: mode, total_points: points })

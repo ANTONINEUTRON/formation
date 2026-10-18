@@ -34,8 +34,8 @@ describe('free starter squad', () => {
       text: 'A sturdy start.',
       captainSlot: 4,
       picks: [
-        { slotIndex: 0, symbol: 'NVDAx', reason: 'growth at PG' },
-        { slotIndex: 4, symbol: 'AAPLx', reason: 'anchor at C' },
+        { slotIndex: 0, symbol: 'NVDAx', reason: 'momentum at PG' },
+        { slotIndex: 4, symbol: 'AAPLx', reason: 'blue chip at C' },
         { slotIndex: 2, symbol: 'TSLAx', reason: 'momentum is the wrong tier for SF' },
       ],
     };

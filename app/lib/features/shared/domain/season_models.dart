@@ -1,5 +1,26 @@
 import 'package:equatable/equatable.dart';
 
+import 'package:formation/core/utils/format.dart';
+import 'package:formation/features/shared/domain/models.dart';
+
+/// How each sport talks about the time before its season: football plays
+/// pre-season friendlies before the big kick-off; basketball and American
+/// football play preseason games before tip-off and kickoff.
+extension SeasonTerms on SportMode {
+  /// "Pre-season" / "Preseason".
+  String get preSeason => this == SportMode.football ? 'Pre-season' : 'Preseason';
+
+  /// "Pre-season friendlies" / "Preseason games".
+  String get preSeasonGames => this == SportMode.football ? 'Pre-season friendlies' : 'Preseason games';
+
+  /// What starts a season or a match: "Kick-off", "Tip-off", "Kickoff".
+  String get seasonStart => switch (this) {
+    SportMode.football => 'Kick-off',
+    SportMode.basketball => 'Tip-off',
+    SportMode.americanFootball => 'Kickoff',
+  };
+}
+
 /// Seasons, match weeks and fixtures (SCORING_PLAN.md Phase 2).
 ///
 /// A match week kicks off Monday 9:30am ET and reaches full time Friday 4pm
@@ -21,6 +42,7 @@ class MatchWeek extends Equatable {
     required this.fullTime,
     required this.nextKickOff,
     this.points = 0,
+    this.preSeason = false,
   });
 
   factory MatchWeek.fromJson(Map<String, dynamic> json) => MatchWeek(
@@ -31,7 +53,11 @@ class MatchWeek extends Equatable {
         fullTime: DateTime.parse(json['fullTime'] as String),
         nextKickOff: DateTime.parse(json['nextKickOff'] as String),
         points: _num(json['points']),
+        preSeason: json['preSeason'] as bool? ?? false,
       );
+
+  /// Before season 1 starts: points bank but don't count toward any season.
+  final bool preSeason;
 
   final int number;
   final int season;
@@ -51,6 +77,12 @@ class MatchWeek extends Equatable {
   }
 
   String get label => 'Season $season · Week $weekOfSeason';
+
+  /// [label] in [mode]'s words, e.g. "Pre-season friendlies · Season 1
+  /// kick-off 19 Oct" before the season starts.
+  String labelFor(SportMode mode) => preSeason
+      ? '${mode.preSeasonGames} · Season $season ${mode.seasonStart.toLowerCase()} ${formatShortDate(kickOff.toLocal())}'
+      : label;
 
   @override
   List<Object?> get props => [number, points];

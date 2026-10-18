@@ -32,6 +32,7 @@ import { OgService } from './og/og.service.js';
 import { RosterController, WalletController } from './roster/roster.controller.js';
 import { RosterService } from './roster/roster.service.js';
 import { AssetScoringService } from './scoring/asset-scoring.service.js';
+import { MarketDepthService } from './scoring/market-depth.service.js';
 import { EntryScoringService } from './scoring/entry-scoring.service.js';
 import { GeneralScoringService } from './scoring/general-scoring.service.js';
 import { MatchWeekController } from './scoring/match-week.controller.js';
@@ -47,6 +48,7 @@ import { UsersService } from './users/users.service.js';
 import { SwapService } from './swap/swap.service.js';
 import { XStocksCatalogueService } from './xstocks/xstocks-catalogue.service.js';
 import { XStocksController } from './xstocks/xstocks.controller.js';
+import { TiersService } from './xstocks/tiers.service.js';
 
 @Module({
   imports: [ScheduleModule.forRoot(), CoreModule, AuthModule],
@@ -72,6 +74,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
   providers: [
     AppService,
     AssetScoringService,
+    MarketDepthService,
     SeasonService,
     SkillService,
     LedgerService,
@@ -90,6 +93,7 @@ import { XStocksController } from './xstocks/xstocks.controller.js';
     UsersService,
     SwapService,
     XStocksCatalogueService,
+    TiersService,
     AssistantService,
     CreditsService,
     PurchasesService,

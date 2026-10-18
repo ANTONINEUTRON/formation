@@ -1,4 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { CONFIG } from '../core/config.js';
+import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
 import type { Db } from '../core/db.js';
 import { BALANCE_SOURCE, PRICE_SOURCE } from '../core/sources.js';
@@ -6,6 +8,7 @@ import type { BalanceSource, PriceSource } from '../core/sources.js';
 import { parseCaptaincy } from '../domain/captaincy.js';
 import type { AuthUser, FormationChangeDto, RosterDto } from '../domain/dto.js';
 import { parseFormation, remapFormation } from '../domain/formation.js';
+import { lineupFromHoldings } from '../domain/seed-lineup.js';
 import { DEFAULT_FORMATION, rosterShape, slotAccepts, slotTierLabel } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { LeagueService } from '../league/league.service.js';
@@ -24,6 +27,7 @@ interface RosterRow {
 export class RosterService {
   constructor(
     @Inject(DB) private readonly db: Db,
+    @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(BALANCE_SOURCE) private readonly balances: BalanceSource,
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
@@ -235,6 +239,63 @@ export class RosterService {
       .set({ captain_slot: captainSlot, vice_captain_slot: viceCaptainSlot })
       .where('id', '=', roster.id)
       .execute();
+    return this.getRoster(user, mode);
+  }
+
+  /**
+   * "Use what I hold": fills an empty team from the stocks the wallet
+   * already holds, with the formation that fields the most of them and the
+   * armbands on the most valuable picks (`lineupFromHoldings`). Only for a
+   * team with no players yet, so it never overrides the Manager's own picks;
+   * filling empty slots is never charged.
+   */
+  async fillFromHoldings(user: AuthUser, mode: SportMode): Promise<RosterDto> {
+    const roster = await this.ensure(user.id, mode);
+    if ((await this.slotsOf(roster.id)).length > 0) {
+      throw new BadRequestException('Your team already has players. Change them on the draft board.');
+    }
+
+    const [stocks, balances] = await Promise.all([
+      this.xstocks.byMint(),
+      this.balances.getBalances(user.walletAddress, { fresh: true }),
+    ]);
+    // The benchmark can't beat itself, so it would never score.
+    const held = [...balances].filter(
+      ([mint, amount]) => amount > 0 && stocks.has(mint) && mint !== this.config.benchmarkMint,
+    );
+    const prices = await this.prices.getPrices(held.map(([mint]) => mint));
+    const holdings = held.map(([mint, balance]) => {
+      const stock = this.xstocks.toDto(stocks.get(mint)!, prices.get(mint));
+      return { stock, balance, valueUsd: balance * stock.priceUsd, starting: false };
+    });
+
+    const derived = lineupFromHoldings(mode, holdings);
+    if (derived.lineup.length === 0) {
+      throw new BadRequestException("None of the stocks you hold can play yet. Buy one to start your team.");
+    }
+
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable('rosters')
+        .set({
+          formation: derived.formation,
+          captain_slot: derived.captainSlot,
+          vice_captain_slot: derived.viceCaptainSlot,
+        })
+        .where('id', '=', roster.id)
+        .execute();
+      await trx
+        .insertInto('roster_slots')
+        .values(
+          derived.lineup.map((slot) => ({
+            roster_id: roster.id,
+            slot_index: slot.slotIndex,
+            position_label: slot.positionLabel,
+            token_mint: slot.stock!.mint,
+          })),
+        )
+        .execute();
+    });
     return this.getRoster(user, mode);
   }
 

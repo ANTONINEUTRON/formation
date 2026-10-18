@@ -1,5 +1,5 @@
 import type { AuthUser } from '../../src/domain/dto.js';
-import { createHarness } from './harness.js';
+import { createHarness, TEST_STOCKS } from './harness.js';
 import type { Harness } from './harness.js';
 
 describe('rosters', () => {
@@ -26,6 +26,30 @@ describe('rosters', () => {
     ]);
     expect(roster.slots.every((s) => s.stock === null)).toBe(true);
     expect(await h.rosters.isComplete(user.id, 'football')).toBe(false);
+  });
+
+  it('fills an empty team from what the wallet holds, never twice', async () => {
+    // The player holds 10 of every test stock.
+    const roster = await h.rosters.fillFromHoldings(user, 'football');
+    expect(roster.slots.every((s) => s.stock !== null)).toBe(true);
+    expect(roster.slots.some((s) => s.stock?.symbol === 'SPYx')).toBe(false); // the benchmark
+    expect(roster.captainSlot).not.toBeNull();
+    expect(roster.viceCaptainSlot).not.toBeNull();
+    await expect(h.rosters.fillFromHoldings(user, 'football')).rejects.toThrow('already has players');
+
+    // A wallet with only blue chips fields the formation that plays most of them.
+    const keeper = await h.createPlayer('keeper');
+    h.balances.setAll(keeper.walletAddress, TEST_STOCKS.map((s) => s.mint), 0);
+    h.balances.setAll(keeper.walletAddress, ['mint-AAPL', 'mint-KO', 'mint-PG', 'mint-JNJ', 'mint-WMT', 'mint-MCD'], 5);
+    const defensive = await h.rosters.fillFromHoldings(keeper, 'football');
+    expect(defensive.formation).toMatch(/^5-/);
+    expect(defensive.slots.filter((s) => s.stock).length).toBe(6);
+  });
+
+  it('says so when nothing held can play', async () => {
+    const empty = await h.createPlayer('empty');
+    h.balances.setAll(empty.walletAddress, TEST_STOCKS.map((s) => s.mint), 0);
+    await expect(h.rosters.fillFromHoldings(empty, 'basketball')).rejects.toThrow("can play yet");
   });
 
   it('fills a slot with a held, tier-matching stock', async () => {

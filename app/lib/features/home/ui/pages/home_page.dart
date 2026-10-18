@@ -13,6 +13,7 @@ import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/sport/ui/pages/sport_page.dart';
 import 'package:formation/gen/assets.gen.dart';
+import 'package:formation/services/notification_service.dart';
 
 /// Home page - main shell with one navigation destination per sport.
 @RoutePage()
@@ -39,7 +40,31 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _welcome());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showLatestNotification();
+      _welcome();
+    });
+  }
+
+  /// On opening the app: the newest unread notification pops in at the top for
+  /// a few seconds, and a tap opens the inbox. Nothing unread, nothing shown.
+  Future<void> _showLatestNotification() async {
+    final repository = context.read<FormationRepository>();
+    final router = context.router;
+    try {
+      final unread = (await repository.getNotifications()).where((n) => !n.read).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (unread.isEmpty || !mounted) return;
+      final latest = unread.first;
+      NotificationService.showNotification(
+        context,
+        title: latest.title,
+        body: unread.length > 1 ? '${latest.body}\n+${unread.length - 1} more in your inbox' : latest.body,
+        onTap: () => router.push(const NotificationsRoute()),
+      );
+    } catch (_) {
+      // Offline or signed out: the bell's badge still shows what's waiting.
+    }
   }
 
   /// Right after connecting: save the Assistant Manager picked during the

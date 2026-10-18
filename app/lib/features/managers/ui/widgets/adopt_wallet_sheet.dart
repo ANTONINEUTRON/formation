@@ -15,6 +15,7 @@ import 'package:formation/features/shared/domain/models.dart';
 /// Nothing is transferred and the manager is not involved: their wallet is
 /// public, and each purchase is an ordinary Jupiter swap you sign yourself.
 /// Everything starts selected; unticking is how you take only part of it.
+/// Stocks that aren't scoring can't be copied: they would earn nothing.
 class AdoptWalletSheet extends StatefulWidget {
   const AdoptWalletSheet({
     required this.manager,
@@ -42,7 +43,8 @@ class AdoptWalletSheet extends StatefulWidget {
 
 class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
   late final Set<String> _selected = {
-    for (final h in widget.manager.holdings) h.stock.mint,
+    for (final h in widget.manager.holdings)
+      if (h.stock.isScoring) h.stock.mint,
   };
   final _budget = TextEditingController(text: '100');
 
@@ -193,7 +195,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
-                    onChanged: _buying
+                    onChanged: _buying || !holding.stock.isScoring
                         ? null
                         : (v) => setState(() {
                               v == true
@@ -213,7 +215,9 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                       ],
                     ),
                     subtitle: Text(
-                      '${holding.stock.tier.label} · ${formatUsd(holding.stock.priceUsd)}',
+                      holding.stock.isScoring
+                          ? '${holding.stock.tier.label} · ${formatUsd(holding.stock.priceUsd)}'
+                          : '${holding.stock.tier.label} · paused while its price is unreliable',
                       style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                     secondary: on && _perStock > 0

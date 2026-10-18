@@ -13,8 +13,9 @@ import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/domain/roster_shapes.dart';
 import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
+import 'package:formation/features/wallet/ui/widgets/fund_wallet_sheet.dart';
 
-enum _Step { setup, drafting, review, applying, done }
+enum _Step { setup, drafting, review, applying, done, fromWallet }
 
 enum _PickState { waiting, buying, placing, done, failed }
 
@@ -41,6 +42,13 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
   final Map<int, _PickState> _progress = {};
   final Map<int, String> _failures = {};
 
+  /// Supported stocks the wallet already holds; 0 until checked.
+  int _heldCount = 0;
+  bool _usingWallet = false;
+
+  /// Teams filled from the wallet, by sport, once "Use what I hold" ran.
+  final Map<SportMode, Roster> _fromWallet = {};
+
   FormationRepository get _repository => context.read<FormationRepository>();
 
   @override
@@ -49,6 +57,51 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     _repository.getPayTokens().then((tokens) {
       if (mounted && tokens.isNotEmpty) setState(() => _payTokens = tokens);
     }).ignore();
+    _countHoldings();
+  }
+
+  Future<void> _countHoldings() async {
+    try {
+      final stocks = await _repository.getXStocks();
+      final held = await _repository.getHeldBalances([for (final s in stocks) s.mint]);
+      final count = held.values.where((amount) => amount > 0).length;
+      if (mounted) setState(() => _heldCount = count);
+    } catch (_) {
+      // Without the count the Assistant Manager's draft is still on offer.
+    }
+  }
+
+  /// Fields every sport's team from the stocks already in the wallet. The
+  /// same stocks can play all three; a sport nothing fits is left empty.
+  Future<void> _useWhatIHold() async {
+    setState(() {
+      _usingWallet = true;
+      _error = null;
+    });
+    String? lastError;
+    for (final mode in SportMode.values) {
+      try {
+        _fromWallet[mode] = await _repository.fillFromHoldings(mode);
+      } catch (e) {
+        lastError = errorText(e);
+      }
+    }
+    if (!mounted) return;
+    if (_fromWallet.isEmpty) {
+      setState(() {
+        _usingWallet = false;
+        _error = lastError ?? "Couldn't build a team from your wallet. Try the draft below.";
+      });
+      return;
+    }
+    await _repository.dismissStarterSquad().catchError((_) {});
+    if (!mounted) return;
+    context.read<AssistantCubit>().load().ignore();
+    setState(() {
+      _usingWallet = false;
+      _step = _Step.fromWallet;
+      _mode = _fromWallet.containsKey(_mode) ? _mode : _fromWallet.keys.first;
+    });
   }
 
   @override
@@ -165,7 +218,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         presetCharacters[3];
     final pose = switch (_step) {
       _Step.drafting || _Step.applying => AssistantPose.thinking,
-      _Step.review || _Step.done => AssistantPose.celebrating,
+      _Step.review || _Step.done || _Step.fromWallet => AssistantPose.celebrating,
       _Step.setup => AssistantPose.neutral,
     };
 
@@ -190,6 +243,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
                 _Step.drafting => [_note('${character.name} is scouting the market…')],
                 _Step.review => _review(_squad!),
                 _Step.applying || _Step.done => _applying(_squad!),
+                _Step.fromWallet => _walletTeams(),
               },
               if (_error != null)
                 Padding(
@@ -214,6 +268,11 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
   );
 
   List<Widget> _setup(AssistantCharacter character) => [
+    if (_heldCount > 0) ...[
+      _HoldingsCard(count: _heldCount, busy: _usingWallet, onUse: _useWhatIHold),
+      const SizedBox(height: 20),
+      const _Label('Or let your Assistant Manager draft one'),
+    ],
     Text(
       'Your first squad is on ${character.name.replaceFirst('The ', 'your ')}',
       textAlign: TextAlign.center,
@@ -225,7 +284,14 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       textAlign: TextAlign.center,
       style: TextStyle(color: AppColors.textSecondary),
     ),
-    const SizedBox(height: 20),
+    Center(
+      child: TextButton.icon(
+        onPressed: () => FundWalletSheet.show(context),
+        icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+        label: const Text('Need money in your wallet first?'),
+      ),
+    ),
+    const SizedBox(height: 12),
     const _Label('Sport'),
     Wrap(
       spacing: 8,
@@ -327,6 +393,48 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     ];
   }
 
+  /// After "Use what I hold": each sport's team, with a switch between them.
+  List<Widget> _walletTeams() {
+    final roster = _fromWallet[_mode]!;
+    final empty = roster.slots.where((s) => !s.isFilled).length;
+    return [
+      _note(
+        _fromWallet.length == SportMode.values.length
+            ? 'Your teams are set from your wallet, in all three sports.'
+            : 'Your ${_fromWallet.keys.map((m) => m.label.toLowerCase()).join(' and ')} '
+                  '${_fromWallet.length == 1 ? 'team is' : 'teams are'} set from your wallet.',
+      ),
+      const SizedBox(height: 12),
+      if (_fromWallet.length > 1)
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          children: [
+            for (final mode in _fromWallet.keys)
+              ChoiceChip(
+                avatar: Icon(mode.icon, size: 16),
+                label: Text(mode.label),
+                selected: _mode == mode,
+                onSelected: (_) => setState(() => _mode = mode),
+              ),
+          ],
+        ),
+      const SizedBox(height: 12),
+      LineupView(roster: roster, title: 'Your ${_mode.label.toLowerCase()} team', pitchOnly: true),
+      const SizedBox(height: 12),
+      Text(
+        empty == 0
+            ? 'Every position is filled. Points start on the next price update; change anyone on the draft board.'
+            : '$empty ${empty == 1 ? 'position is' : 'positions are'} still empty: nothing you hold fits '
+                  "${empty == 1 ? 'it' : 'them'} yet. Fill them on the draft board whenever you like.",
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      ),
+      const SizedBox(height: 16),
+      FilledButton(onPressed: () => context.router.maybePop(), child: const Text('Go to my team')),
+    ];
+  }
+
   /// The drafted squad as a team, so it shows on the same pitch as every other.
   Roster _asRoster(StarterSquad squad) {
     final shape = rosterShape(squad.mode, squad.formation);
@@ -373,6 +481,51 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         FilledButton(onPressed: () => context.router.maybePop(), child: const Text('Go to my team')),
       ],
     ];
+  }
+}
+
+/// "You already hold 6 stocks we support": the quickest way in for a Manager
+/// who arrives with xStocks.
+class _HoldingsCard extends StatelessWidget {
+  const _HoldingsCard({required this.count, required this.busy, required this.onUse});
+
+  final int count;
+  final bool busy;
+  final VoidCallback onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'You already hold $count stock${count == 1 ? '' : 's'} we support',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Field them straight away, with nothing to buy. We pick the positions, the formation and '
+            'the armbands; you can change any of it.',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: busy ? null : onUse,
+            icon: busy
+                ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.bolt, size: 18),
+            label: const Text('Use what I hold'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

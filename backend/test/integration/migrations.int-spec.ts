@@ -41,6 +41,7 @@ describe('migrations', () => {
         'league_members',
         'leagues',
         'live_events',
+        'market_depth',
         'match_weeks',
         'notifications',
         'points_ledger',

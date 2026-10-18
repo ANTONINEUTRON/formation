@@ -21,8 +21,9 @@ export interface XStockDto {
   change24hPct: number;
   logoUrl: string | null;
   /**
-   * Why it isn't scoring right now, e.g. "stale price"; null when it is. It
-   * stays listed, draftable and tradable either way.
+   * Why it isn't scoring right now, e.g. "thin market"; null when it is. A
+   * paused stock can still be bought, sold and placed in a slot; it just banks
+   * nothing until it scores again.
    */
   notScoring: string | null;
 }
@@ -71,6 +72,11 @@ export interface MatchWeekDto {
   nextKickOff: string;
   /** Points this player banked between kick-off and full time. */
   points: number;
+  /**
+   * True before season 1 kicks off: the pre-season, where points bank but
+   * don't count toward any season. The app names it the way each sport does.
+   */
+  preSeason: boolean;
 }
 
 export interface RosterDto {
@@ -129,6 +135,29 @@ export interface SwapQuoteDto {
   platformFeeBps: number;
   /** The fee, in the paying token. */
   platformFee: number;
+  /**
+   * What selling the shares straight back would return, in the paying token;
+   * null when it couldn't be quoted. Far below [inputAmount] means a thin
+   * market, and the app says so before the Manager signs.
+   */
+  sellBackAmount: number | null;
+}
+
+/** Selling held shares for USDC. */
+export interface SellQuoteDto {
+  quoteId: string;
+  shares: number;
+  /** USDC received, after the fee. */
+  estimatedUsdc: number;
+  priceImpactPct: number;
+  platformFeeBps: number;
+  /** The fee, in USDC. */
+  platformFee: number;
+  /**
+   * Shares that USDC would buy straight back; null when it couldn't be quoted.
+   * Far below [shares] means a thin market.
+   */
+  buyBackShares: number | null;
 }
 
 /** A token the server will accept as payment, for the app's picker. */

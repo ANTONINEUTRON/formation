@@ -1,8 +1,8 @@
 {
-  "userId": "83dabf2a-271f-4650-8909-1bb6b1a852d2",
-  "username": "5Pzx_vRzq",
+  "userId": "e3b042f2-bdfb-41e1-a701-89a1299afe71",
+  "username": "2hP5_PhUA",
   "bio": null,
-  "walletAddress": "5PzxcXSTqULEMWzWjS2jtN8g7i434UDiJhEmqftUvRzq",
+  "walletAddress": "2hP5RuDmkJFNzrAc59qy3WmRf96L9wMP6XnEPusdPhUA",
   "mode": "football",
   "rank": 1,
   "points": 0,
@@ -33,7 +33,7 @@
         "symbol": "KOx",
         "companyName": "Coca-Cola",
         "mint": "mint-KO",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -48,7 +48,7 @@
         "symbol": "PGx",
         "companyName": "P&G",
         "mint": "mint-PG",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -63,7 +63,7 @@
         "symbol": "JNJx",
         "companyName": "J&J",
         "mint": "mint-JNJ",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -78,7 +78,7 @@
         "symbol": "WMTx",
         "companyName": "Walmart",
         "mint": "mint-WMT",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -88,6 +88,21 @@
     },
     {
       "slotIndex": 5,
+      "positionLabel": "MID",
+      "stock": {
+        "symbol": "MSFTx",
+        "companyName": "Microsoft",
+        "mint": "mint-MSFT",
+        "tier": "balanced",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null,
+        "notScoring": null
+      },
+      "balance": 0
+    },
+    {
+      "slotIndex": 6,
       "positionLabel": "MID",
       "stock": {
         "symbol": "JPMx",
@@ -102,7 +117,7 @@
       "balance": 0
     },
     {
-      "slotIndex": 6,
+      "slotIndex": 7,
       "positionLabel": "MID",
       "stock": {
         "symbol": "Vx",
@@ -117,7 +132,7 @@
       "balance": 0
     },
     {
-      "slotIndex": 7,
+      "slotIndex": 8,
       "positionLabel": "MID",
       "stock": {
         "symbol": "MAx",
@@ -132,27 +147,12 @@
       "balance": 0
     },
     {
-      "slotIndex": 8,
-      "positionLabel": "MID",
-      "stock": {
-        "symbol": "ORCLx",
-        "companyName": "Oracle",
-        "mint": "mint-ORCL",
-        "tier": "balanced",
-        "priceUsd": 100,
-        "change24hPct": 0,
-        "logoUrl": null,
-        "notScoring": null
-      },
-      "balance": 0
-    },
-    {
       "slotIndex": 9,
       "positionLabel": "FWD",
       "stock": {
-        "symbol": "TSLAx",
-        "companyName": "Tesla",
-        "mint": "mint-TSLA",
+        "symbol": "NVDAx",
+        "companyName": "NVIDIA",
+        "mint": "mint-NVDA",
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
@@ -165,9 +165,9 @@
       "slotIndex": 10,
       "positionLabel": "FWD",
       "stock": {
-        "symbol": "HOODx",
-        "companyName": "Robinhood",
-        "mint": "mint-HOOD",
+        "symbol": "TSLAx",
+        "companyName": "Tesla",
+        "mint": "mint-TSLA",
         "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
@@ -186,7 +186,7 @@
         "symbol": "SPYx",
         "companyName": "S&P 500",
         "mint": "SPYx-test-mint",
-        "tier": "blue_chip",
+        "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -216,7 +216,7 @@
         "symbol": "MSFTx",
         "companyName": "Microsoft",
         "mint": "mint-MSFT",
-        "tier": "blue_chip",
+        "tier": "balanced",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -224,14 +224,14 @@
       },
       "balance": 10,
       "valueUsd": 1000,
-      "starting": false
+      "starting": true
     },
     {
       "stock": {
         "symbol": "KOx",
         "companyName": "Coca-Cola",
         "mint": "mint-KO",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -246,7 +246,7 @@
         "symbol": "PGx",
         "companyName": "P&G",
         "mint": "mint-PG",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -261,7 +261,7 @@
         "symbol": "JNJx",
         "companyName": "J&J",
         "mint": "mint-JNJ",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -276,7 +276,7 @@
         "symbol": "WMTx",
         "companyName": "Walmart",
         "mint": "mint-WMT",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -291,7 +291,7 @@
         "symbol": "MCDx",
         "companyName": "McDonald's",
         "mint": "mint-MCD",
-        "tier": "stable",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -359,14 +359,14 @@
       },
       "balance": 10,
       "valueUsd": 1000,
-      "starting": true
+      "starting": false
     },
     {
       "stock": {
         "symbol": "UNHx",
         "companyName": "UnitedHealth",
         "mint": "mint-UNH",
-        "tier": "balanced",
+        "tier": "blue_chip",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -381,7 +381,7 @@
         "symbol": "NVDAx",
         "companyName": "NVIDIA",
         "mint": "mint-NVDA",
-        "tier": "growth",
+        "tier": "momentum",
         "priceUsd": 100,
         "change24hPct": 0,
         "logoUrl": null,
@@ -389,37 +389,7 @@
       },
       "balance": 10,
       "valueUsd": 1000,
-      "starting": false
-    },
-    {
-      "stock": {
-        "symbol": "METAx",
-        "companyName": "Meta",
-        "mint": "mint-META",
-        "tier": "growth",
-        "priceUsd": 100,
-        "change24hPct": 0,
-        "logoUrl": null,
-        "notScoring": null
-      },
-      "balance": 10,
-      "valueUsd": 1000,
-      "starting": false
-    },
-    {
-      "stock": {
-        "symbol": "AMDx",
-        "companyName": "AMD",
-        "mint": "mint-AMD",
-        "tier": "growth",
-        "priceUsd": 100,
-        "change24hPct": 0,
-        "logoUrl": null,
-        "notScoring": null
-      },
-      "balance": 10,
-      "valueUsd": 1000,
-      "starting": false
+      "starting": true
     },
     {
       "stock": {
@@ -438,6 +408,36 @@
     },
     {
       "stock": {
+        "symbol": "METAx",
+        "companyName": "Meta",
+        "mint": "mint-META",
+        "tier": "momentum",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null,
+        "notScoring": null
+      },
+      "balance": 10,
+      "valueUsd": 1000,
+      "starting": false
+    },
+    {
+      "stock": {
+        "symbol": "AMDx",
+        "companyName": "AMD",
+        "mint": "mint-AMD",
+        "tier": "momentum",
+        "priceUsd": 100,
+        "change24hPct": 0,
+        "logoUrl": null,
+        "notScoring": null
+      },
+      "balance": 10,
+      "valueUsd": 1000,
+      "starting": false
+    },
+    {
+      "stock": {
         "symbol": "HOODx",
         "companyName": "Robinhood",
         "mint": "mint-HOOD",
@@ -449,7 +449,7 @@
       },
       "balance": 10,
       "valueUsd": 1000,
-      "starting": true
+      "starting": false
     },
     {
       "stock": {

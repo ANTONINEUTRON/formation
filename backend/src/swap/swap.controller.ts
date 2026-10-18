@@ -40,6 +40,12 @@ export class SwapController {
     );
   }
 
+  /** Selling held shares for USDC; build and confirm are the same as buying. */
+  @Post('sell-quote')
+  sellQuote(@Body() body: { mint?: string; shares?: number }, @CurrentUser() user: AuthUser) {
+    return this.swaps.quoteSell(user, requireString(body.mint, 'mint'), requireNumber(body.shares, 'shares'));
+  }
+
   @Post('build')
   build(@Body() body: { quoteId?: string }, @CurrentUser() user: AuthUser) {
     return this.swaps.build(user, requireString(body.quoteId, 'quoteId'));

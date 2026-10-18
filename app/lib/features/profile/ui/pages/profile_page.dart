@@ -21,6 +21,7 @@ import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
 import 'package:formation/features/wallet/ui/widgets/connect_wallet_view.dart';
 import 'package:formation/features/wallet/ui/widgets/connected_wallet_view.dart';
+import 'package:formation/features/wallet/ui/widgets/fund_wallet_sheet.dart';
 import 'package:formation/gen/assets.gen.dart';
 
 /// Profile: record across sports, wallet and balances.
@@ -153,6 +154,11 @@ class ProfilePage extends StatelessWidget {
 
             SectionHeader(title: 'Account'),
             const SizedBox(height: 12),
+            ActionTile(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Add money to your wallet',
+              onTap: () => FundWalletSheet.show(context),
+            ),
             // Transaction history is hidden until it reads real on-chain data.
             ActionTile(
               icon: Icons.menu_book_outlined,

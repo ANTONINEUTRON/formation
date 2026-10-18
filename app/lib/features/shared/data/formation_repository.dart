@@ -59,6 +59,16 @@ abstract class FormationRepository {
   /// Buys the quoted stock. Returns the number of shares received.
   Future<double> executeSwap(SwapQuote quote);
 
+  /// "Use what I hold": fills an empty [mode] team from the wallet's own
+  /// stocks, with the formation and armbands chosen for them.
+  Future<Roster> fillFromHoldings(SportMode mode);
+
+  /// Quotes selling [shares] of a held [stock] for USDC.
+  Future<SellQuote> getSellQuote(XStock stock, double shares);
+
+  /// Sells the quoted shares. Returns the USDC expected.
+  Future<double> executeSell(SellQuote quote);
+
   // ── Leagues (custom leagues and PvP duels are the same object) ───────────
 
   /// Public leagues open to join, plus every league the player is in.

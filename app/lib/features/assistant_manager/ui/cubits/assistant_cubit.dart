@@ -199,6 +199,28 @@ class AssistantCubit extends Cubit<AssistantState> {
     }
   }
 
+  /// Adds a question and its ready-made answer to [mode]'s conversation,
+  /// without asking the AI: nothing is sent and no credit is spent.
+  void explain(SportMode mode, {required String question, required String answer}) {
+    final history = state.conversation(mode);
+    // Tapping the same explanation twice doesn't repeat it.
+    if (history.length >= 2 && history[history.length - 2].text == question) return;
+    emit(
+      state.copyWith(
+        conversations: {
+          ...state.conversations,
+          mode: [
+            ...history,
+            AssistantMessage(role: AssistantRole.manager, text: question),
+            AssistantMessage(role: AssistantRole.assistant, text: answer, mood: AssistantMood.concerned),
+          ],
+        },
+        pose: AssistantPose.concerned,
+        clearError: true,
+      ),
+    );
+  }
+
   /// Applies suggestion [suggestionIndex] of message [messageIndex].
   /// A stock that must be bought first is handled by the UI, not here.
   Future<void> apply(SportMode mode, int messageIndex, int suggestionIndex) async {

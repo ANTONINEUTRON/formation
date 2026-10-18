@@ -147,7 +147,7 @@ class _StyleChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (style) {
-      'safe' => ('Plays it safe', AppColors.tierStable),
+      'safe' => ('Plays it safe', AppColors.tierBlueChip),
       'bold' => ('Plays it bold', AppColors.warning),
       _ => ('Balanced', AppColors.tierBalanced),
     };

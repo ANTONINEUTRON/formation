@@ -352,14 +352,37 @@ class ApiRepository implements FormationRepository {
 
   @override
   Future<double> executeSwap(SwapQuote quote) async {
-    final built = await _request('POST', '/swap/build', body: {'quoteId': quote.quoteId})
-        as Map<String, dynamic>;
+    await _signAndConfirm(quote.quoteId);
+    return quote.estimatedShares;
+  }
+
+  @override
+  Future<Roster> fillFromHoldings(SportMode mode) async {
+    final json = await _request('POST', '/roster/${mode.apiValue}/from-holdings');
+    _notify();
+    return _roster(mode, json as Map<String, dynamic>);
+  }
+
+  @override
+  Future<SellQuote> getSellQuote(XStock stock, double shares) async {
+    final json = await _request('POST', '/swap/sell-quote', body: {'mint': stock.mint, 'shares': shares});
+    return SellQuote.fromJson(stock, json as Map<String, dynamic>);
+  }
+
+  @override
+  Future<double> executeSell(SellQuote quote) async {
+    await _signAndConfirm(quote.quoteId);
+    return quote.estimatedUsdc;
+  }
+
+  /// Builds the quoted swap, has the wallet sign and send it, and waits for it to land.
+  Future<void> _signAndConfirm(String? quoteId) async {
+    final built = await _request('POST', '/swap/build', body: {'quoteId': quoteId}) as Map<String, dynamic>;
     final signature = await _signer.signAndSendTransaction(
       base64Decode(built['swapTransaction'] as String),
     );
     await _request('POST', '/swap/confirm', body: {'signature': signature});
     _notify();
-    return quote.estimatedShares;
   }
 
   // ── Leagues ────────────────────────────────────────────────────────────────

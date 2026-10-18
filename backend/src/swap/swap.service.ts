@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { ChainService } from '../core/chain.service.js';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
-import type { AuthUser, SwapQuoteDto } from '../domain/dto.js';
+import type { AuthUser, SellQuoteDto, SwapQuoteDto } from '../domain/dto.js';
 import type { PaySymbol, PayToken } from '../domain/pay-tokens.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
 
@@ -25,9 +25,10 @@ interface JupiterQuote {
 }
 
 /**
- * Buys an xStock through Jupiter, paying with USDC, SOL or SKR. The backend
- * adds the platform fee and returns an unsigned transaction; the player's
- * wallet signs and sends it, so Formation never has custody of funds.
+ * Buys an xStock through Jupiter, paying with USDC, SOL or SKR, and sells one
+ * for USDC. The backend adds the platform fee and returns an unsigned
+ * transaction; the player's wallet signs and sends it, so Formation never has
+ * custody of funds.
  */
 @Injectable()
 export class SwapService {
@@ -130,7 +131,73 @@ export class SwapService {
     });
     if (!res.ok) await this.fail(res, `no route for ${stock.symbol}`);
     const quote = (await res.json()) as JupiterQuote;
+    const sellBack = await this.plainQuote(mint, payToken.mint, quote.outAmount);
 
+    return {
+      quoteId: this.remember(user, quote, feeBps > 0 ? payToken.feeAccount : ''),
+      payWith: payToken.symbol,
+      inputAmount: amount,
+      estimatedShares: Number(quote.outAmount) / 10 ** stock.decimals,
+      priceImpactPct: Number(quote.priceImpactPct),
+      platformFeeBps: feeBps,
+      platformFee: (amount * feeBps) / 10_000,
+      sellBackAmount: sellBack === null ? null : Number(sellBack) / 10 ** payToken.decimals,
+    };
+  }
+
+  /**
+   * Sells held shares for USDC. The same platform fee applies, taken from the
+   * USDC received, and the same build and confirm steps follow. Selling a pick
+   * that's in the lineup substitutes it off at what it has banked; it's never
+   * charged a substitution.
+   */
+  async quoteSell(user: AuthUser, mint: string, shares: number): Promise<SellQuoteDto> {
+    const usdc = this.payToken('USDC');
+    const feeBps = this.feeBpsFor(usdc);
+    if (!Number.isFinite(shares) || shares <= 0) {
+      throw new BadRequestException('Enter an amount greater than zero');
+    }
+    const stock = (await this.xstocks.byMint()).get(mint);
+    if (!stock) throw new BadRequestException('Unsupported token');
+    const held = (await this.chain.getBalances(user.walletAddress, { fresh: true })).get(mint) ?? 0;
+    // A hair of tolerance: the app sends the balance it was shown, rounded.
+    if (shares > held * (1 + 1e-9)) {
+      throw new BadRequestException(`You hold ${held} ${stock.symbol}`);
+    }
+
+    const raw = BigInt(Math.floor(Math.min(shares, held) * 10 ** stock.decimals));
+    const params = new URLSearchParams({
+      inputMint: mint,
+      outputMint: usdc.mint,
+      amount: raw.toString(),
+      slippageBps: String(SLIPPAGE_BPS),
+      instructionVersion: 'V2',
+    });
+    if (feeBps > 0) params.set('platformFeeBps', String(feeBps));
+
+    const res = await fetch(`${this.config.jupiterApiUrl}/swap/v1/quote?${params}`, {
+      headers: this.config.jupiterHeaders,
+    });
+    if (!res.ok) await this.fail(res, `no route to sell ${stock.symbol}`);
+    const quote = (await res.json()) as JupiterQuote;
+    // outAmount is already net of the fee, which Jupiter takes from the output.
+    const received = Number(quote.outAmount) / 10 ** usdc.decimals;
+    const gross = feeBps > 0 ? received / (1 - feeBps / 10_000) : received;
+    const buyBack = await this.plainQuote(usdc.mint, mint, quote.outAmount);
+
+    return {
+      quoteId: this.remember(user, quote, feeBps > 0 ? usdc.feeAccount : ''),
+      shares: Number(raw) / 10 ** stock.decimals,
+      estimatedUsdc: received,
+      priceImpactPct: Number(quote.priceImpactPct),
+      platformFeeBps: feeBps,
+      platformFee: gross - received,
+      buyBackShares: buyBack === null ? null : Number(buyBack) / 10 ** stock.decimals,
+    };
+  }
+
+  /** Stores a quote for the build step; only the wallet that asked can build it. */
+  private remember(user: AuthUser, quote: JupiterQuote, feeAccount: string): string {
     this.purgeExpired();
     const quoteId = randomUUID();
     this.quotes.set(quoteId, {
@@ -138,18 +205,27 @@ export class SwapService {
       wallet: user.walletAddress,
       expires: Date.now() + QUOTE_TTL_MS,
       // The build step needs the same fee account the quote was priced with.
-      feeAccount: feeBps > 0 ? payToken.feeAccount : '',
+      feeAccount,
     });
+    return quoteId;
+  }
 
-    return {
-      quoteId,
-      payWith: payToken.symbol,
-      inputAmount: amount,
-      estimatedShares: Number(quote.outAmount) / 10 ** stock.decimals,
-      priceImpactPct: Number(quote.priceImpactPct),
-      platformFeeBps: feeBps,
-      platformFee: (amount * feeBps) / 10_000,
-    };
+  /**
+   * A fee-free quote, only to show what the reverse trade would return. Null
+   * when it can't be had: the warning is a courtesy, never a reason to fail.
+   */
+  private async plainQuote(inputMint: string, outputMint: string, amount: string): Promise<bigint | null> {
+    try {
+      const params = new URLSearchParams({ inputMint, outputMint, amount, slippageBps: String(SLIPPAGE_BPS) });
+      const res = await fetch(`${this.config.jupiterApiUrl}/swap/v1/quote?${params}`, {
+        headers: this.config.jupiterHeaders,
+      });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { outAmount?: string };
+      return body.outAmount ? BigInt(body.outAmount) : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Builds the unsigned swap transaction (base64) for the quoted buy. */

@@ -32,6 +32,13 @@ class TeamCubit extends Cubit<TeamState> {
     }
   }
 
+  /// Brings a bench [stock] on in [slotIndex]. Charged like any substitution
+  /// past the day's free ones, unless the transfer window is open.
+  Future<void> substitute(int slotIndex, XStock stock) async {
+    final roster = await _repository.fillSlot(mode, slotIndex, stock);
+    if (!isClosed) emit(state.copyWith(roster: roster));
+  }
+
   /// Debug-only: records prices now and banks everything owed.
   Future<void> runTick() => _busy(_repository.runTick);
 

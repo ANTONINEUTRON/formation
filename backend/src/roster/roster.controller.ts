@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
@@ -38,6 +39,12 @@ export class RosterController {
       slotIndex,
       requireString(body.mint, 'mint'),
     );
+  }
+
+  /** "Use what I hold": fills an empty team from the wallet's own stocks. */
+  @Post(':mode/from-holdings')
+  fromHoldings(@Param('mode') mode: string, @CurrentUser() user: AuthUser): Promise<RosterDto> {
+    return this.rosters.fillFromHoldings(user, parseSportMode(mode));
   }
 
   /** Football: change shape, e.g. {"formation": "3-5-2"}. */

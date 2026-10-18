@@ -30,6 +30,17 @@ void main() {
     expect(session.transferWindowOpen, isTrue);
     expect(session.matchWeek!.label, 'Season 1 · Week 3');
     expect(session.matchWeek!.points, 42.5);
+    expect(session.matchWeek!.preSeason, isFalse);
+    expect(session.matchWeek!.labelFor(SportMode.basketball), 'Season 1 · Week 3');
+  });
+
+  test('before the season, each sport names its pre-season its own way', () {
+    final week = MatchWeek.fromJson({..._week, 'kickOff': '2026-10-19T13:30:00.000Z', 'preSeason': true});
+    expect(week.labelFor(SportMode.football), startsWith('Pre-season friendlies · Season 1 kick-off '));
+    expect(week.labelFor(SportMode.basketball), startsWith('Preseason games · Season 1 tip-off '));
+    expect(week.labelFor(SportMode.americanFootball), startsWith('Preseason games · Season 1 kickoff '));
+    expect(SportMode.football.preSeason, 'Pre-season');
+    expect(SportMode.basketball.preSeason, 'Preseason');
   });
 
   test('a league parses its fixtures, byes and W/D/L table', () {
@@ -187,8 +198,8 @@ void main() {
       'season': 1,
       'points': -12.5,
       'tiers': [
-        {'tier': 'growth', 'count': 2},
-        {'tier': 'blue_chip', 'count': 1},
+        {'tier': 'momentum', 'count': 2},
+        {'tier': 'balanced', 'count': 1},
       ],
       'sectors': [
         {'sector': 'technology', 'label': 'Technology', 'sharePct': 61},
@@ -200,7 +211,7 @@ void main() {
       'lessons': ['61% of your team is in technology.'],
     });
     expect(health.isBalanced, isFalse);
-    expect(health.tiers['growth'], 2);
+    expect(health.tiers['momentum'], 2);
     expect(health.sectors.first.label, 'Technology');
     expect(health.carried!.symbol, 'NVDAx');
     expect(health.dragged, isNull);

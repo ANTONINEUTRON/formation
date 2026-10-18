@@ -70,7 +70,7 @@ void main() {
         'symbol': 'JNJx',
         'companyName': 'J&J',
         'mint': 'm',
-        'tier': 'stable',
+        'tier': 'blue_chip',
         'priceUsd': 251.36,
         'notScoring': 'price not updating',
       };
@@ -80,14 +80,24 @@ void main() {
       expect(XStock.fromJson({...json, 'notScoring': null}).isScoring, isTrue);
     });
 
-    test('midfield takes balanced or growth stocks', () {
-      final mid = footballShape('4-4-2')[5];
-      final growth = xStockFixtures.firstWhere((s) => s.tier == RiskTier.growth);
+    test('each football line takes its own tier', () {
+      final shape = footballShape('4-4-2');
+      final blueChip = xStockFixtures.firstWhere((s) => s.tier == RiskTier.blueChip);
+      final balanced = xStockFixtures.firstWhere((s) => s.tier == RiskTier.balanced);
       final momentum = xStockFixtures.firstWhere((s) => s.tier == RiskTier.momentum);
-      expect(mid.accepts(growth), isTrue);
-      expect(mid.accepts(momentum), isFalse);
-      expect(mid.tierLabel, 'Balanced or Growth');
-      expect(footballShape('4-4-2')[9].accepts(growth), isFalse);
+      expect(shape[0].accepts(blueChip), isTrue); // GK
+      expect(shape[1].accepts(blueChip), isTrue); // DEF
+      expect(shape[5].accepts(balanced), isTrue);
+      expect(shape[5].accepts(momentum), isFalse);
+      expect(shape[5].tierLabel, 'Balanced');
+      expect(shape[9].accepts(momentum), isTrue);
+    });
+
+    test('reads tier names an older server may still send', () {
+      expect(RiskTier.fromApi('blue_chip'), RiskTier.blueChip);
+      expect(RiskTier.fromApi('stable'), RiskTier.blueChip);
+      expect(RiskTier.fromApi('growth'), RiskTier.momentum);
+      expect(RiskTier.fromApi('momentum'), RiskTier.momentum);
     });
 
     test('preview keeps picks in role order and reports the drops', () {
@@ -200,7 +210,7 @@ void main() {
 
       expect(change.roster.formation, '3-5-2');
       expect(change.dropped, hasLength(1));
-      expect(change.dropped.first.tier, RiskTier.stable); // the fourth defender
+      expect(change.dropped.first.tier, RiskTier.blueChip); // the fourth defender
       expect(change.roster.slots.where((s) => s.isFilled), hasLength(10));
       expect(change.roster.isComplete, isFalse);
       // The captain's stock kept its place, so the armband moved with it.
