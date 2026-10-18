@@ -12,7 +12,7 @@
  */
 (function () {
   var SITE = {
-    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v0.5.apk?alt=media&token=c6f8536e-cca3-4dc8-8232-dbe3acf11093',
+    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v1.0.apk?alt=media&token=cd2b5487-c422-46eb-a741-347b87da8ca9',
     web: 'https://app.formation.titalabs.xyz',
     x: 'https://x.com/formation_sol',
     home: '/',
@@ -63,7 +63,7 @@
           '</nav>' +
         '</div>' +
         '<p class="rs">' +
-          'Formation works with tokenized US stocks and ETFs (xStocks) held in your Solana wallet. ' +
+          'Formation works with tokenized assets held in your Solana wallet. ' +
           'Formation is a game of skill. There is no prize pool, no entry fee and no pooled funds; ' +
           'winnings are standing on a leaderboard, not money. Formation is not a broker, dealer or ' +
           'investment adviser, takes no custody of assets, and does not trade on anyone\'s behalf. ' +
