@@ -40,7 +40,7 @@ class FundWalletSheet extends StatelessWidget {
             const _Step(
               number: 1,
               title: 'Get USDC on Solana',
-              body: 'In your wallet app (Phantom, Solflare and others), tap Buy to pay by card or bank '
+              body: 'In your wallet app (Seed vault wallet, Phantom, Solflare and others), tap Buy to pay by card or bank '
                   'through its payment partner. Or send USDC from an exchange such as Coinbase or Kraken, '
                   'and choose the Solana network when you withdraw.',
             ),
