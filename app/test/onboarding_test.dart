@@ -72,11 +72,11 @@ void main() {
     expect(find.text('Your stocks are your players'), findsOneWidget);
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    expect(find.text('You score when they beat the market'), findsOneWidget);
+    expect(find.text('Beat the market, score points'), findsOneWidget);
 
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
-    expect(find.text('Pick your Assistant Manager'), findsOneWidget);
+    expect(find.text('Meet your Assistant Manager'), findsOneWidget);
 
     // Picking a character is remembered until there's a session to save it to.
     await tester.tap(find.bySemanticsLabel('The Maverick'));

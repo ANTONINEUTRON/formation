@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,7 +11,7 @@ import 'package:formation/features/assistant_manager/domain/assistant_models.dar
 import 'package:formation/features/assistant_manager/ui/widgets/character_view.dart';
 import 'package:formation/features/guide/ui/pages/how_to_play_page.dart';
 import 'package:formation/features/onboarding/data/onboarding_prefs.dart';
-import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/onboarding/ui/widgets/intro_illustrations.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_cubit.dart';
 import 'package:formation/features/wallet/ui/cubits/wallet_state.dart';
 import 'package:formation/features/wallet/ui/widgets/connect_wallet_view.dart';
@@ -376,47 +378,10 @@ class _IntroPlayers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _IntroScreen(
-      visual: Padding(
-        padding: const EdgeInsets.only(top: 40),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            for (final (position, tier, symbol) in [
-              ('GK', RiskTier.blueChip, 'BRK.Bx'),
-              ('DEF', RiskTier.blueChip, 'KOx'),
-              ('MID', RiskTier.balanced, 'MSFTx'),
-              ('FWD', RiskTier.momentum, 'TSLAx'),
-            ])
-              Container(
-                width: 70,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: tier.color.withValues(alpha: 0.7)),
-                  color: AppColors.surfaceElevated,
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      position,
-                      style: TextStyle(fontSize: 10, color: tier.color, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(symbol, style: AppTextStyles.mono(fontSize: 12, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
+    return const _IntroScreen(
+      visual: _Illustration(child: PitchIllustration()),
       title: 'Your stocks are your players',
-      body:
-          'Pick real tokenized stocks for each position in your team. Blue chips hold the back, '
-          'balanced ones move with the market, and momentum names swing big up front. Already hold '
-          'some? They line up for you, and the rest wait on your bench.',
+      body: 'Line up real tokenized stocks, one for each position.',
     );
   }
 }
@@ -427,15 +392,29 @@ class _IntroScoring extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const _IntroScreen(
-      visual: Padding(
-        padding: EdgeInsets.only(top: 40),
-        child: Icon(Icons.trending_up, size: 88, color: AppColors.primary),
+      visual: _Illustration(child: BeatMarketIllustration()),
+      title: 'Beat the market, score points',
+      body: 'You score when your picks beat the S&P 500.',
+    );
+  }
+}
+
+/// Keeps an illustration a comfortable size on any screen: never wider than
+/// a phone, never taller than about half the space.
+class _Illustration extends StatelessWidget {
+  const _Illustration({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 320, maxHeight: math.max(220, height * 0.46)),
+        child: child,
       ),
-      title: 'You score when they beat the market',
-      body:
-          'Points come from beating the S&P 500, not just rising with it. Match weeks run Monday to '
-          'Friday and twelve make a season. Name a captain for bonus points, make 3 free substitutions '
-          'a day, and climb the table or take on your friends.',
     );
   }
 }
@@ -489,10 +468,8 @@ class _IntroAssistant extends StatelessWidget {
           Text(current.tagline, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         ],
       ),
-      title: 'Pick your Assistant Manager',
-      body:
-          'They review your squad, answer your questions and suggest moves. You always make the '
-          'call. Your first squad is on them.',
+      title: 'Meet your Assistant Manager',
+      body: 'They scout and advise. You make the call.',
     );
   }
 }
