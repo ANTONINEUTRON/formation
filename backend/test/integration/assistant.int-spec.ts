@@ -37,13 +37,13 @@ describe('assistant', () => {
       'mentor',
       'scout',
     ]);
-    expect(first.credits).toBe(5);
+    expect(first.credits).toBe(11);
 
     await expect(assistant.chat(manager, ask('hi'))).rejects.toThrow(/Pick your Assistant Manager/);
     const picked = await assistant.setCharacter(manager, 'mentor');
     expect(picked.characterId).toBe('mentor');
     // Reading the profile again never tops the trial back up.
-    expect((await assistant.profile(manager)).credits).toBe(5);
+    expect((await assistant.profile(manager)).credits).toBe(11);
     await expect(assistant.setCharacter(manager, 'pundit')).rejects.toThrow(/Unknown/);
   });
 
@@ -74,7 +74,7 @@ describe('assistant', () => {
         reason: 'steadiest pick',
       },
     ]);
-    expect(reply.credits).toBe(4);
+    expect(reply.credits).toBe(10);
 
     const request = h.llm.requests[0];
     expect(request.messages).toEqual([{ role: 'user', text: 'Who should I captain?' }]);
@@ -87,14 +87,14 @@ describe('assistant', () => {
     await assistant.setCharacter(manager, 'veteran');
     h.llm.fail = true;
     await expect(assistant.chat(manager, ask('hello'))).rejects.toThrow(/not charged/);
-    expect((await assistant.profile(manager)).credits).toBe(5);
+    expect((await assistant.profile(manager)).credits).toBe(11);
 
     h.llm.fail = false;
-    for (let i = 0; i < 5; i++) await assistant.chat(manager, ask(`question ${i}`));
+    for (let i = 0; i < 11; i++) await assistant.chat(manager, ask(`question ${i}`));
     await expect(assistant.chat(manager, ask('one more'))).rejects.toMatchObject({ status: 402 });
 
     const usage = await h.db.selectFrom('assistant_usage').select(['credits', 'succeeded']).execute();
-    expect(usage).toHaveLength(6);
+    expect(usage).toHaveLength(12);
     expect(usage.filter((u) => !u.succeeded)).toEqual([{ credits: 0, succeeded: false }]);
   });
 
@@ -102,7 +102,7 @@ describe('assistant', () => {
     await assistant.setCharacter(manager, 'scout');
     h.llm.available = false;
     await expect(assistant.chat(manager, ask('hi'))).rejects.toMatchObject({ status: 503 });
-    expect((await assistant.profile(manager)).credits).toBe(5);
+    expect((await assistant.profile(manager)).credits).toBe(11);
   });
 
   it('fills the cards it asks for from real prices, with news for one extra credit', async () => {
@@ -144,7 +144,7 @@ describe('assistant', () => {
     expect(board.news?.sources[0].url).toBe('https://news.example.com/story');
     expect(h.llm.searches[0]).toContain('Apple (AAPL)');
     // One credit for the reply, one for the news.
-    expect(reply.credits).toBe(3);
+    expect(reply.credits).toBe(9);
   });
 
   it('skips the news rather than going below zero, and refunds a failed search', async () => {
@@ -154,7 +154,7 @@ describe('assistant', () => {
     h.llm.failSearch = true;
     const failed = await assistant.chat(manager, ask('AAPLx?'));
     expect(failed.cards[0]).not.toHaveProperty('news');
-    expect(failed.credits).toBe(4);
+    expect(failed.credits).toBe(10);
 
     // With a single credit left, the reply is answered and the news is skipped.
     h.llm.failSearch = false;
@@ -186,7 +186,7 @@ describe('assistant', () => {
     expect(card.html).toContain('<td>Blue chip</td>');
     expect(card.html).not.toContain('tracker.example');
     expect(card.html).toContain("default-src 'none'");
-    expect(reply.credits).toBe(3); // reply + html
+    expect(reply.credits).toBe(9); // reply + html
 
     await h.db.updateTable('assistant_credits').set({ balance: 1 }).execute();
     const short = await assistant.chat(manager, ask('Again'));

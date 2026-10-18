@@ -365,6 +365,27 @@ export interface AssistantCreditsTable {
   updated_at: Timestamp;
 }
 
+export type CreditReason =
+  | 'opening'
+  | 'welcome'
+  | 'purchase'
+  | 'reply'
+  | 'html_view'
+  | 'news'
+  | 'squad_draft'
+  | 'avatar'
+  | 'refund';
+
+export interface CreditLedgerTable {
+  id: Generated<number>;
+  user_id: string;
+  delta: number;
+  balance_after: number;
+  reason: CreditReason;
+  ref: string | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface AssistantUsageTable {
   id: Generated<string>;
   user_id: string;
@@ -415,6 +436,7 @@ export interface Database {
   follows: FollowsTable;
   assistant_profiles: AssistantProfilesTable;
   assistant_credits: AssistantCreditsTable;
+  credit_ledger: CreditLedgerTable;
   assistant_usage: AssistantUsageTable;
   credit_quotes: CreditQuotesTable;
   credit_purchases: CreditPurchasesTable;

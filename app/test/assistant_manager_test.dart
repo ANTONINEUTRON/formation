@@ -44,7 +44,7 @@ void main() {
     test('asks for a character first, then answers and charges a credit', () async {
       await cubit.load();
       expect(cubit.state.profile!.characterId, isNull);
-      expect(cubit.state.profile!.credits, 5);
+      expect(cubit.state.profile!.credits, 11);
 
       await cubit.pickCharacter('mentor');
       expect(cubit.state.profile!.character!.name, 'The Mentor');
@@ -52,7 +52,7 @@ void main() {
       await cubit.send(_basketball, 'Review my squad');
       final conversation = cubit.state.conversation(SportMode.basketball);
       expect(conversation.map((m) => m.role), [AssistantRole.manager, AssistantRole.assistant]);
-      expect(cubit.state.profile!.credits, 4);
+      expect(cubit.state.profile!.credits, 10);
       expect(cubit.state.sending, isFalse);
       // Each sport keeps its own conversation.
       expect(cubit.state.conversation(SportMode.football), isEmpty);
@@ -77,7 +77,7 @@ void main() {
     test('runs out of credits and says so instead of answering', () async {
       await cubit.load();
       await cubit.pickCharacter('scout');
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 11; i++) {
         await cubit.send(_basketball, 'question $i');
       }
       expect(cubit.state.outOfCredits, isTrue);
@@ -249,7 +249,7 @@ void main() {
       expect(quote.skrAmount, 50); // $1 at the fixture's $0.02
 
       cubit.creditsBought(await repository.buyCredits(quote));
-      expect(cubit.state.profile!.credits, 55);
+      expect(cubit.state.profile!.credits, 61);
       expect(cubit.state.outOfCredits, isFalse);
     });
   });

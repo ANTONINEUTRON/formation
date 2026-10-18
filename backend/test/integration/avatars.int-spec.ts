@@ -37,7 +37,7 @@ describe('custom avatars', () => {
     expect((await assistant.profile(manager)).avatarCost).toBe(0);
 
     const result = await avatars.create(manager, photo(), { personality: 'maverick', name: 'Coach Toly', consent: 'true' });
-    expect(result.credits).toBe(5); // free
+    expect(result.credits).toBe(11); // free
 
     // One drawing from the photo, then three poses drawn from that character.
     expect(h.llm.imagePrompts).toHaveLength(4);

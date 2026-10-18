@@ -107,23 +107,29 @@ void main() {
   });
 
   group('starter squad (fixture backend)', () {
-    test('drafts a complete squad, regenerates once, then charges credits', () async {
+    test('pays every draft from the one credit balance', () async {
       final repository = FixtureRepository(walletAddress: 'w');
-      expect((await repository.getAssistant()).starterDraftsLeft, 2);
+      final welcome = await repository.getAssistant();
+      expect(welcome.credits, 11);
+      expect(welcome.canAffordDraft, isTrue);
 
       final first = await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
       expect(first.picks, hasLength(5));
       expect(first.picks.map((p) => p.mint).toSet(), hasLength(5));
-      expect(first.draftsLeft, 1);
+      expect(first.draftsLeft, 2); // 8 credits left
       // Held stocks cost nothing; the budget is shared by the rest.
       expect(first.picks.where((p) => !p.needsPurchase).every((p) => p.amountUsd == 0), isTrue);
 
-      final second = await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
-      expect(second.draftsLeft, 0);
-      final before = await repository.getAssistant();
-      expect(before.nextDraftCost, before.squadDraftCredits);
       await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
-      expect((await repository.getAssistant()).credits, before.credits - before.squadDraftCredits);
+      final third = await repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10);
+      expect(third.draftsLeft, 0);
+      final after = await repository.getAssistant();
+      expect(after.credits, 2);
+      expect(after.canAffordDraft, isFalse);
+      expect(
+        () => repository.draftStarterSquad(SportMode.basketball, budgetUsd: 10),
+        throwsA(isA<Exception>()),
+      );
     });
 
     test('parses the backend squad', () {

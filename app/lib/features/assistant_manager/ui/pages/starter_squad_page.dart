@@ -247,7 +247,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         context.select<AssistantCubit, AssistantCharacter?>((c) => c.state.profile?.character) ??
         presetCharacters[3];
     final profile = context.select<AssistantCubit, AssistantProfile?>((c) => c.state.profile);
-    final firstSquad = _teamsWithPlayers.isEmpty && (profile?.starterDraftsLeft ?? 0) > 0;
+    final firstSquad = _teamsWithPlayers.isEmpty;
     final pose = switch (_step) {
       _Step.drafting || _Step.applying => AssistantPose.thinking,
       _Step.review || _Step.done || _Step.fromWallet => AssistantPose.celebrating,
@@ -315,9 +315,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       const _Label('Or let your Assistant Manager draft one'),
     ],
     Text(
-      firstSquad
-          ? 'Your first squad is on ${character.name.replaceFirst('The ', 'your ')}'
-          : 'Let ${character.name.replaceFirst('The ', 'your ')} draft a squad',
+      'Let ${character.name.replaceFirst('The ', 'your ')} draft ${firstSquad ? 'your first squad' : 'a squad'}',
       textAlign: TextAlign.center,
       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
     ),
@@ -397,13 +395,21 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
     ],
     const SizedBox(height: 24),
     FilledButton(onPressed: _draft, child: Text('Draft my squad${_costLabel(profile)}')),
+    if (profile != null) ...[
+      const SizedBox(height: 6),
+      Text(
+        'You have ${profile.credits} credits',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+      ),
+    ],
     const SizedBox(height: 8),
     TextButton(onPressed: _buildMyself, child: const Text("I'll build it myself")),
   ];
 
-  /// " · 3 credits" once the free drafts are used; nothing while they last.
+  /// " · 3 credits": what a draft takes from the credit balance.
   String _costLabel(AssistantProfile? profile) {
-    final cost = profile?.nextDraftCost ?? 0;
+    final cost = profile?.squadDraftCredits ?? 0;
     return cost == 0 ? '' : ' · $cost credits';
   }
 
@@ -447,9 +453,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       FilledButton(onPressed: () => _confirm(squad), child: const Text('Confirm & buy')),
       OutlinedButton(
         onPressed: _draft,
-        child: Text(
-          squad.draftsLeft > 0 ? 'Draft again (${squad.draftsLeft} free left)' : 'Draft again${_costLabel(profile)}',
-        ),
+        child: Text('Draft again${_costLabel(profile)}'),
       ),
       TextButton(onPressed: _buildMyself, child: const Text("I'll build it myself")),
     ];

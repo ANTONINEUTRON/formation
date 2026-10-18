@@ -153,14 +153,15 @@ class AssistantProfile extends Equatable {
 
   final List<CreditPack> packs;
 
-  /// Free starter-squad drafts left: 2 for a brand-new Manager.
+  /// Squad drafts the credit balance covers (at most 2). From older servers,
+  /// which gave free drafts; newer ones fold them into [credits].
   final int starterDraftsLeft;
 
-  /// Credits for an Assistant Manager squad draft once the free ones are used.
+  /// Credits an Assistant Manager squad draft costs.
   final int squadDraftCredits;
 
-  /// What the next squad draft costs in credits: 0 while free ones remain.
-  int get nextDraftCost => starterDraftsLeft > 0 ? 0 : squadDraftCredits;
+  /// Whether the credit balance pays for a squad draft.
+  bool get canAffordDraft => credits >= squadDraftCredits;
 
   /// Whether credits can be bought (SKR is configured on the server).
   final bool canBuyCredits;

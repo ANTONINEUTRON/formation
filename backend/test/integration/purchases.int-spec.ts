@@ -66,7 +66,7 @@ describe('buying assistant credits with SKR', () => {
 
     h.skrPayments.onChain.set('sig-1', paid(quote.quoteId, 50_000_000n));
     expect(await purchases.confirm(manager, { quoteId: quote.quoteId, signature: 'sig-1' })).toEqual({
-      credits: 55,
+      credits: 61,
     });
 
     // Neither the quote nor the transaction can be counted twice.
@@ -78,7 +78,7 @@ describe('buying assistant credits with SKR', () => {
     await expect(
       purchases.confirm(manager, { quoteId: second.quoteId, signature: 'sig-1' }),
     ).rejects.toThrow(/already counted/);
-    expect((await assistant.profile(manager)).credits).toBe(55);
+    expect((await assistant.profile(manager)).credits).toBe(61);
   });
 
   it('refuses a payment that does not match the quote, and grants nothing', async () => {
@@ -93,7 +93,7 @@ describe('buying assistant credits with SKR', () => {
     await expect(purchases.confirm(stranger, { quoteId: quote.quoteId, signature: 'short' })).rejects.toThrow(
       /Unknown quote/,
     );
-    expect((await assistant.profile(manager)).credits).toBe(5);
+    expect((await assistant.profile(manager)).credits).toBe(11);
   });
 
   it('will not build from an expired quote', async () => {

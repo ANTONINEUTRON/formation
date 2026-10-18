@@ -66,9 +66,12 @@ export interface AssistantProfileDto {
   /** Credit packs for sale, and whether buying them (with SKR) is switched on. */
   packs: CreditPack[];
   canBuyCredits: boolean;
-  /** Free starter-squad drafts left (0, 1 or 2). */
+  /**
+   * Squad drafts the credit balance pays for, capped at 2. Kept for app
+   * versions that read it; newer ones use credits and squadDraftCredits.
+   */
   starterDraftsLeft: number;
-  /** Credits for a squad draft once the free ones are used. */
+  /** Credits a squad draft costs. */
   squadDraftCredits: number;
   /** When the Manager's custom avatar was drawn (for image caching); null if none. */
   avatarVersion: number | null;
@@ -113,14 +116,13 @@ export class AssistantService {
   ) {}
 
   async profile(user: AuthUser): Promise<AssistantProfileDto> {
-    const [row, credits, starterDraftsLeft, avatarVersion, avatarCost] = await Promise.all([
+    const [row, credits, avatarVersion, avatarCost] = await Promise.all([
       this.db
         .selectFrom('assistant_profiles')
         .select(['character_id', 'personality', 'custom_name'])
         .where('user_id', '=', user.id)
         .executeTakeFirst(),
       this.credits.balance(user.id),
-      this.starter.draftsLeft(user.id),
       this.avatars.drawnAt(user.id),
       this.avatars.cost(user.id),
     ]);
@@ -133,7 +135,7 @@ export class AssistantService {
       available: this.llm.available,
       packs: this.purchases.packs,
       canBuyCredits: this.purchases.enabled,
-      starterDraftsLeft,
+      starterDraftsLeft: Math.min(2, this.starter.draftsFor(credits)),
       squadDraftCredits: this.config.squadDraftCredits,
       avatarVersion,
       avatarCost,
@@ -175,7 +177,7 @@ export class AssistantService {
     const stocks = await this.xstocks.list();
     const context = buildContext(input, roster, stocks, held, substitutionsToday);
 
-    const balance = await this.credits.charge(user.id, REPLY_COST);
+    const balance = await this.credits.charge(user.id, REPLY_COST, 'reply');
     if (balance === null) {
       throw new HttpException('You are out of Assistant Manager credits', HttpStatus.PAYMENT_REQUIRED);
     }
@@ -189,7 +191,7 @@ export class AssistantService {
         maxOutputTokens: MAX_OUTPUT_TOKENS,
       });
     } catch (e) {
-      await this.credits.refund(user.id, REPLY_COST);
+      await this.credits.refund(user.id, REPLY_COST, 'reply');
       await this.logUsage(user.id, input.mode, 0, 0, 0, false);
       this.logger.warn(`Assistant reply failed: ${e instanceof LlmError ? e.message : String(e)}`);
       throw new BadGatewayException('Your Assistant Manager could not answer. You were not charged.');
@@ -217,7 +219,7 @@ export class AssistantService {
     let credits = balance;
     // A generated HTML view is a much longer reply: one more credit, or it's dropped.
     if (cards.some((c) => c.type === 'html')) {
-      const charged = await this.credits.charge(user.id, HTML_COST);
+      const charged = await this.credits.charge(user.id, HTML_COST, 'html_view');
       if (charged === null) cards = cards.filter((c) => c.type !== 'html');
       else credits = charged;
     }
@@ -241,7 +243,7 @@ export class AssistantService {
   private async addNews(userId: string, mode: SportMode, cards: CardDto[], balance: number): Promise<number> {
     const board = cards.find((c) => c.type === 'statBoard');
     if (!board || board.type !== 'statBoard') return balance;
-    const charged = await this.credits.charge(userId, NEWS_COST);
+    const charged = await this.credits.charge(userId, NEWS_COST, 'news');
     if (charged === null) return balance;
     try {
       const result = await this.llm.search(newsPrompt(board.name, board.symbol), NEWS_MAX_TOKENS);
@@ -251,7 +253,7 @@ export class AssistantService {
     } catch (e) {
       this.logger.warn(`News search failed: ${e instanceof LlmError ? e.message : String(e)}`);
       await this.logUsage(userId, mode, 0, 0, 0, false);
-      return this.credits.refund(userId, NEWS_COST);
+      return this.credits.refund(userId, NEWS_COST, 'news');
     }
   }
 

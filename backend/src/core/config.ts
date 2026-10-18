@@ -61,7 +61,7 @@ export interface AppConfig {
    * held, so without it a few cents of a stock would score like a full one.
    */
   minHoldingUsd: number;
-  /** Credits for an Assistant Manager squad draft once the free ones are used. */
+  /** Credits for an Assistant Manager squad draft. */
   squadDraftCredits: number;
   /** ET date in the week season 1 kicks off; seasons run 12 match weeks from it. */
   seasonAnchor: string;
@@ -93,7 +93,11 @@ export interface AppConfig {
   geminiImageModel: string;
   /** Credits for each custom avatar after the first, which is free. */
   assistantAvatarCredits: number;
-  /** Credits a Manager is given the first time they use the assistant. */
+  /**
+   * Credits a Manager is given once, the first time their account is seen:
+   * by default two squad drafts and five replies. It's the only free
+   * allowance; everything after is bought.
+   */
   assistantTrialCredits: number;
   /** Credit packs for sale, from ASSISTANT_PACKS. */
   assistantPacks: CreditPack[];
@@ -114,6 +118,9 @@ export interface AppConfig {
 export const CONFIG = Symbol('CONFIG');
 
 const DAY_MINUTES = 24 * 60;
+
+/** Squad drafts the welcome credits cover, on top of five replies. */
+export const WELCOME_DRAFTS = 2;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const number = (value: string | undefined, fallback: number) =>
@@ -162,7 +169,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     geminiModel: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
     geminiImageModel: env.GEMINI_IMAGE_MODEL?.trim() || 'gemini-2.5-flash-image',
     assistantAvatarCredits: number(env.ASSISTANT_AVATAR_CREDITS, 20),
-    assistantTrialCredits: number(env.ASSISTANT_TRIAL_CREDITS, 5),
+    assistantTrialCredits: number(
+      env.ASSISTANT_TRIAL_CREDITS,
+      5 + WELCOME_DRAFTS * number(env.SQUAD_DRAFT_CREDITS, 3),
+    ),
     assistantPacks: parsePacks(env.ASSISTANT_PACKS),
     assistantTreasury: (env.ASSISTANT_TREASURY ?? env.JUPITER_FEE_ACCOUNT_SKR ?? '').trim(),
 

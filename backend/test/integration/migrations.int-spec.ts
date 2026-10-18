@@ -31,6 +31,7 @@ describe('migrations', () => {
         'assistant_usage',
         'badges',
         'classic_scores',
+        'credit_ledger',
         'credit_purchases',
         'credit_quotes',
         'daily_substitutions',

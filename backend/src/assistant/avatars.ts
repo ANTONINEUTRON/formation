@@ -100,7 +100,7 @@ export class AvatarService {
     const cost = await this.cost(user.id);
     let balance = await this.credits.balance(user.id);
     if (cost > 0) {
-      const charged = await this.credits.charge(user.id, cost);
+      const charged = await this.credits.charge(user.id, cost, 'avatar');
       if (charged === null) {
         throw new HttpException(`A new avatar costs ${cost} credits`, HttpStatus.PAYMENT_REQUIRED);
       }
@@ -111,7 +111,7 @@ export class AvatarService {
     try {
       poses = await this.draw({ mime: photo.mimetype, data: photo.buffer });
     } catch (e) {
-      if (cost > 0) await this.credits.refund(user.id, cost);
+      if (cost > 0) await this.credits.refund(user.id, cost, 'avatar');
       this.logger.warn(`Avatar drawing failed: ${e instanceof LlmError ? e.message : String(e)}`);
       throw new BadGatewayException(
         "We couldn't draw an Assistant Manager from that photo. Try a clear, well-lit photo of one person." +

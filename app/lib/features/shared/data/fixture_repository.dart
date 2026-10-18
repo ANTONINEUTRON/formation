@@ -975,8 +975,10 @@ class FixtureRepository implements FormationRepository {
   // ── Assistant Manager (canned, but reads the real fixture roster) ──────────
 
   String? _assistantCharacterId;
-  int _assistantCredits = 5;
-  int _starterDraftsLeft = 2;
+  /// The welcome credits, as on the server: two squad drafts and five replies.
+  int _assistantCredits = 11;
+  int _draftsMade = 0;
+  static const _draftCost = 3;
 
   /// The demo "draws" a custom avatar by using the photo for every pose.
   Uint8List? _avatarPhoto;
@@ -1008,30 +1010,27 @@ class FixtureRepository implements FormationRepository {
           CreditPack(id: 'credits-1000', credits: 1000, usd: 15),
         ],
         canBuyCredits: true,
-        starterDraftsLeft: _starterDraftsLeft,
+        squadDraftCredits: _draftCost,
       );
 
   @override
   Future<StarterSquad> draftStarterSquad(SportMode mode, {required double budgetUsd, String? style}) =>
       _delay(() {
-        if (_starterDraftsLeft <= 0) {
-          // After the free drafts, a draft costs 3 credits, as on the server.
-          if (_assistantCredits < 3) {
-            throw const ValidationException(message: 'A squad draft costs 3 credits');
-          }
-          _assistantCredits -= 3;
-          _starterDraftsLeft = 1; // spent again just below
-        }
-        final formation = mode == SportMode.football ? (_starterDraftsLeft == 2 ? '4-4-2' : '4-3-3') : null;
+        final formation = mode == SportMode.football ? (_draftsMade.isEven ? '4-4-2' : '4-3-3') : null;
         final shape = rosterShape(mode, formation);
         if (budgetUsd < shape.length) {
           throw ValidationException(message: 'A squad needs a budget of at least \$${shape.length}');
         }
-        _starterDraftsLeft--;
+        // Every draft is paid from the one credit balance, as on the server.
+        if (_assistantCredits < _draftCost) {
+          throw const ValidationException(message: 'A squad draft costs $_draftCost credits');
+        }
+        _assistantCredits -= _draftCost;
+        _draftsMade++;
 
         // Held stocks first, then the rest; a regenerate shuffles the order.
         final pool = [..._stocks.where((s) => s.symbol != _benchmarkSymbol)];
-        if (_starterDraftsLeft == 0) pool.shuffle(Random(3));
+        if (_draftsMade > 1) pool.shuffle(Random(_draftsMade));
         pool.sort((a, b) => ((_held[b.mint] ?? 0) > 0 ? 1 : 0) - ((_held[a.mint] ?? 0) > 0 ? 1 : 0));
         final used = <String>{};
         final chosen = <(int, XStock)>[];
@@ -1067,12 +1066,9 @@ class FixtureRepository implements FormationRepository {
           text: 'Here is a balanced first squad (demo). Swap anything you like before confirming.',
           budgetUsd: budgetUsd,
           skrUsd: _fixtureSkrUsd,
-          draftsLeft: _starterDraftsLeft,
+          draftsLeft: _assistantCredits ~/ _draftCost,
         );
       });
-
-  @override
-  Future<void> dismissStarterSquad() => _delay(() => _starterDraftsLeft = 0);
 
   @override
   Future<int> createAvatar({

@@ -7,7 +7,6 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { sql } from 'kysely';
 import { CLOCK } from '../core/clock.js';
 import type { Clock } from '../core/clock.js';
 import { CONFIG } from '../core/config.js';
@@ -19,6 +18,7 @@ import type { PriceSource } from '../core/sources.js';
 import type { AuthUser } from '../domain/dto.js';
 import type { PayToken } from '../domain/pay-tokens.js';
 import { requireString } from '../domain/validate.js';
+import { CreditsService } from './credits.service.js';
 import type { CreditPack } from './packs.js';
 import { MEMO_PREFIX, SKR_PAYMENTS, paymentProblem } from './skr-payments.js';
 import type { SkrPayments } from './skr-payments.js';
@@ -56,6 +56,7 @@ export class PurchasesService {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     @Inject(SKR_PAYMENTS) private readonly payments: SkrPayments,
+    private readonly credits: CreditsService,
   ) {}
 
   /** SKR, if it is configured and there is somewhere to pay it. */
@@ -177,18 +178,7 @@ export class PurchasesService {
         .executeTakeFirst();
       if (!inserted) throw new ConflictException('That payment was already counted');
 
-      const row = await trx
-        .insertInto('assistant_credits')
-        .values({ user_id: user.id, balance: quote.credits, trial_granted: true })
-        .onConflict((oc) =>
-          oc.column('user_id').doUpdateSet({
-            balance: sql<number>`assistant_credits.balance + ${quote.credits}`,
-            updated_at: this.clock.date(),
-          }),
-        )
-        .returning('balance')
-        .executeTakeFirstOrThrow();
-      return { credits: row.balance };
+      return { credits: await this.credits.addPurchased(trx, user.id, quote.credits, signature) };
     });
   }
 

@@ -57,7 +57,7 @@ describe('free starter squad', () => {
     expect(squad.picks.some((p) => p.mint === BENCHMARK_MINT)).toBe(false);
     expect(squad.captainSlot).toBe(4);
     expect(squad.viceCaptainSlot).toBeNull(); // basketball has no vice
-    expect(squad.draftsLeft).toBe(1);
+    expect(squad.draftsLeft).toBe(2);
   });
 
   it('buys a stock held only as dust, rather than counting it as held', async () => {
@@ -76,33 +76,61 @@ describe('free starter squad', () => {
     expect(squad.picks.filter((p) => p.needsPurchase).every((p) => p.amountUsd === 5)).toBe(true);
   });
 
-  it('gives two free drafts, then charges credits, refunding a failed one', async () => {
+  it('pays every draft from the one credit balance, refunding a failed one, and records each move', async () => {
     h.llm.reply = { text: 'ok', picks: [] };
-    h.llm.fail = true;
-    await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/still yours/);
-    h.llm.fail = false;
+    const welcome = (await assistant.profile(manager)).credits;
+    expect(welcome).toBe(11); // two drafts and five replies
 
-    await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
-    await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
-    const profile = await assistant.profile(manager);
-    expect(profile.starterDraftsLeft).toBe(0);
-    const credits = profile.credits; // the trial allowance, 5
-
-    // The third costs 3 credits; a failed one gives them back.
     h.llm.fail = true;
     await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/refunded/);
-    expect((await assistant.profile(manager)).credits).toBe(credits);
+    expect((await assistant.profile(manager)).credits).toBe(welcome);
     h.llm.fail = false;
+
+    const first = await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
+    expect(first).toMatchObject({ credits: welcome - 3, draftsLeft: 2 });
     await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
-    expect((await assistant.profile(manager)).credits).toBe(credits - 3);
+    await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
+    expect((await assistant.profile(manager)).credits).toBe(2);
 
     // Two credits left: not enough for another.
     await expect(starter.draft(manager, { mode: 'basketball', budgetUsd: 10 })).rejects.toThrow(/costs 3 credits/);
+
+    const ledger = await h.db
+      .selectFrom('credit_ledger')
+      .select(['delta', 'balance_after', 'reason', 'ref'])
+      .where('user_id', '=', manager.id)
+      .orderBy('id')
+      .execute();
+    expect(ledger.map((e) => [e.reason, e.delta])).toEqual([
+      ['welcome', 11],
+      ['squad_draft', -3],
+      ['refund', 3],
+      ['squad_draft', -3],
+      ['squad_draft', -3],
+      ['squad_draft', -3],
+    ]);
+    expect(ledger.reduce((sum, e) => sum + e.delta, 0)).toBe(ledger.at(-1)!.balance_after);
   });
 
-  it('needs at least the minimum buy per player, and can be declined', async () => {
+  it('never gives the welcome credits twice to the same wallet', async () => {
+    await assistant.profile(manager);
+    await starter.draft(manager, { mode: 'basketball', budgetUsd: 10 });
+    // Signing in again with the same wallet finds the same account.
+    const again = await h.createPlayer('rookie');
+    expect(again.id).toBe(manager.id);
+    expect((await assistant.profile(again)).credits).toBe(8);
+    const welcomes = await h.db
+      .selectFrom('credit_ledger')
+      .select('id')
+      .where('user_id', '=', manager.id)
+      .where('reason', '=', 'welcome')
+      .execute();
+    expect(welcomes).toHaveLength(1);
+  });
+
+  it('needs at least the minimum buy per player, and declining costs nothing', async () => {
     await expect(starter.draft(manager, { mode: 'football', budgetUsd: 5 })).rejects.toThrow(/at least \$11/);
     await starter.dismiss(manager);
-    expect((await assistant.profile(manager)).starterDraftsLeft).toBe(0);
+    expect((await assistant.profile(manager)).credits).toBe(11);
   });
 });

@@ -571,11 +571,6 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
-  Future<void> dismissStarterSquad() async {
-    await _request('POST', '/assistant/starter/dismiss');
-  }
-
-  @override
   Future<int> createAvatar({
     required Uint8List photo,
     required String mimeType,

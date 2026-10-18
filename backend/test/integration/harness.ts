@@ -74,6 +74,7 @@ const TABLES = [
   'notifications',
   'follows',
   'assistant_profiles',
+  'credit_ledger',
   'assistant_credits',
   'assistant_usage',
   'credit_purchases',

@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
       await prefs.clearPendingCharacter();
     }
 
-    if (profile.starterDraftsLeft < 2 || await prefs.starterOffered()) return;
+    if (!profile.canAffordDraft || await prefs.starterOffered()) return;
     try {
       final rosters = await Future.wait(_modes.map(repository.getRoster));
       if (!rosters.every((r) => r.isEmpty)) return;

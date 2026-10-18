@@ -8,7 +8,6 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { sql } from 'kysely';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { DB } from '../core/db.js';
@@ -31,8 +30,8 @@ import { LLM_PROVIDER, LlmError } from './llm.js';
 import type { LlmProvider } from './llm.js';
 import { starterPrompt, STARTER_SCHEMA } from './prompt.js';
 
-/** A draft plus one regenerate. */
-export const STARTER_DRAFTS = 2;
+/** What to report as affordable when drafts are set to cost nothing. */
+const STARTER_DRAFTS = 2;
 const MAX_BUDGET_USD = 10_000;
 
 export interface StarterPickDto {
@@ -60,16 +59,18 @@ export interface StarterSquadDto {
   budgetUsd: number;
   /** SKR's dollar price, so the app can pay in SKR; null when SKR isn't offered. */
   skrUsd: number | null;
-  /** Drafts left after this one (a regenerate, or none). */
+  /** Further drafts the credits left after this one pay for. */
   draftsLeft: number;
+  /** The credit balance after paying for this draft. */
+  credits: number;
 }
 
 /**
  * The squad draft: the Assistant Manager drafts a complete, valid lineup for
  * a Manager's budget. The Manager reviews it and confirms; the app then buys
  * what they don't hold and fills the slots. Nothing here moves any money.
- * The first [STARTER_DRAFTS] are free; each one after costs
- * SQUAD_DRAFT_CREDITS, refunded if the draft fails.
+ * Each draft costs SQUAD_DRAFT_CREDITS from the Manager's credit balance
+ * (the welcome credits cover two), refunded if the draft fails.
  */
 @Injectable()
 export class StarterService {
@@ -85,19 +86,18 @@ export class StarterService {
     private readonly credits: CreditsService,
   ) {}
 
-  async draftsLeft(userId: string): Promise<number> {
-    const row = await this.db
-      .selectFrom('users')
-      .select('starter_drafts')
-      .where('id', '=', userId)
-      .executeTakeFirst();
-    return Math.max(0, STARTER_DRAFTS - (row?.starter_drafts ?? STARTER_DRAFTS));
+  /** Squad drafts a credit balance pays for. */
+  draftsFor(credits: number): number {
+    const cost = this.config.squadDraftCredits;
+    return cost > 0 ? Math.floor(credits / cost) : STARTER_DRAFTS;
   }
 
-  /** "I'll build it myself": the free draft is gone. */
+  /**
+   * "I'll build it myself". Kept for app versions that still call it; drafts
+   * are paid from credits now, so declining gives nothing up.
+   */
   async dismiss(user: AuthUser): Promise<{ draftsLeft: number }> {
-    await this.db.updateTable('users').set({ starter_drafts: STARTER_DRAFTS }).where('id', '=', user.id).execute();
-    return { draftsLeft: 0 };
+    return { draftsLeft: this.draftsFor(await this.credits.balance(user.id)) };
   }
 
   async draft(user: AuthUser, body: unknown): Promise<StarterSquadDto> {
@@ -114,41 +114,21 @@ export class StarterService {
     }
     if (!this.llm.available) throw new ServiceUnavailableException('Your Assistant Manager is off duty right now');
 
-    // The free drafts first; after those, each draft costs credits.
-    const claimed = await this.db
-      .updateTable('users')
-      .set({ starter_drafts: sql<number>`starter_drafts + 1` })
-      .where('id', '=', user.id)
-      .where('starter_drafts', '<', STARTER_DRAFTS)
-      .returning('starter_drafts')
-      .executeTakeFirst();
-    const cost = claimed ? 0 : this.config.squadDraftCredits;
-    if (!claimed) {
-      const balance = await this.credits.charge(user.id, cost);
-      if (balance === null) {
-        throw new HttpException(`A squad draft costs ${cost} credits`, HttpStatus.PAYMENT_REQUIRED);
-      }
+    // Paid up front from the one credit balance, and refunded if it fails.
+    const cost = this.config.squadDraftCredits;
+    const balance = await this.credits.charge(user.id, cost, 'squad_draft');
+    if (balance === null) {
+      throw new HttpException(`A squad draft costs ${cost} credits`, HttpStatus.PAYMENT_REQUIRED);
     }
 
     try {
-      return await this.build(user, mode, budgetUsd, style, claimed ? STARTER_DRAFTS - claimed.starter_drafts : 0);
+      return await this.build(user, mode, budgetUsd, style, balance);
     } catch (e) {
-      // Hand the draft back: a failure shouldn't cost the Manager their go.
-      if (claimed) {
-        await this.db
-          .updateTable('users')
-          .set({ starter_drafts: sql<number>`greatest(starter_drafts - 1, 0)` })
-          .where('id', '=', user.id)
-          .execute();
-      } else {
-        await this.credits.refund(user.id, cost);
-      }
+      await this.credits.refund(user.id, cost, 'squad_draft');
       if (e instanceof LlmError) {
         this.logger.warn(`Squad draft failed: ${e.message}`);
         throw new BadGatewayException(
-          claimed
-            ? "Your Assistant Manager couldn't draft a squad just now. Your free draft is still yours."
-            : "Your Assistant Manager couldn't draft a squad just now. Your credits were refunded.",
+          "Your Assistant Manager couldn't draft a squad just now. Your credits were refunded.",
         );
       }
       throw e;
@@ -164,7 +144,7 @@ export class StarterService {
     mode: SportMode,
     budgetUsd: number,
     requestedStyle: AdviceStyle | undefined,
-    draftsLeft: number,
+    credits: number,
   ): Promise<StarterSquadDto> {
     const [stocks, held, profile] = await Promise.all([
       this.xstocks.list(),
@@ -285,7 +265,8 @@ export class StarterService {
       text: typeof json.text === 'string' && json.text.trim() ? json.text.trim() : 'Here is your starting lineup.',
       budgetUsd,
       skrUsd: skrUsd && skrUsd > 0 ? skrUsd : null,
-      draftsLeft,
+      draftsLeft: this.draftsFor(credits),
+      credits,
     };
   }
 }
