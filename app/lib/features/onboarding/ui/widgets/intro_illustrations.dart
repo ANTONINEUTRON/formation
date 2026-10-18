@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/draft/ui/widgets/formation_board.dart';
 import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/shared/domain/roster_shapes.dart';
 
 /// Plays [builder]'s animation once, from 0 to 1, when first shown. With
 /// animations switched off on the device it starts at the end.
@@ -48,117 +50,149 @@ double _phase(double t, double start, double end) =>
 
 // ── Your stocks are your players ──────────────────────────────────────────────
 
-/// A night pitch whose positions fill with stocks, one line at a time, each
-/// in its tier's colour.
-class PitchIllustration extends StatelessWidget {
-  const PitchIllustration({super.key});
-
-  // (position, tier, symbol, x, y) with x, y as fractions of the pitch.
-  static const _players = [
-    ('FWD', RiskTier.momentum, 'TSLAx', 0.32, 0.16),
-    ('FWD', RiskTier.momentum, 'NVDAx', 0.68, 0.16),
-    ('MID', RiskTier.balanced, 'MSFTx', 0.2, 0.43),
-    ('MID', RiskTier.balanced, 'AMZNx', 0.5, 0.4),
-    ('MID', RiskTier.balanced, 'METAx', 0.8, 0.43),
-    ('DEF', RiskTier.blueChip, 'KOx', 0.3, 0.67),
-    ('DEF', RiskTier.blueChip, 'JNJx', 0.7, 0.67),
-    ('GK', RiskTier.blueChip, 'BRK.Bx', 0.5, 0.88),
-  ];
+/// The team screen's own board, drafting itself: each sport in turn, its
+/// positions filling with stocks in their jerseys and tier colours, then on
+/// to the next sport. With animations off it shows a full football team.
+class LineupIllustration extends StatefulWidget {
+  const LineupIllustration({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 0.82,
-      child: _PlayOnce(
-        duration: const Duration(milliseconds: 1600),
-        builder: (context, t) => LayoutBuilder(
-          builder: (context, box) {
-            final w = box.maxWidth;
-            final h = box.maxHeight;
-            final chip = (w * 0.24).clamp(56.0, 84.0);
-            return Stack(
-              children: [
-                Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
-                for (var i = 0; i < _players.length; i++)
-                  _placed(_players[i], _phase(t, 0.1 + (_players.length - 1 - i) * 0.08, 0.5 + (_players.length - 1 - i) * 0.08), w, h, chip),
-              ],
-            );
-          },
-        ),
-      ),
+  State<LineupIllustration> createState() => _LineupIllustrationState();
+}
+
+class _LineupIllustrationState extends State<LineupIllustration> with SingleTickerProviderStateMixin {
+  /// Time on each sport: drafting, a pause on the full team, a fade.
+  static const _perSport = Duration(milliseconds: 3600);
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _perSport * SportMode.values.length,
+  );
+
+  // Example picks by tier, in the order they're drafted.
+  static const _demo = {
+    RiskTier.blueChip: ['BRK.Bx', 'KOx', 'JNJx', 'PGx', 'WMTx', 'MCDx', 'AAPLx'],
+    RiskTier.balanced: ['MSFTx', 'AMZNx', 'METAx', 'GOOGLx', 'Vx'],
+    RiskTier.momentum: ['TSLAx', 'NVDAx', 'PLTRx', 'COINx', 'AMDx'],
+  };
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.stop();
+      _controller.value = 0.2; // football, every position filled
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// [mode]'s team with its first [filled] positions drafted.
+  static Roster _team(SportMode mode, int filled) {
+    final empty = emptyRoster(mode);
+    final used = <RiskTier, int>{};
+    return Roster(
+      mode: mode,
+      formation: empty.formation,
+      captainSlot: mode == SportMode.americanFootball || filled == 0 ? null : 0,
+      slots: [
+        for (final (i, slot) in empty.slots.indexed)
+          if (i >= filled)
+            slot
+          else
+            () {
+              // FLEX takes any tier; it gets a balanced pick.
+              final tier = slot.position.requiredTier ?? RiskTier.balanced;
+              final n = used[tier] = (used[tier] ?? -1) + 1;
+              final symbol = _demo[tier]![n % _demo[tier]!.length];
+              return slot.fill(
+                XStock(symbol: symbol, companyName: symbol, mint: 'demo-$symbol', tier: tier, priceUsd: 0),
+                1,
+              );
+            }(),
+      ],
     );
   }
 
-  Widget _placed((String, RiskTier, String, double, double) player, double p, double w, double h, double chip) {
-    final (position, tier, symbol, x, y) = player;
-    // Each one rises into place from just below its spot.
-    return Positioned(
-      left: x * w - chip / 2,
-      top: y * h - chip * 0.34 + (1 - p) * 24,
-      width: chip,
-      child: Opacity(
-        opacity: p,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: tier.color.withValues(alpha: 0.85), width: 1.4),
-            boxShadow: [BoxShadow(color: tier.color.withValues(alpha: 0.25 * p), blurRadius: 12)],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(position, style: TextStyle(fontSize: 9, color: tier.color, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              FittedBox(
-                child: Text(symbol, style: AppTextStyles.mono(fontSize: 11, fontWeight: FontWeight.w700)),
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final sports = SportMode.values.length;
+        final at = _controller.value * sports;
+        final mode = SportMode.values[at.floor().clamp(0, sports - 1)];
+        final t = at - at.floor(); // 0..1 through this sport
+        final size = rosterShape(mode).length;
+        // Draft over the first 60%, hold, then fade out over the last 10%.
+        final filled = (size * _phase(t, 0.05, 0.6) + 0.001).floor().clamp(0, size);
+        final opacity = math.min(_phase(t, 0, 0.06), 1 - _phase(t, 0.9, 1));
+
+        return Column(
+          children: [
+            _SportTabs(selected: mode),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Opacity(
+                opacity: opacity,
+                // A new board per sport, so players start in place rather
+                // than sliding over from the last sport's positions.
+                child: Center(
+                  child: FormationBoard(key: ValueKey(mode), roster: _team(mode, filled)),
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _PitchPainter extends CustomPainter {
+/// The three sports, the one being shown lit.
+class _SportTabs extends StatelessWidget {
+  const _SportTabs({required this.selected});
+
+  final SportMode selected;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final pitch = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(22));
-    canvas.drawRRect(
-      pitch,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF143A28), Color(0xFF0E2A1D)],
-        ).createShader(Offset.zero & size),
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (final mode in SportMode.values)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: mode == selected ? AppColors.primary.withValues(alpha: 0.14) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: mode == selected ? AppColors.primary : AppColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(mode.icon, size: 14, color: mode == selected ? AppColors.primary : AppColors.textMuted),
+                if (mode == selected) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    mode.label,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
     );
-
-    // Mown stripes.
-    final stripe = Paint()..color = Colors.white.withValues(alpha: 0.025);
-    final band = size.height / 8;
-    for (var i = 0; i < 8; i += 2) {
-      canvas.drawRect(Rect.fromLTWH(0, i * band, size.width, band), stripe);
-    }
-
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: 0.16)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final inset = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
-    canvas.drawRRect(RRect.fromRectAndRadius(inset, const Radius.circular(14)), line);
-    canvas.drawLine(Offset(inset.left, size.height / 2), Offset(inset.right, size.height / 2), line);
-    canvas.drawCircle(size.center(Offset.zero), size.width * 0.14, line);
-    final boxWidth = size.width * 0.46;
-    final boxHeight = size.height * 0.12;
-    canvas.drawRect(Rect.fromLTWH((size.width - boxWidth) / 2, inset.top, boxWidth, boxHeight), line);
-    canvas.drawRect(Rect.fromLTWH((size.width - boxWidth) / 2, inset.bottom - boxHeight, boxWidth, boxHeight), line);
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ── You score when they beat the market ───────────────────────────────────────
@@ -174,7 +208,7 @@ class BeatMarketIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.15,
+      aspectRatio: 0.9,
       child: _PlayOnce(
         duration: const Duration(milliseconds: 2000),
         builder: (context, t) {

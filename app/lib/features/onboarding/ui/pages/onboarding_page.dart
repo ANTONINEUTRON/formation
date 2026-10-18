@@ -128,11 +128,8 @@ class _Carousel extends StatelessWidget {
             child: TextButton(
               onPressed: last
                   ? null
-                  : () => controller.animateToPage(
-                      2,
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeOut,
-                    ),
+                  : () =>
+                        controller.animateToPage(2, duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
               child: const Text('Skip'),
             ),
           ),
@@ -171,10 +168,8 @@ class _Carousel extends StatelessWidget {
               : SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => controller.nextPage(
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeOut,
-                    ),
+                    onPressed: () =>
+                        controller.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
                     child: const Text('Next'),
                   ),
                 ),
@@ -203,7 +198,9 @@ class _Wide extends StatelessWidget {
             children: [
               const _Brand(),
               const SizedBox(height: 32),
-              IntrinsicHeight(
+              // A set height: each screen sizes its illustration to what it's given.
+              SizedBox(
+                height: 560,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -295,9 +292,7 @@ class _Brand extends StatelessWidget {
         Text(
           AppConstants.appTagline,
           textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5),
         ),
       ],
     );
@@ -326,9 +321,9 @@ class _Connect extends StatelessWidget {
         const LegalLinks(),
         // Before connecting there's no router, and no Assistant Manager to ask.
         TextButton.icon(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const HowToPlayPage(showAssistant: false)),
-          ),
+          onPressed: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const HowToPlayPage(showAssistant: false))),
           icon: const Icon(Icons.menu_book_outlined, size: 16),
           label: const Text('How the game works'),
         ),
@@ -342,35 +337,55 @@ class _Connect extends StatelessWidget {
 class _IntroScreen extends StatelessWidget {
   const _IntroScreen({required this.visual, required this.title, required this.body});
 
-  final Widget visual;
+  /// Built for the height it gets: about 70% of the screen, less whatever
+  /// the title and line need to stay in view.
+  final Widget Function(double height) visual;
   final String title;
   final String body;
 
+  /// Room the title and one line of copy take under the illustration.
+  static const _textRoom = 120.0;
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(
-        children: [
-          visual,
-          const SizedBox(height: 28),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+    return LayoutBuilder(
+      builder: (context, box) {
+        final screen = MediaQuery.sizeOf(context).height;
+        final height = math.max(200.0, math.min(screen * 0.7, box.maxHeight - _textRoom));
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: [
+              SizedBox(
+                height: height,
+                child: Center(
+                  child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440), child: visual(height)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ..._text(context),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.5, fontSize: 15),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+
+  List<Widget> _text(BuildContext context) => [
+    Text(
+      title,
+      textAlign: TextAlign.center,
+      style: Theme.of(
+        context,
+      ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+    ),
+    const SizedBox(height: 8),
+    Text(
+      body,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: AppColors.textSecondary, height: 1.5, fontSize: 15),
+    ),
+  ];
 }
 
 class _IntroPlayers extends StatelessWidget {
@@ -378,11 +393,7 @@ class _IntroPlayers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _IntroScreen(
-      visual: _Illustration(child: PitchIllustration()),
-      title: 'Your stocks are your players',
-      body: 'Line up real tokenized stocks, one for each position.',
-    );
+    return _IntroScreen(visual: (_) => const LineupIllustration(), title: 'Your stocks are your players', body: '');
   }
 }
 
@@ -391,30 +402,10 @@ class _IntroScoring extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _IntroScreen(
-      visual: _Illustration(child: BeatMarketIllustration()),
+    return _IntroScreen(
+      visual: (_) => const BeatMarketIllustration(),
       title: 'Beat the market, score points',
-      body: 'You score when your picks beat the S&P 500.',
-    );
-  }
-}
-
-/// Keeps an illustration a comfortable size on any screen: never wider than
-/// a phone, never taller than about half the space.
-class _Illustration extends StatelessWidget {
-  const _Illustration({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height;
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 320, maxHeight: math.max(220, height * 0.46)),
-        child: child,
-      ),
+      body: '',
     );
   }
 }
@@ -427,46 +418,61 @@ class _IntroAssistant extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final current = presetCharacters.firstWhere(
-      (c) => c.id == selected,
-      orElse: () => presetCharacters.first,
-    );
+    final current = presetCharacters.firstWhere((c) => c.id == selected, orElse: () => presetCharacters.first);
     return _IntroScreen(
-      visual: Column(
-        children: [
-          CharacterFigure(character: current, pose: AssistantPose.celebrating, height: 170),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            alignment: WrapAlignment.center,
+      // The figure takes what the picker and name leave of the space, and the
+      // whole scales down where there's less (the connect card shares this page).
+      visual: (height) => FittedBox(
+        fit: BoxFit.scaleDown,
+        // A set width, so a long tagline wraps instead of shrinking everything.
+        child: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final c in presetCharacters)
-                Semantics(
-                  button: true,
-                  selected: c.id == selected,
-                  label: c.name,
-                  child: GestureDetector(
-                    onTap: () => onSelected(c.id),
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 150),
-                      opacity: c.id == selected ? 1 : 0.5,
-                      child: CharacterHead(
-                        character: c,
-                        pose: AssistantPose.neutral,
-                        size: c.id == selected ? 48 : 40,
+              CharacterFigure(
+                character: current,
+                pose: AssistantPose.celebrating,
+                height: (height - 150).clamp(150.0, 380.0),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final c in presetCharacters)
+                    Semantics(
+                      button: true,
+                      selected: c.id == selected,
+                      label: c.name,
+                      child: GestureDetector(
+                        onTap: () => onSelected(c.id),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 150),
+                          opacity: c.id == selected ? 1 : 0.5,
+                          child: CharacterHead(
+                            character: c,
+                            pose: AssistantPose.neutral,
+                            size: c.id == selected ? 48 : 40,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                current.name,
+                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+              Text(
+                current.tagline,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            current.name,
-            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-          ),
-          Text(current.tagline, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-        ],
+        ),
       ),
       title: 'Meet your Assistant Manager',
       body: 'They scout and advise. You make the call.',
