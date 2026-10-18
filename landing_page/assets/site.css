@@ -113,6 +113,8 @@ a { color: inherit; }
   text-decoration: none;
 }
 .nav__links a:hover { color: var(--chalk); }
+/* The nav's link colour would otherwise win over the button's. */
+.nav__links a.btn--go, .nav__links a.btn--go:hover { color: #0A1410; }
 @media (max-width: 720px) { .nav__links a:not(.btn) { display: none; } }
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */

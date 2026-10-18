@@ -22,9 +22,10 @@
   };
 
   var NAV = [
-    ['How to play', '/how-to-play'],
-    ['Copy the best', '/#copy'],
-    ["It's live", '/#built'],
+    ['How it works', '/#how'],
+    ['Scoring', '/#score'],
+    ['Features', '/#features'],
+    ['Rules', '/how-to-play'],
   ];
 
   var X_ICON =
