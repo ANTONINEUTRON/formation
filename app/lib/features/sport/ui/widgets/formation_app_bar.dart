@@ -29,11 +29,11 @@ class FormationAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: false,
       bottom: bottom,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.help_outline_rounded),
-          onPressed: () => context.router.push(HowToPlayRoute(mode: mode)),
-          tooltip: 'How to play',
-        ),
+        // IconButton(
+        //   icon: const Icon(Icons.help_outline_rounded),
+        //   onPressed: () => context.router.push(HowToPlayRoute(mode: mode)),
+        //   tooltip: 'How to play',
+        // ),
         IconButton(
           icon: const Icon(Icons.auto_awesome_outlined),
           onPressed: () => showAssistantSheet(context, AssistantContext(mode: mode)),
