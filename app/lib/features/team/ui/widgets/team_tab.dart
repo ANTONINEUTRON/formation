@@ -73,8 +73,7 @@ class TeamTab extends StatelessWidget {
           return EmptyState(
             icon: cubit.mode.icon,
             message: 'You have no ${cubit.mode.label} team yet.\n'
-                'Draft ${roster.slots.length} xStocks into positions to join the global league '
-                'and start duelling.',
+                'Draft ${roster.slots.length} stocks into positions to join the global league ',
             actionLabel: 'Draft your team',
             onAction: openDraft,
             secondaryLabel: 'Let my Assistant Manager draft it',
