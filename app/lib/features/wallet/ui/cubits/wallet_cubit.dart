@@ -226,11 +226,12 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     );
 
     // ── SKR (Seeker) ─────────────────────────────────────────
-    // Skipped if the mint address is still the placeholder constant.
-    final skr = AppConstants.skrMintAddress == AppConstants.skrMintPlaceholder
-        ? 0.0
-        : await _tokenBalance(walletAddress, AppConstants.skrMintAddress);
-    balances.add(WalletBalance(currency: 'SKR', amount: skr));
+    balances.add(
+      WalletBalance(
+        currency: 'SKR',
+        amount: await _tokenBalance(walletAddress, AppConstants.skrMintAddress),
+      ),
+    );
 
     return balances;
   }

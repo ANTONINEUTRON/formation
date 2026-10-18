@@ -146,6 +146,14 @@ class ProfilePage extends StatelessWidget {
                       assetImage: Assets.icons.usdc,
                       color: const Color(0xFF2775CA),
                     ),
+                    const SizedBox(height: 8),
+                    TokenBalance(
+                      symbol: 'SKR',
+                      name: 'Seeker',
+                      balance: bal('SKR', 2),
+                      assetImage: Assets.icons.seeker,
+                      color: AppColors.primary,
+                    ),
                   ],
                 );
               },

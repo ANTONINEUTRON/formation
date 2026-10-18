@@ -35,10 +35,6 @@ class AppConstants {
   static const String usdcMintAddress =
       'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-  /// Marker value — replace with the real SKR mint address when known.
-  static const String skrMintPlaceholder = 'SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3';
-
-  /// Seeker Token SPL mint address on mainnet-beta.
-  /// Update this constant once the mint is deployed.
-  static const String skrMintAddress = skrMintPlaceholder;
+  /// Seeker (SKR) SPL mint on mainnet-beta; the backend's SKR_MINT.
+  static const String skrMintAddress = 'SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3';
 }
