@@ -48,8 +48,9 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                 children: [
                   _Para(
                     'Your team is made of tokenized US stocks (xStocks, like AAPLx for Apple) that you '
-                    'hold in your own Solana wallet. Only stocks you hold can play. Buy more in the app '
-                    'whenever you like; they go straight to your wallet.',
+                    'hold in your own Solana wallet. Only stocks you hold can play. Already hold some? '
+                    '"Use what I hold" fields them for you in one tap. Buy or sell in the app whenever '
+                    'you like; trades go straight to and from your wallet.',
                   ),
                 ],
               ),

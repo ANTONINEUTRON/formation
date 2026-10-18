@@ -271,26 +271,6 @@ a:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
   font-size: 15px;
   color: var(--chalk);
 }
-.doc__toc {
-  margin: 28px 0 0;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--pitch-deep);
-  columns: 2 14rem;
-  column-gap: 28px;
-  list-style: none;
-  counter-reset: toc;
-}
-.doc__toc li { counter-increment: toc; font-size: 14px; padding-block: 3px; break-inside: avoid; }
-.doc__toc li::before {
-  content: counter(toc, decimal-leading-zero) "  ";
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--lime);
-}
-.doc__toc a { color: var(--chalk-dim); text-decoration: none; }
-.doc__toc a:hover { color: var(--chalk); }
 .doc h2 {
   font-family: var(--body);
   font-size: 19px;

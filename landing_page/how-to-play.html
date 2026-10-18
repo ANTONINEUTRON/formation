@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>How to play — Formation</title>
+  <meta name="description" content="How Formation works: your stocks are your players, you score when they beat the market, and a season is twelve match weeks.">
+  <link rel="canonical" href="https://formation.titalabs.xyz/how-to-play">
+  <meta name="theme-color" content="#0A1410">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <meta property="og:title" content="How to play Formation">
+  <meta property="og:description" content="Your stocks are your players. Score when they beat the market.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/assets/site.css">
+
+  <!-- This page only. Shared styles are in assets/site.css. -->
+  <style>
+    .guide .doc__in { max-width: 52rem; }
+    .guide h2 {
+      font-family: var(--display);
+      font-size: clamp(24px, 3.6vw, 32px);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+      margin-block: 48px 10px;
+    }
+    .guide h2 .n {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--lime);
+      letter-spacing: 0.12em;
+      margin-right: 10px;
+      vertical-align: 6px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+    @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+    .card2 {
+      background: var(--pitch-deep);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px 18px 20px;
+    }
+    .card2 h3 { font-size: 16px; font-weight: 700; margin: 6px 0 6px; color: var(--chalk); }
+    .card2 p { font-size: 14.5px; }
+    .tier { border-top: 3px solid; }
+    .tier--bc { border-top-color: #7FD8FF; }
+    .tier--ba { border-top-color: #C9B4FF; }
+    .tier--mo { border-top-color: var(--amber); }
+    .tier .tag {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .tier--bc .tag { color: #7FD8FF; }
+    .tier--ba .tag { color: #C9B4FF; }
+    .tier--mo .tag { color: var(--amber); }
+    .example {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .example div {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      font-size: 14.5px;
+      color: var(--chalk-dim);
+    }
+    .example div:first-child { border-top: 0; }
+    .example b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .up { color: var(--lime); }
+    .dn { color: var(--down); }
+    .week {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      margin-top: 18px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    @media (max-width: 720px) { .week { grid-template-columns: 1fr 1fr; } }
+    .week > div { background: var(--pitch); padding: 16px; }
+    .week .when {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--lime);
+    }
+    .week p { font-size: 14px; margin-top: 6px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
+  </style>
+</head>
+<body>
+<header data-site="header"></header>
+
+<main class="doc guide">
+  <div class="glow"></div>
+  <article class="wrap doc__in">
+    <p class="eyebrow">The game</p>
+    <h1>How to play</h1>
+    <p class="doc__meta">Football, basketball or American football. Same idea, three ways to play it.</p>
+
+    <p class="doc__note">
+      In one line: your stocks are your players, and your team scores when its picks beat the
+      market. Not when they simply go up, when they do better than the S&amp;P 500.
+    </p>
+
+    <h2><span class="n">01</span>Your stocks are your players</h2>
+    <p>
+      Formation turns the tokenized stocks in your Solana wallet (xStocks, like AAPLx for Apple or
+      NVDAx for NVIDIA) into a fantasy team. Already hold some? One tap lines them up for you. Don't
+      hold any yet? Buy your first ones in the app, from a dollar. They go straight to your own
+      wallet, never ours.
+    </p>
+
+    <h2><span class="n">02</span>Beat the market, don't just ride it</h2>
+    <p>
+      Every pick is measured against the market as a whole. When everything rises together, nobody
+      scores; you score by picking the stocks that do better than the rest.
+    </p>
+    <div class="example">
+      <div><span>Your pick +2.0%, the market +1.0%</span><b class="up">+10 points</b></div>
+      <div><span>Your pick +2.0%, the market +2.0%</span><b>0 points</b></div>
+      <div><span>Your pick −1.0%, the market +0.5%</span><b class="dn">−15 points</b></div>
+    </div>
+
+    <h2><span class="n">03</span>Three kinds of player</h2>
+    <p>
+      Every stock has a tier, worked out from how it actually behaves, and every position on your
+      team takes one tier. A good team mixes them, the same way a good side needs a defence as well
+      as strikers.
+    </p>
+    <div class="cards">
+      <div class="card2 tier tier--bc">
+        <p class="tag">Blue chip</p>
+        <h3>Calm and steady</h3>
+        <p>Barely follows the market's swings. Keepers and defenders, centres, tight ends and kickers.</p>
+      </div>
+      <div class="card2 tier tier--ba">
+        <p class="tag">Balanced</p>
+        <h3>Moves with the market</h3>
+        <p>The engine of the team. Midfielders, forwards in basketball, quarterbacks and running backs.</p>
+      </div>
+      <div class="card2 tier tier--mo">
+        <p class="tag">Momentum</p>
+        <h3>Big swings</h3>
+        <p>Where the goals come from, and the risk. Strikers, guards and wide receivers.</p>
+      </div>
+    </div>
+
+    <h2><span class="n">04</span>How a week plays out</h2>
+    <p>
+      Points bank all through the week. Twelve match weeks make a season, and the season table is
+      the one that counts.
+    </p>
+    <div class="week">
+      <div><p class="when">Monday 9:30am ET</p><p>Kick-off. The match week begins.</p></div>
+      <div><p class="when">During the week</p><p>Your picks score as prices move. Goals, buckets and touchdowns land as bonus events.</p></div>
+      <div><p class="when">Friday 4pm ET</p><p>Full time. Results, head-to-head fixtures and the week's table settle.</p></div>
+      <div><p class="when">The weekend</p><p>The transfer window: change your team as often as you like, for free.</p></div>
+    </div>
+    <p style="margin-top:14px">
+      Before a season starts it's pre-season: friendlies in football, preseason games in basketball
+      and American football. Points still bank, so you can find your feet, but they don't count.
+    </p>
+
+    <h2><span class="n">05</span>You're the manager</h2>
+    <div class="cards">
+      <div class="card2">
+        <h3>Pick a captain</h3>
+        <p>Your captain's points count extra in football and basketball, so choose who you back.</p>
+      </div>
+      <div class="card2">
+        <h3>Use your bench</h3>
+        <p>Every stock you hold but don't start waits as a substitute. A few free changes a day; more cost points.</p>
+      </div>
+      <div class="card2">
+        <h3>Choose a shape</h3>
+        <p>In football, pick your formation, from three at the back to five, to suit the stocks you hold.</p>
+      </div>
+    </div>
+
+    <h2><span class="n">06</span>Leagues, rivals and bragging rights</h2>
+    <p>
+      Everyone plays in the global league. Start a private league with friends and you'll face one
+      of them head to head every match week, with a proper league table. Or settle it in a duel.
+      There's no entry fee and no prize pool: you play for the table.
+    </p>
+
+    <h2><span class="n">07</span>Kept fair</h2>
+    <p>
+      Points only count when a stock's price can be trusted. A stock that hardly anyone trades is
+      cheap to push around, so it doesn't score until its market is deep again; the app marks it
+      and tells you why. Big jumps are checked before they count, and no single pick can run away
+      with a day. When you trade a thinly traded stock, the app shows what it would really cost you
+      before you sign.
+    </p>
+
+    <h2><span class="n">08</span>An Assistant Manager in your dugout</h2>
+    <p>
+      Pick a character to be your Assistant Manager. Ask why you're losing points, get your squad
+      reviewed, or let them draft your first team. They advise; you decide.
+    </p>
+
+    <h2><span class="n">09</span>Your wallet, your call</h2>
+    <p>
+      Your stocks never leave your wallet, and you approve every trade in it yourself. Buy and sell
+      in the app whenever you like. Formation is a game of skill, not investment advice, and the
+      value of any holding can fall as well as rise.
+    </p>
+
+    <div class="cta">
+      <a class="btn btn--go btn--lg" data-link="apk" data-pick>Start playing</a>
+      <a class="btn btn--ghost btn--lg" href="/#scoring">Back to the overview</a>
+    </div>
+  </article>
+</main>
+
+<footer data-site="footer"></footer>
+<script src="/assets/site.js"></script>
+</body>
+</html>

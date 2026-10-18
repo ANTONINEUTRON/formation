@@ -18,10 +18,11 @@
     home: '/',
     terms: '/terms',
     privacy: '/privacy',
+    guide: '/how-to-play',
   };
 
   var NAV = [
-    ['How it works', '/#scoring'],
+    ['How to play', '/how-to-play'],
     ['Copy the best', '/#copy'],
     ["It's live", '/#built'],
   ];
@@ -55,7 +56,7 @@
           '<nav class="foot__l">' +
             '<a data-link="apk">Android app</a>' +
             '<a data-link="web">Web app</a>' +
-            '<a href="/#scoring">How it works</a>' +
+            '<a data-link="guide">How to play</a>' +
             '<a data-link="terms">Terms</a>' +
             '<a data-link="privacy">Privacy</a>' +
             '<a data-link="x" aria-label="Formation on X">' + X_ICON + 'X</a>' +
