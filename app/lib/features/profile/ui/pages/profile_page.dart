@@ -6,6 +6,7 @@ import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/widgets/loading_indicator.dart';
+import 'package:formation/features/feedback/ui/feedback_sheet.dart';
 import 'package:formation/features/notifications/ui/widgets/push_settings_sheet.dart';
 import 'package:formation/features/profile/ui/cubits/profile_cubit.dart';
 import 'package:formation/features/profile/ui/cubits/profile_state.dart';
@@ -177,6 +178,15 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.notifications_active_outlined,
               title: 'Push notifications',
               onTap: () => PushSettingsSheet.show(context),
+            ),
+            ActionTile(
+              icon: Icons.feedback_outlined,
+              title: 'Send feedback',
+              onTap: () => FeedbackSheet.show(
+                context,
+                repository: context.read<FormationRepository>(),
+                replyEmail: context.read<ProfileCubit>().state.profile?.email,
+              ),
             ),
           ],
         ),

@@ -350,6 +350,25 @@ export interface AssistantProfilesTable {
   updated_at: Timestamp;
 }
 
+export type FeedbackKind = 'bug' | 'idea' | 'other';
+export type FeedbackStatus = 'new' | 'read' | 'done';
+
+export interface FeedbackTable {
+  id: Generated<string>;
+  user_id: string;
+  kind: FeedbackKind;
+  rating: number | null;
+  message: string;
+  /** The profile email when it was sent; where a reply goes. */
+  reply_email: string | null;
+  app_version: string | null;
+  platform: string | null;
+  screenshot: Buffer | null;
+  screenshot_mime: string | null;
+  status: Generated<FeedbackStatus>;
+  created_at: Timestamp;
+}
+
 export interface AssistantAvatarsTable {
   user_id: string;
   pose: 'neutral' | 'thinking' | 'celebrating' | 'concerned';
@@ -441,6 +460,7 @@ export interface Database {
   credit_quotes: CreditQuotesTable;
   credit_purchases: CreditPurchasesTable;
   assistant_avatars: AssistantAvatarsTable;
+  feedback: FeedbackTable;
   asset_scoring_status: AssetScoringStatusTable;
   market_depth: MarketDepthTable;
   scoring_anomalies: ScoringAnomaliesTable;

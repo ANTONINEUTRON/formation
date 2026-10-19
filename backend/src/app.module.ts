@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminController } from './admin/admin.controller.js';
+import { FeedbackController } from './feedback/feedback.controller.js';
+import { FeedbackService } from './feedback/feedback.service.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AssistantController } from './assistant/assistant.controller.js';
@@ -70,6 +72,7 @@ import { TiersService } from './xstocks/tiers.service.js';
     // Unauthenticated share previews, read by the ogRender function.
     OgController,
     AdminController,
+    FeedbackController,
   ],
   providers: [
     AppService,
@@ -101,6 +104,7 @@ import { TiersService } from './xstocks/tiers.service.js';
     StarterService,
     AvatarService,
     PushService,
+    FeedbackService,
     // Swapped for fakes in tests.
     { provide: LLM_PROVIDER, useClass: GeminiProvider },
     { provide: SKR_PAYMENTS, useClass: SolanaSkrPayments },

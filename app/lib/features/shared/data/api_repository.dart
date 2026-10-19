@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:solana/base58.dart';
 
 import 'package:formation/core/constants/app_constants.dart';
@@ -11,6 +13,7 @@ import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/core/utils/app_log.dart';
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
+import 'package:formation/features/feedback/domain/feedback.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/data/session_store.dart';
 import 'package:formation/features/shared/domain/models.dart';
@@ -593,6 +596,39 @@ class ApiRepository implements FormationRepository {
     final response = await _send(request, timeout: const Duration(minutes: 5));
     final json = _decode('POST', '/assistant/avatar', response) as Map<String, dynamic>;
     return (json['credits'] as num).toInt();
+  }
+
+  @override
+  Future<void> sendFeedback({
+    required FeedbackKind kind,
+    required String message,
+    int? rating,
+    Uint8List? screenshot,
+    String? screenshotMime,
+  }) async {
+    await _ensureSignedIn();
+    final info = await PackageInfo.fromPlatform();
+    final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/feedback'))
+      ..headers['authorization'] = 'Bearer $_token'
+      ..fields.addAll({
+        'kind': kind.name,
+        'message': message,
+        'rating': ?rating?.toString(),
+        'appVersion': '${info.version}+${info.buildNumber}',
+        'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+      });
+    if (screenshot != null && screenshotMime != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'screenshot',
+          screenshot,
+          filename: 'screenshot.${screenshotMime.split('/').last}',
+          contentType: MediaType.parse(screenshotMime),
+        ),
+      );
+    }
+    final response = await _send(request, timeout: const Duration(minutes: 1));
+    _decode('POST', '/feedback', response);
   }
 
   @override

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
+import 'package:formation/features/feedback/domain/feedback.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 /// Everything the Formation UI needs, independent of where it comes from.
@@ -163,6 +164,16 @@ abstract class FormationRepository {
 
   /// The Manager's own custom avatar in [pose].
   Future<Uint8List> avatarImage(AssistantPose pose);
+
+  /// Sends feedback, with an optional 1-5 [rating] and [screenshot]. Replies
+  /// go to the Manager's profile email, read on the server.
+  Future<void> sendFeedback({
+    required FeedbackKind kind,
+    required String message,
+    int? rating,
+    Uint8List? screenshot,
+    String? screenshotMime,
+  });
 
   /// Prices [pack] in SKR at the live rate, held for a couple of minutes.
   Future<CreditQuote> quoteCredits(CreditPack pack);

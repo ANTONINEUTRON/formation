@@ -27,7 +27,7 @@ export type Pose = (typeof POSES)[number];
 
 export const CUSTOM_ID = 'custom';
 export const MAX_PHOTO_BYTES = 5_000_000;
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 /** The same look as the five presets, so a custom character sits beside them. */
 const STYLE = [

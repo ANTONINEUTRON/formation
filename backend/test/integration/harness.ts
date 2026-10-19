@@ -80,6 +80,7 @@ const TABLES = [
   'credit_purchases',
   'credit_quotes',
   'assistant_avatars',
+  'feedback',
   'asset_scoring_status',
   'market_depth',
   'scoring_anomalies',

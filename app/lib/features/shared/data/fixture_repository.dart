@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
+import 'package:formation/features/feedback/domain/feedback.dart';
 import 'package:formation/features/shared/data/fixtures/xstock_fixtures.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/lineup.dart';
@@ -1096,6 +1097,38 @@ class FixtureRepository implements FormationRepository {
         final photo = _avatarPhoto;
         if (photo == null) throw const NotFoundException(message: 'No custom avatar yet');
         return photo;
+      });
+
+  /// Feedback sent in the demo, newest last. Visible for tests.
+  final List<({FeedbackKind kind, String message, int? rating, bool screenshot})> sentFeedback = [];
+
+  @override
+  Future<void> sendFeedback({
+    required FeedbackKind kind,
+    required String message,
+    int? rating,
+    Uint8List? screenshot,
+    String? screenshotMime,
+  }) =>
+      _delay(() {
+        // The same rules as the server, so the demo fails the same way.
+        final text = message.trim();
+        if (text.length < FeedbackLimits.minMessage) {
+          throw const ValidationException(message: 'Tell us a little more');
+        }
+        if (text.length > FeedbackLimits.maxMessage) {
+          throw const ValidationException(message: 'Keep it under ${FeedbackLimits.maxMessage} characters');
+        }
+        if (rating != null && (rating < 1 || rating > 5)) {
+          throw const ValidationException(message: 'A rating is 1 to 5');
+        }
+        if (screenshot != null && screenshot.length > FeedbackLimits.maxScreenshotBytes) {
+          throw const ValidationException(message: 'That screenshot is too large (5 MB max)');
+        }
+        if (sentFeedback.length >= FeedbackLimits.perHour) {
+          throw const ValidationException(message: "You've sent a lot of feedback this hour. Try again later.");
+        }
+        sentFeedback.add((kind: kind, message: text, rating: rating, screenshot: screenshot != null));
       });
 
   /// SKR at a made-up $0.02, so the demo shows realistic amounts.

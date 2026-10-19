@@ -36,6 +36,7 @@ describe('migrations', () => {
         'credit_quotes',
         'daily_substitutions',
         'device_tokens',
+        'feedback',
         'follows',
         'general_entries',
         'league_fixtures',
