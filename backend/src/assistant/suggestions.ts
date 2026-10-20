@@ -48,8 +48,7 @@ export interface RosterFacts {
   /** Mint -> amount held, positive only. */
   held: Map<string, number>;
   /** Catalogue, by upper-cased symbol. */
-  /** A paused stock (not scoring) can't be placed in a slot, so it's never suggested for one. */
-  catalogue: Map<string, { mint: string; symbol: string; tier: RiskTier; paused?: boolean }>;
+  catalogue: Map<string, { mint: string; symbol: string; tier: RiskTier }>;
   substitutionsToday: number;
 }
 
@@ -93,7 +92,7 @@ export function validateSuggestions(raw: unknown, facts: RosterFacts): Suggestio
       const position = slotIndex === null ? undefined : facts.shape[slotIndex];
       const stock =
         typeof s.symbol === 'string' ? facts.catalogue.get(s.symbol.trim().toUpperCase()) : undefined;
-      if (slotIndex === null || !position || !stock || stock.paused) continue;
+      if (slotIndex === null || !position || !stock) continue;
       if (!slotAccepts(position, stock.tier)) continue;
       const current = facts.slots.get(slotIndex);
       if (current === stock.mint) continue;

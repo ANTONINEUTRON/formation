@@ -462,7 +462,6 @@ class PushSettings extends Equatable {
   static const categoryLabels = {
     'match_week': ('Match week', 'Kick-off, half-time and your full-time result'),
     'goals': ('Live goals', 'When a pick scores, at most once a pick a day'),
-    'not_scoring': ('Not scoring', "When your captain's price can't be trusted"),
     'season': ('Season finale', 'Where you finished, and the new season'),
     'points': ('Daily points', "Yesterday's role events"),
     'leagues': ('Leagues', 'Starts, results and new members'),

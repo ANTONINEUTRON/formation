@@ -35,8 +35,8 @@ void main() {
       tester,
       _withBench(SportMode.football, [
         _sub('KOx', 1), // ~$70
-        _sub('MSFTx', 2), // ~$1,024, the most valuable
-        _sub('GMEx', 50), // paused in the fixtures, so it sits last
+        _sub('MSFTx', 2), // ~$1,024
+        _sub('GMEx', 50), // ~$1,158, the most valuable
       ]),
     );
     expect(find.text('SUB 1'), findsOneWidget);
@@ -47,7 +47,7 @@ void main() {
     final msft = tester.getTopLeft(find.text('MSFTx')).dx;
     final ko = tester.getTopLeft(find.text('KOx')).dx;
     final gme = tester.getTopLeft(find.text('GMEx')).dx;
-    expect(msft < ko && ko < gme, isTrue);
+    expect(gme < msft && msft < ko, isTrue);
     expect(find.text('More'), findsOneWidget);
   });
 

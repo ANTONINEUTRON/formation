@@ -79,7 +79,6 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
     window,
     exits = {},
     parts = BOTH,
-    notScoring = {},
     guard,
     caps,
   } = input;
@@ -134,9 +133,6 @@ export function scoreEntry(input: ScoreInput): EntryBreakdown {
       total: 0,
     };
     if (!counted) return base;
-    // Kept on the team, but a price that can't be trusted scores nothing.
-    const reason = notScoring[slot.mint];
-    if (reason) return { ...base, notScoring: reason };
 
     const benchmark = benchmarkOf(slot);
     let guarded: SlotScore['guard'];
@@ -245,15 +241,12 @@ function capEvents(events: ScoreEvent[], cap: number | undefined): ScoreEvent[] 
   return [...events, { code: 'cap', label: 'Daily cap', points: round1(Math.sign(sum) * cap - sum) }];
 }
 
-/**
- * The captain, or the vice-captain when the captain isn't counted or isn't
- * scoring.
- */
-function effectiveCaptain({ snapshot, endBalances, notScoring = {} }: ScoreInput): number | null {
+/** The captain, or the vice-captain when the captain isn't counted. */
+function effectiveCaptain({ snapshot, endBalances }: ScoreInput): number | null {
   const counted = (slotIndex: number | null) => {
     if (slotIndex === null) return false;
     const slot = snapshot.slots.find((s) => s.slotIndex === slotIndex);
-    if (!slot || notScoring[slot.mint]) return false;
+    if (!slot) return false;
     return Math.min(slot.startBalance, endBalances[slot.mint] ?? 0) > 0 && slot.startPrice > 0;
   };
   if (counted(snapshot.captainSlot)) return snapshot.captainSlot;

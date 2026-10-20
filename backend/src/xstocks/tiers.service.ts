@@ -10,12 +10,12 @@ import { planTiers, TIER_WINDOW_DAYS } from '../domain/tiers.js';
 import type { DailyClose, TierDecision } from '../domain/tiers.js';
 import { XStocksService } from './xstocks.service.js';
 
-/** A sport whose biggest lineup needs more stocks of a tier than are scoring. */
+/** A sport whose biggest lineup needs more stocks of a tier than are listed. */
 export interface TierShortage {
   mode: SportMode;
   tier: RiskTier;
   needed: number;
-  scoring: number;
+  listed: number;
 }
 
 export interface TierPlan {
@@ -56,7 +56,7 @@ export class TiersService {
       })),
       benchmark,
     );
-    return { decisions, shortages: await this.shortages(decisions) };
+    return { decisions, shortages: this.shortages(decisions) };
   }
 
   /** Saves the plan's tiers. Manual tiers are never touched. Returns how many changed. */
@@ -77,7 +77,7 @@ export class TiersService {
         (changes.length ? ` (${changes.map((d) => `${d.symbol} ${d.current}→${d.next}`).join(', ')})` : ''),
     );
     for (const s of plan.shortages) {
-      this.logger.warn(`Only ${s.scoring} scoring ${s.tier} stocks for ${s.mode}, which can need ${s.needed}`);
+      this.logger.warn(`Only ${s.listed} ${s.tier} stocks for ${s.mode}, which can need ${s.needed}`);
     }
     return { ...plan, changed: changes.length };
   }
@@ -106,25 +106,17 @@ export class TiersService {
     return out;
   }
 
-  /** Where a sport's largest lineup would need more stocks of a tier than are scoring. */
-  private async shortages(decisions: TierDecision[]): Promise<TierShortage[]> {
-    const scoring = await this.db
-      .selectFrom('asset_scoring_status')
-      .select('mint')
-      .where('eligible', '=', true)
-      .execute();
-    const eligible = new Set(scoring.map((r) => r.mint));
+  /** Where a sport's largest lineup would need more stocks of a tier than are listed. */
+  private shortages(decisions: TierDecision[]): TierShortage[] {
     const count = new Map<RiskTier, number>();
-    for (const d of decisions) {
-      if (eligible.has(d.mint)) count.set(d.next, (count.get(d.next) ?? 0) + 1);
-    }
+    for (const d of decisions) count.set(d.next, (count.get(d.next) ?? 0) + 1);
 
     const out: TierShortage[] = [];
     for (const mode of SPORT_MODES) {
       for (const tier of RISK_TIERS) {
         const needed = mostSlots(mode, tier);
         const have = count.get(tier) ?? 0;
-        if (have < needed) out.push({ mode, tier, needed, scoring: have });
+        if (have < needed) out.push({ mode, tier, needed, listed: have });
       }
     }
     return out;

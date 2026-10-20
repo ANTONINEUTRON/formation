@@ -202,6 +202,8 @@ export class PushService {
         throw new BadRequestException('categories must be an object');
       }
       for (const [name, on] of Object.entries(body.categories)) {
+        // Retired with paused stocks; older apps still send it.
+        if (name === 'not_scoring') continue;
         if (!(PUSH_CATEGORY_NAMES as string[]).includes(name) || typeof on !== 'boolean') {
           throw new BadRequestException(`Unknown push category: ${name}`);
         }

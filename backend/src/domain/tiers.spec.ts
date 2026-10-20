@@ -81,6 +81,10 @@ describe('fixedTier', () => {
     expect(fixedTier('XYZx', 'ProShares UltraPro QQQ')).toBe('momentum');
     expect(fixedTier('SGOVx')).toBe('blue_chip');
     expect(fixedTier('AAPLx', 'Apple')).toBeNull();
+    // The same fund from another issuer, without the x.
+    expect(fixedTier('TQQQ')).toBe('momentum');
+    expect(fixedTier('SGOV')).toBe('blue_chip');
+    expect(fixedTier('AAPL', 'Apple Inc.')).toBeNull();
   });
 });
 

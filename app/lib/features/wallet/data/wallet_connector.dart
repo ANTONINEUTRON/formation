@@ -134,6 +134,14 @@ abstract class WalletConnector {
     required String address,
     String? sessionToken,
   });
+
+  /// Signs and submits [transactions] with one approval, or as few as the
+  /// wallet allows. Returns the base58 signatures, in the same order.
+  Future<WalletSignature> signAndSendTransactions(
+    List<Uint8List> transactions, {
+    required String address,
+    String? sessionToken,
+  });
 }
 
 /// A signature plus any refreshed session token the wallet handed back.
@@ -143,7 +151,8 @@ abstract class WalletConnector {
 class WalletSignature {
   const WalletSignature({required this.value, this.sessionToken});
 
-  /// Base58 signature for a transaction, or the raw bytes for a message.
+  /// Base58 signature for a transaction (a list of them for several), or
+  /// the raw bytes for a message.
   final Object value;
 
   /// Replacement session token, or null to keep the existing one.
@@ -151,4 +160,5 @@ class WalletSignature {
 
   Uint8List get bytes => value as Uint8List;
   String get base58 => value as String;
+  List<String> get base58List => (value as List).cast<String>();
 }

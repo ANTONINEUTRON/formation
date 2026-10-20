@@ -9,13 +9,12 @@ import type { AssistantCharacter } from './characters.js';
  */
 const RULES = `
 FORMATION — HOW THE GAME WORKS
-- The user is the Manager. Their players are tokenized US stocks (xStocks, e.g. AAPLx = Apple) held in their own Solana wallet. Only stocks the wallet holds can be placed in a slot; anything else must be bought first (USDC or SKR, signed by the Manager).
+- The user is the Manager. Their players are tokenized US stocks held in their own Solana wallet, from two issuers: xStocks (symbols end in x, e.g. AAPLx = Apple) and Backpack Securities (the plain ticker, e.g. AAPL). Both score the same way; the same company from both issuers can play in different slots. Only stocks the wallet holds can be placed in a slot; anything else must be bought first (USDC or SKR, signed by the Manager).
 - Each position requires a tier: blue_chip (calm, barely follows the market), balanced (moves with the market) or momentum (big swings). Tiers come from each stock's beta and volatility over the last 90 days, recalculated each season: the calmest third are blue_chip, the middle third balanced, the wildest third momentum. A FLEX slot takes any tier. A pick placed before its tier changed keeps its slot.
   - Football: GK=blue_chip, DEF=blue_chip, MID=balanced, FWD=momentum. Formations (DEF-MID-FWD): ${formationList().join(', ')}.
   - Basketball: PG=momentum, SG=momentum, SF=balanced, PF=balanced, C=blue_chip.
   - American football: QB=balanced, RB=balanced, RB=balanced, WR=momentum, WR=momentum, WR=momentum, TE=blue_chip, FLEX=any, K=blue_chip.
-- Scoring is continuous: a stock scores whenever its price is reliable. Base points: 1 point per 0.1% a pick beats the benchmark (SPYx, the S&P 500) — alpha, not raw return. If everything rises together, nobody scores.
-- A stock marked "notScoring" in the CONTEXT is paused: its price can't be trusted right now. Usually it's a thin market (buying $500 and selling straight back would lose more than 2%, so its price is cheap to push around); otherwise stale, not updating or erratic. It banks nothing, fires no events and can't carry the armband until it has passed for a full day. The Manager can still place it in a slot, buy or sell it, but warn that it scores nothing meanwhile and that a thin market's price is poor. Point this out when it's in the lineup or captained, and suggest scoring stocks instead of paused ones.
+- Scoring is continuous: every listed stock scores on every price update. Base points: 1 point per 0.1% a pick beats the benchmark (SPYx, the S&P 500) — alpha, not raw return. If everything rises together, nobody scores.
 - Limits per pick: a tick's move counts at most 10% against the benchmark (a bigger jump waits a tick to be confirmed), base points are capped at ±150 a day, role events at ±60 a day.
 - Match weeks run Monday 9:30am ET (kick-off) to Friday 4pm ET (full time); twelve make a season. Weekend substitutions are free. A team whose held picks span 4+ sectors earns +5 at full time (the balance bonus); each stock's sector is in the CONTEXT.
 - Skill rating rewards steady market-beating (mean weekly alpha over its volatility), not one lucky week.

@@ -51,7 +51,22 @@ enum RiskTier {
       values.where((t) => t.apiValue == value).firstOrNull ?? _legacy[value] ?? balanced;
 }
 
-/// One tokenized equity (xStock) tradeable on Solana.
+/// Who issues a tokenized stock. The same company can come from both:
+/// xStocks end in "x" (AAPLx), Backpack's are the plain ticker (AAPL).
+enum StockIssuer {
+  xstocks('xstocks', 'xStocks'),
+  backpack('backpack', 'Backpack');
+
+  const StockIssuer(this.apiValue, this.label);
+
+  final String apiValue;
+  final String label;
+
+  static StockIssuer fromApi(Object? value) =>
+      values.where((i) => i.apiValue == value).firstOrNull ?? xstocks;
+}
+
+/// One tokenized stock tradeable on Solana, from xStocks or Backpack.
 class XStock extends Equatable {
   const XStock({
     required this.symbol,
@@ -61,7 +76,7 @@ class XStock extends Equatable {
     required this.priceUsd,
     this.change24hPct = 0,
     this.logoUrl,
-    this.notScoring,
+    this.issuer = StockIssuer.xstocks,
   });
 
   factory XStock.fromJson(Map<String, dynamic> json) => XStock(
@@ -72,7 +87,7 @@ class XStock extends Equatable {
         priceUsd: _double(json['priceUsd']),
         change24hPct: _double(json['change24hPct']),
         logoUrl: json['logoUrl'] as String?,
-        notScoring: json['notScoring'] as String?,
+        issuer: StockIssuer.fromApi(json['issuer']),
       );
 
   final String symbol;
@@ -82,15 +97,10 @@ class XStock extends Equatable {
   final double priceUsd;
   final double change24hPct;
   final String? logoUrl;
-
-  /// Why it isn't scoring right now, e.g. 'stale price'; null when it is.
-  /// It stays draftable and tradable either way.
-  final String? notScoring;
-
-  bool get isScoring => notScoring == null;
+  final StockIssuer issuer;
 
   @override
-  List<Object?> get props => [mint, priceUsd, change24hPct, notScoring];
+  List<Object?> get props => [mint, priceUsd, change24hPct];
 }
 
 /// A position in a roster shape, e.g. 'PG' or 'GK'.
@@ -178,12 +188,10 @@ class SlotScore extends Equatable {
     required this.events,
     required this.multiplier,
     required this.total,
-    this.notScoring,
     this.held = false,
   });
 
   factory SlotScore.fromJson(Map<String, dynamic> json) => SlotScore(
-        notScoring: json['notScoring'] as String?,
         held: (json['guard'] as Map<String, dynamic>?)?['held'] == true,
         slotIndex: json['slotIndex'] as int,
         role: json['role'] as String,
@@ -215,15 +223,12 @@ class SlotScore extends Equatable {
   final double multiplier;
   final double total;
 
-  /// Why the pick isn't scoring, e.g. 'stale price'; null when it is.
-  final String? notScoring;
-
   /// Its price jumped implausibly on the last tick: held until the next one
   /// confirms it.
   final bool held;
 
   @override
-  List<Object?> get props => [slotIndex, mint, total, counted, notScoring, held];
+  List<Object?> get props => [slotIndex, mint, total, counted, held];
 }
 
 /// The current session of the always-running general league. Points bank on
@@ -961,7 +966,6 @@ class SwapQuote extends Equatable {
     required this.platformFeeBps,
     required this.platformFee,
     this.quoteId,
-    this.sellBackAmount,
   });
 
   factory SwapQuote.fromJson(XStock stock, Map<String, dynamic> json) =>
@@ -974,16 +978,7 @@ class SwapQuote extends Equatable {
         priceImpactPct: _double(json['priceImpactPct']),
         platformFeeBps: json['platformFeeBps'] as int,
         platformFee: _double(json['platformFee']),
-        sellBackAmount: json['sellBackAmount'] == null ? null : _double(json['sellBackAmount']),
       );
-
-  /// What selling the shares straight back would return, in [payWith]. Null
-  /// when it couldn't be quoted.
-  final double? sellBackAmount;
-
-  /// Share of the spend a buy-and-sell-back would lose (0.52 = 52%); null when unknown.
-  double? get roundTripLoss =>
-      sellBackAmount == null || inputAmount <= 0 ? null : (1 - sellBackAmount! / inputAmount).clamp(0, 1);
 
   /// Backend handle for building the swap transaction. Null in fixture mode.
   final String? quoteId;
@@ -1014,7 +1009,6 @@ class SellQuote extends Equatable {
     required this.priceImpactPct,
     required this.platformFeeBps,
     required this.platformFee,
-    this.buyBackShares,
     this.quoteId,
   });
 
@@ -1026,7 +1020,6 @@ class SellQuote extends Equatable {
         priceImpactPct: _double(json['priceImpactPct']),
         platformFeeBps: json['platformFeeBps'] as int,
         platformFee: _double(json['platformFee']),
-        buyBackShares: json['buyBackShares'] == null ? null : _double(json['buyBackShares']),
       );
 
   /// Backend handle for building the swap transaction. Null in fixture mode.
@@ -1041,13 +1034,6 @@ class SellQuote extends Equatable {
 
   /// The platform fee, in USDC.
   final double platformFee;
-
-  /// Shares the USDC would buy straight back; null when it couldn't be quoted.
-  final double? buyBackShares;
-
-  /// Share of the position a sell-and-buy-back would lose; null when unknown.
-  double? get roundTripLoss =>
-      buyBackShares == null || shares <= 0 ? null : (1 - buyBackShares! / shares).clamp(0, 1);
 
   @override
   List<Object?> get props => [stock, shares, estimatedUsdc];

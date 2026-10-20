@@ -46,6 +46,9 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
   final Map<int, _PickState> _progress = {};
   final Map<int, String> _failures = {};
 
+  /// Purchases waiting on the wallet's single approval; 0 when none.
+  int _approving = 0;
+
   /// Supported stocks the wallet already holds; 0 until checked.
   int _heldCount = 0;
 
@@ -196,6 +199,8 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       }
     }
 
+    // 1. Price every pick that has to be bought.
+    final toBuy = <SwapQuote, StarterPick>{};
     for (final pick in squad.picks) {
       if (!mounted) return;
       final stock = stocks[pick.mint];
@@ -203,15 +208,39 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         _fail(pick, 'No longer listed');
         continue;
       }
+      if (!pick.needsPurchase) continue;
+      setState(() => _progress[pick.slotIndex] = _PickState.buying);
+      final amount = _payWith.symbol == 'SKR' && squad.skrUsd != null ? pick.amountUsd / squad.skrUsd! : pick.amountUsd;
       try {
-        if (pick.needsPurchase) {
-          setState(() => _progress[pick.slotIndex] = _PickState.buying);
-          final amount = _payWith.symbol == 'SKR' && squad.skrUsd != null
-              ? pick.amountUsd / squad.skrUsd!
-              : pick.amountUsd;
-          final quote = await _repository.getSwapQuote(stock, amount, payWith: _payWith);
-          await _repository.executeSwap(quote);
+        toBuy[await _repository.getSwapQuote(stock, amount, payWith: _payWith)] = pick;
+      } catch (e) {
+        _fail(pick, errorText(e));
+      }
+    }
+
+    // 2. Buy them all with one wallet approval.
+    if (toBuy.isNotEmpty) {
+      if (!mounted) return;
+      setState(() => _approving = toBuy.length);
+      try {
+        for (final outcome in await _repository.executeSwaps(toBuy.keys.toList())) {
+          if (outcome.error != null) _fail(toBuy[outcome.quote]!, outcome.error!);
         }
+      } catch (e) {
+        // Declined in the wallet, or no wallet answered: nothing was bought.
+        for (final pick in toBuy.values) {
+          _fail(pick, errorText(e));
+        }
+      }
+      if (mounted) setState(() => _approving = 0);
+    }
+
+    // 3. Place everything that's now held.
+    for (final pick in squad.picks) {
+      if (!mounted) return;
+      final stock = stocks[pick.mint];
+      if (stock == null || _progress[pick.slotIndex] == _PickState.failed) continue;
+      try {
         setState(() => _progress[pick.slotIndex] = _PickState.placing);
         await _repository.fillSlot(squad.mode, pick.slotIndex, stock);
         setState(() => _progress[pick.slotIndex] = _PickState.done);
@@ -537,7 +566,9 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
             ? failed == 0
                   ? 'Your squad is ready. Scoring starts on the next price update.'
                   : 'Squad set, with $failed pick${failed == 1 ? '' : 's'} still to fill. Players you hold already score.'
-            : 'Building your squad. Approve each purchase in your wallet.',
+            : _approving > 0
+            ? 'Approve your $_approving purchase${_approving == 1 ? '' : 's'} in your wallet: one approval buys them all.'
+            : 'Building your squad…',
       ),
       const SizedBox(height: 12),
       for (final pick in squad.picks)

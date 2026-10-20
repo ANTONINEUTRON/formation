@@ -1,3 +1,4 @@
+import { tickerOf } from './sectors.js';
 import { RISK_TIERS } from './sport.js';
 import type { RiskTier } from './sport.js';
 
@@ -36,12 +37,14 @@ const DAY_MS = 86_400_000;
  * barely move.
  */
 const ATTACK_NAME = /\b(2x|3x|leveraged|ultra\w*|inverse|bear|bull)\b/i;
-const ATTACK_SYMBOLS = new Set(['TQQQx', 'SQQQx', 'SOXLx', 'UPROx', 'SPXLx', 'TSLLx', 'NVDLx', 'MSTUx']);
-const DEFENCE_SYMBOLS = new Set(['SGOVx', 'TBLLx', 'BILx', 'SHVx', 'SHYx', 'IEFx', 'TLTx', 'BNDx', 'AGGx']);
+/** By ticker, so they hold whoever issues the token (TQQQx, TQQQ). */
+const ATTACK_TICKERS = new Set(['TQQQ', 'SQQQ', 'SOXL', 'UPRO', 'SPXL', 'TSLL', 'NVDL', 'MSTU', 'UVXY']);
+const DEFENCE_TICKERS = new Set(['SGOV', 'TBLL', 'BIL', 'SHV', 'SHY', 'IEF', 'TLT', 'BND', 'AGG']);
 
 export function fixedTier(symbol: string, companyName = ''): RiskTier | null {
-  if (DEFENCE_SYMBOLS.has(symbol)) return 'blue_chip';
-  if (ATTACK_SYMBOLS.has(symbol) || ATTACK_NAME.test(companyName)) return 'momentum';
+  const ticker = tickerOf(symbol);
+  if (DEFENCE_TICKERS.has(ticker)) return 'blue_chip';
+  if (ATTACK_TICKERS.has(ticker) || ATTACK_NAME.test(companyName)) return 'momentum';
   return null;
 }
 

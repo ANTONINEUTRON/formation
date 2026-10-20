@@ -25,6 +25,7 @@ class FixtureRepository implements FormationRepository {
   }
 
   static const _latency = Duration(milliseconds: 350);
+
   static const _platformFeeBps = 30;
   static const _benchmarkSymbol = 'SPYx';
 
@@ -658,8 +659,6 @@ class FixtureRepository implements FormationRepository {
         // Fixtures price everything in dollars, so non-USDC tokens need a
         // notional rate to turn an amount into shares.
         final rate = switch (payWith.symbol) { 'SKR' => 0.5, _ => 1.0 };
-        // A paused stock's market is thin: selling straight back loses half.
-        final keep = stock.isScoring ? 0.994 : 0.52;
         return SwapQuote(
           stock: stock,
           payWith: payWith.symbol,
@@ -668,7 +667,6 @@ class FixtureRepository implements FormationRepository {
           priceImpactPct: 0.0008 + amount / 2e6,
           platformFeeBps: _platformFeeBps,
           platformFee: fee,
-          sellBackAmount: amount * keep,
         );
       });
 
@@ -679,6 +677,17 @@ class FixtureRepository implements FormationRepository {
         ifAbsent: () => quote.estimatedShares);
     _notify();
     return quote.estimatedShares;
+  }
+
+  @override
+  Future<List<SwapOutcome>> executeSwaps(List<SwapQuote> quotes) async {
+    // One "approval" for the lot, as in the app.
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    for (final quote in quotes) {
+      _held.update(quote.stock.mint, (v) => v + quote.estimatedShares, ifAbsent: () => quote.estimatedShares);
+    }
+    _notify();
+    return [for (final quote in quotes) (quote: quote, error: null)];
   }
 
   /// A simple stand-in for the backend's lineupFromHoldings: each slot, in
@@ -728,7 +737,7 @@ class FixtureRepository implements FormationRepository {
         if (shares <= 0 || shares > held + 1e-9) {
           throw ValidationException(message: 'You hold ${held.toStringAsFixed(4)} ${stock.symbol}');
         }
-        final gross = shares * stock.priceUsd * (stock.isScoring ? 0.998 : 0.6);
+        final gross = shares * stock.priceUsd * 0.998;
         final fee = gross * _platformFeeBps / 10000;
         return SellQuote(
           stock: stock,
@@ -737,7 +746,6 @@ class FixtureRepository implements FormationRepository {
           priceImpactPct: 0.0008,
           platformFeeBps: _platformFeeBps,
           platformFee: fee,
-          buyBackShares: shares * (stock.isScoring ? 0.994 : 0.52),
         );
       });
 

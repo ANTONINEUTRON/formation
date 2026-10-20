@@ -4,9 +4,8 @@
  *
  * To onboard a new kind of tokenized asset:
  *   1. list it with its class (a catalogue source sets `xstocks.asset_class`);
- *   2. map the class to a benchmark here;
- *   3. eligibility decides when it starts scoring, by the same rules as
- *      everything else. No scoring code changes.
+ *   2. map the class to a benchmark here.
+ * It scores from its first price, like everything else. No scoring code changes.
  */
 export const ASSET_CLASSES = {
   us_equity: { label: 'US equity', benchmarkSymbol: 'SPYx' },

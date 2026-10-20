@@ -69,6 +69,16 @@ class _ChromeLikeConnector implements WalletConnector {
     if (attempts++ == 0) throw const WalletTapRequired();
     return const WalletSignature(value: 'signature');
   }
+
+  @override
+  Future<WalletSignature> signAndSendTransactions(
+    List<Uint8List> transactions, {
+    required String address,
+    String? sessionToken,
+  }) async {
+    if (attempts++ == 0) throw const WalletTapRequired();
+    return WalletSignature(value: [for (final _ in transactions) 'signature']);
+  }
 }
 
 void main() {

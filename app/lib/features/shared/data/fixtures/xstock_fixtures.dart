@@ -1,9 +1,9 @@
 import 'package:formation/features/shared/domain/models.dart';
 
-/// Supported xStocks for fixture mode.
+/// Supported stocks for fixture mode.
 ///
 /// Mints are mainnet xStock (Token-2022, 8 decimals) mints from Jupiter's
-/// token list. Prices are fixture values; the backend serves live ones.
+/// token list, plus two of Backpack's (6 decimals). Prices are fixture values; the backend serves live ones.
 /// Keep symbols, mints and tiers in sync with `backend/src/xstocks/xstocks.seed.ts`.
 const xStockFixtures = [
   // Blue chip: calm, barely follows the market (GK, DEF, C, TE, K)
@@ -40,7 +40,11 @@ const xStockFixtures = [
   XStock(symbol: 'MSTRx', companyName: 'Strategy', mint: 'XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ', tier: RiskTier.momentum, priceUsd: 341.90, change24hPct: 5.1),
   XStock(symbol: 'HOODx', companyName: 'Robinhood', mint: 'XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg', tier: RiskTier.momentum, priceUsd: 118.40, change24hPct: 3.8),
   XStock(symbol: 'PLTRx', companyName: 'Palantir', mint: 'XsoBhf2ufR8fTyNSjqfU71DYGaE6Z3SUGAidpzriAA4', tier: RiskTier.momentum, priceUsd: 172.60, change24hPct: 2.9),
-  XStock(symbol: 'GMEx', companyName: 'GameStop', mint: 'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc', tier: RiskTier.momentum, priceUsd: 23.15, change24hPct: -6.2, notScoring: 'thin market'),
+  XStock(symbol: 'GMEx', companyName: 'GameStop', mint: 'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc', tier: RiskTier.momentum, priceUsd: 23.15, change24hPct: -6.2),
+
+  // Backpack Securities: the plain ticker, mints from Backpack's asset list.
+  XStock(symbol: 'SPCX', companyName: 'SpaceX', mint: 'SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb', tier: RiskTier.momentum, priceUsd: 146.78, change24hPct: -0.9, issuer: StockIssuer.backpack),
+  XStock(symbol: 'BLK', companyName: 'BlackRock', mint: 'BLKKYfF41c6xRPrtX1rdYbxLE1xxEdZUnxQsB5hcZ8Nf', tier: RiskTier.balanced, priceUsd: 951.20, change24hPct: 0.3, issuer: StockIssuer.backpack),
 ];
 
 // Roughly half the pool is held so both the "Held" and "Buy" draft paths

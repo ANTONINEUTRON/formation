@@ -2,7 +2,6 @@ import type { AuthUser } from '../../src/domain/dto.js';
 import { NotificationsService } from '../../src/notifications/notifications.service.js';
 import { PushService } from '../../src/notifications/push.service.js';
 import { DAILY_PUSH_BUDGET } from '../../src/notifications/push-rules.js';
-import { MarketDepthService } from '../../src/scoring/market-depth.service.js';
 import { createHarness } from './harness.js';
 import type { Harness } from './harness.js';
 
@@ -77,24 +76,10 @@ describe('push notifications', () => {
     expect((await push.settings(me.id)).available).toBe(false);
   });
 
-  it("tells a Manager when their captain stops scoring", async () => {
-    await h.draft(me, 'football');
-    const roster = await h.rosters.getRoster(me, 'football');
-    const fwd = roster.slots.find((s) => s.stock?.mint === 'mint-TSLA')!;
-    await h.rosters.setCaptaincy(me, 'football', { captainSlot: fwd.slotIndex, viceCaptainSlot: 0 });
-
-    await h.priceTicks.tick(); // TSLA is scoring
-    h.depth.set('mint-TSLA', 15);
-    await h.app.get(MarketDepthService).checkAll();
-    h.clock.advance(30);
-    await h.priceTicks.tick();
-
-    const warning = h.pushes.sent.find((s) => s.message.title.startsWith("Your captain isn't scoring"));
-    expect(warning?.message.title).toBe("Your captain isn't scoring: thin market");
-  });
-
   it('validates settings', async () => {
     await expect(push.saveSettings(me.id, { categories: { nonsense: true } })).rejects.toThrow('Unknown');
+    // Retired with paused stocks; older apps still send it, and it's ignored.
+    await expect(push.saveSettings(me.id, { categories: { not_scoring: false } })).resolves.toBeDefined();
     await expect(push.saveSettings(me.id, { quietStart: 1440 })).rejects.toThrow('minutes');
     await expect(push.saveSettings(me.id, { timeZone: 'Mars/Olympus' })).rejects.toThrow('IANA');
     await expect(push.registerDevice(me.id, { token: 'x', platform: 'android' })).rejects.toThrow('token');

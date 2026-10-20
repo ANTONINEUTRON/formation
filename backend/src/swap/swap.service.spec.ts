@@ -43,7 +43,6 @@ describe('SwapService', () => {
     // 1 TSLAx (8 decimals) sells for $200 before the fee; Jupiter returns the net.
     const calls = stubJupiter({
       [`${TSLA}>${USDC}`]: (shares) => (shares * 200_000_000n * 9_970n) / 10_000n / 100_000_000n,
-      [`${USDC}>${TSLA}`]: (usdc) => (usdc * 100_000_000n) / 200_000_000n,
     });
     const quote = await service().quoteSell(user, TSLA, 1);
 
@@ -51,13 +50,10 @@ describe('SwapService', () => {
     expect(quote.estimatedUsdc).toBeCloseTo(199.4, 6);
     expect(quote.platformFeeBps).toBe(30);
     expect(quote.platformFee).toBeCloseTo(0.6, 6);
-    // Buying back with what was received gets almost all of it back: a deep market.
-    expect(quote.buyBackShares).toBeCloseTo(0.997, 6);
     const sell = calls[0];
     expect(sell.get('platformFeeBps')).toBe('30');
     expect(sell.get('instructionVersion')).toBe('V2');
-    // The buy-back is a plain quote, with no fee.
-    expect(calls[1].get('platformFeeBps')).toBeNull();
+    expect(calls).toHaveLength(1);
   });
 
   it("won't sell more than the wallet holds", async () => {
@@ -66,21 +62,10 @@ describe('SwapService', () => {
     await expect(service().quoteSell(user, TSLA, 0)).rejects.toThrow('greater than zero');
   });
 
-  it('shows what a buy would fetch if sold straight back, revealing a thin market', async () => {
-    // A thin pool: $100 buys a share "worth" $100, but selling it back fetches $48.
-    stubJupiter({
-      [`${USDC}>${TSLA}`]: () => 100_000_000n,
-      [`${TSLA}>${USDC}`]: () => 48_000_000n,
-    });
+  it('quotes a buy with a single Jupiter call', async () => {
+    const calls = stubJupiter({ [`${USDC}>${TSLA}`]: () => 100_000_000n });
     const quote = await service().quote(user, TSLA, 100, 'USDC');
     expect(quote.estimatedShares).toBe(1);
-    expect(quote.sellBackAmount).toBe(48);
-  });
-
-  it('still quotes a buy when the sell-back check finds no route', async () => {
-    stubJupiter({ [`${USDC}>${TSLA}`]: () => 100_000_000n });
-    const quote = await service().quote(user, TSLA, 100, 'USDC');
-    expect(quote.estimatedShares).toBe(1);
-    expect(quote.sellBackAmount).toBeNull();
+    expect(calls).toHaveLength(1);
   });
 });

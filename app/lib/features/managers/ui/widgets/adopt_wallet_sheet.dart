@@ -42,14 +42,14 @@ class AdoptWalletSheet extends StatefulWidget {
 }
 
 class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
-  late final Set<String> _selected = {
-    for (final h in widget.manager.holdings)
-      if (h.stock.isScoring) h.stock.mint,
-  };
+  late final Set<String> _selected = {for (final h in widget.manager.holdings) h.stock.mint};
   final _budget = TextEditingController(text: '100');
 
-  /// Index into the selected list while buying, so progress is visible.
+  /// How many of the picks were bought, for the result.
   int _boughtCount = 0;
+
+  /// What the sheet is doing while it buys: pricing, then waiting for the wallet.
+  String _stage = '';
   bool _buying = false;
   String? _failure;
 
@@ -97,40 +97,62 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
     return null;
   }
 
+  /// Prices every pick, then buys them all with one wallet approval.
   Future<void> _adopt() async {
+    final picked = _picked;
     setState(() {
       _buying = true;
       _boughtCount = 0;
       _failure = null;
+      _stage = 'Pricing ${picked.length} stock${picked.length == 1 ? '' : 's'}…';
     });
 
-    // Sequential on purpose: each swap is signed separately in the wallet.
-    for (final holding in _picked) {
+    final quotes = <SwapQuote>[];
+    final failed = <String>[];
+    for (final holding in picked) {
       try {
-        final quote = await widget.repository.getSwapQuote(
-          holding.stock,
-          _perStock,
-          payWith: _payWith,
-        );
-        await widget.repository.executeSwap(quote);
-        if (!mounted) return;
-        setState(() => _boughtCount++);
+        quotes.add(await widget.repository.getSwapQuote(holding.stock, _perStock, payWith: _payWith));
       } catch (e) {
-        if (!mounted) return;
-        setState(() {
-          _buying = false;
-          _failure = '${holding.stock.symbol}: ${errorText(e)}';
-        });
-        return;
+        failed.add('${holding.stock.symbol}: ${errorText(e)}');
       }
     }
-
     if (!mounted) return;
-    Navigator.of(context).pop();
-    context.showSuccessToast(
-      message: 'Bought $_boughtCount of ${_picked.length} from '
-          '${widget.manager.username}',
-    );
+    if (quotes.isEmpty) {
+      setState(() {
+        _buying = false;
+        _failure = failed.join('\n');
+      });
+      return;
+    }
+
+    setState(() => _stage = 'Approve ${quotes.length} purchase${quotes.length == 1 ? '' : 's'} in your wallet');
+    final List<SwapOutcome> outcomes;
+    try {
+      outcomes = await widget.repository.executeSwaps(quotes);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _buying = false;
+        _failure = errorText(e);
+      });
+      return;
+    }
+    if (!mounted) return;
+    for (final o in outcomes) {
+      if (o.error != null) failed.add('${o.quote.stock.symbol}: ${o.error}');
+    }
+    _boughtCount = outcomes.where((o) => o.error == null).length;
+
+    if (failed.isEmpty) {
+      Navigator.of(context).pop();
+      context.showSuccessToast(message: 'Bought $_boughtCount of ${picked.length} from ${widget.manager.username}');
+      return;
+    }
+    // Some went through: say which didn't, and leave the sheet open.
+    setState(() {
+      _buying = false;
+      _failure = 'Bought $_boughtCount of ${picked.length}. These didn\'t go through:\n${failed.join('\n')}';
+    });
   }
 
   @override
@@ -195,7 +217,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
-                    onChanged: _buying || !holding.stock.isScoring
+                    onChanged: _buying
                         ? null
                         : (v) => setState(() {
                               v == true
@@ -215,9 +237,7 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
                       ],
                     ),
                     subtitle: Text(
-                      holding.stock.isScoring
-                          ? '${holding.stock.tier.label} · ${formatUsd(holding.stock.priceUsd)}'
-                          : '${holding.stock.tier.label} · paused while its price is unreliable',
+                      '${holding.stock.tier.label} · ${formatUsd(holding.stock.priceUsd)}',
                       style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                     secondary: on && _perStock > 0
@@ -235,13 +255,13 @@ class _AdoptWalletSheetState extends State<AdoptWalletSheet> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Stopped at $_failure',
+                  _failure!,
                   style: const TextStyle(fontSize: 12, color: AppColors.error),
                 ),
               ),
             Text(
               _buying
-                  ? 'Bought $_boughtCount of ${_picked.length} — approve each in your wallet'
+                  ? _stage
                   : '${_picked.length} stock${_picked.length == 1 ? '' : 's'} · '
                       '${formatAmount(_perStock)} ${_payWith.symbol} each',
               textAlign: TextAlign.center,

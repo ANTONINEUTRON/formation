@@ -5,6 +5,10 @@ import 'package:formation/features/assistant_manager/domain/assistant_models.dar
 import 'package:formation/features/feedback/domain/feedback.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
+/// How one buy in [FormationRepository.executeSwaps] went: [error] is null
+/// when it landed.
+typedef SwapOutcome = ({SwapQuote quote, String? error});
+
 /// Everything the Formation UI needs, independent of where it comes from.
 ///
 /// [FixtureRepository] serves in-memory data for building and demoing the UI;
@@ -59,6 +63,12 @@ abstract class FormationRepository {
 
   /// Buys the quoted stock. Returns the number of shares received.
   Future<double> executeSwap(SwapQuote quote);
+
+  /// Executes several buys with one wallet approval (or as few as the wallet
+  /// allows). Each quote gets its own outcome: a buy that fails, before or
+  /// after signing, doesn't stop the others. Throws only if nothing could be
+  /// signed at all (the Manager declined, or no wallet answered).
+  Future<List<SwapOutcome>> executeSwaps(List<SwapQuote> quotes);
 
   /// "Use what I hold": fills an empty [mode] team from the wallet's own
   /// stocks, with the formation and armbands chosen for them.

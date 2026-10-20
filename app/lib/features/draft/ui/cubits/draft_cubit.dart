@@ -31,8 +31,7 @@ class DraftCubit extends Cubit<DraftState> {
   }
 
   /// Stocks that fit [slotIndex]'s tier and aren't already on the team: held
-  /// ones first, then scoring before paused. A paused stock can still be
-  /// picked; it banks nothing until it scores again.
+  /// ones first.
   List<XStock> eligible(int slotIndex) {
     final roster = state.roster;
     if (roster == null) return const [];
@@ -46,7 +45,6 @@ class DraftCubit extends Cubit<DraftState> {
         final heldA = state.heldBalance(a) > 0;
         final heldB = state.heldBalance(b) > 0;
         if (heldA != heldB) return heldA ? -1 : 1;
-        if (a.isScoring != b.isScoring) return a.isScoring ? -1 : 1;
         return a.symbol.compareTo(b.symbol);
       });
   }

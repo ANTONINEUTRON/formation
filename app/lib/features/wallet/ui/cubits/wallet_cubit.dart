@@ -313,6 +313,19 @@ class WalletCubit extends HydratedCubit<WalletState> implements WalletSigner {
     return result.base58;
   }
 
+  @override
+  Future<List<String>> signAndSendTransactions(List<Uint8List> transactions) async {
+    final result = await _withTap(
+      () => _connector.signAndSendTransactions(
+        transactions,
+        address: walletAddress,
+        sessionToken: state.sessionToken,
+      ),
+    );
+    _rememberSession(result);
+    return result.base58List;
+  }
+
   // ── Tap gate ─────────────────────────────────────────────────────────────
 
   /// Runs [action], and if the wallet can only be opened from a tap, waits

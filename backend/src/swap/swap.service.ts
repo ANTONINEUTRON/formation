@@ -131,7 +131,6 @@ export class SwapService {
     });
     if (!res.ok) await this.fail(res, `no route for ${stock.symbol}`);
     const quote = (await res.json()) as JupiterQuote;
-    const sellBack = await this.plainQuote(mint, payToken.mint, quote.outAmount);
 
     return {
       quoteId: this.remember(user, quote, feeBps > 0 ? payToken.feeAccount : ''),
@@ -141,7 +140,6 @@ export class SwapService {
       priceImpactPct: Number(quote.priceImpactPct),
       platformFeeBps: feeBps,
       platformFee: (amount * feeBps) / 10_000,
-      sellBackAmount: sellBack === null ? null : Number(sellBack) / 10 ** payToken.decimals,
     };
   }
 
@@ -183,7 +181,6 @@ export class SwapService {
     // outAmount is already net of the fee, which Jupiter takes from the output.
     const received = Number(quote.outAmount) / 10 ** usdc.decimals;
     const gross = feeBps > 0 ? received / (1 - feeBps / 10_000) : received;
-    const buyBack = await this.plainQuote(usdc.mint, mint, quote.outAmount);
 
     return {
       quoteId: this.remember(user, quote, feeBps > 0 ? usdc.feeAccount : ''),
@@ -192,7 +189,6 @@ export class SwapService {
       priceImpactPct: Number(quote.priceImpactPct),
       platformFeeBps: feeBps,
       platformFee: gross - received,
-      buyBackShares: buyBack === null ? null : Number(buyBack) / 10 ** stock.decimals,
     };
   }
 
@@ -208,24 +204,6 @@ export class SwapService {
       feeAccount,
     });
     return quoteId;
-  }
-
-  /**
-   * A fee-free quote, only to show what the reverse trade would return. Null
-   * when it can't be had: the warning is a courtesy, never a reason to fail.
-   */
-  private async plainQuote(inputMint: string, outputMint: string, amount: string): Promise<bigint | null> {
-    try {
-      const params = new URLSearchParams({ inputMint, outputMint, amount, slippageBps: String(SLIPPAGE_BPS) });
-      const res = await fetch(`${this.config.jupiterApiUrl}/swap/v1/quote?${params}`, {
-        headers: this.config.jupiterHeaders,
-      });
-      if (!res.ok) return null;
-      const body = (await res.json()) as { outAmount?: string };
-      return body.outAmount ? BigInt(body.outAmount) : null;
-    } catch {
-      return null;
-    }
   }
 
   /** Builds the unsigned swap transaction (base64) for the quoted buy. */

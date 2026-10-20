@@ -7,7 +7,6 @@ import type { NotificationKind } from '../core/db-types.js';
 export const PUSH_CATEGORIES = {
   match_week: ['match_week', 'transfer_window'],
   goals: ['goal'],
-  not_scoring: ['not_scoring'],
   season: ['season_final'],
   points: ['points'],
   leagues: ['league_started', 'league_settled', 'league_joined'],

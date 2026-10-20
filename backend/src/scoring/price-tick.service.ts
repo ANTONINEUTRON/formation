@@ -10,7 +10,6 @@ import { PRICE_SOURCE } from '../core/sources.js';
 import type { PriceSource } from '../core/sources.js';
 import { LeaguesService } from '../leagues/leagues.service.js';
 import { XStocksService } from '../xstocks/xstocks.service.js';
-import { AssetScoringService } from './asset-scoring.service.js';
 import { GeneralScoringService } from './general-scoring.service.js';
 import { MatchWeekService } from './match-week.service.js';
 import { SeasonService } from './season.service.js';
@@ -31,7 +30,6 @@ export class PriceTickService implements OnModuleInit {
     @Inject(PRICE_SOURCE) private readonly prices: PriceSource,
     private readonly xstocks: XStocksService,
     private readonly general: GeneralScoringService,
-    private readonly assetScoring: AssetScoringService,
     private readonly seasons: SeasonService,
     private readonly matchWeeks: MatchWeekService,
     private readonly leagues: LeaguesService,
@@ -73,15 +71,6 @@ export class PriceTickService implements OnModuleInit {
       await this.seasons.rollover(capturedAt.getTime());
     } catch (e) {
       this.logger.error(`Season rollover failed: ${String(e)}`);
-    }
-
-    // Decide which assets score before anything banks, so a price that broke
-    // on this very tick already counts for nothing.
-    try {
-      await this.assetScoring.refresh(capturedAt.getTime());
-    } catch (e) {
-      // Banking on yesterday's statuses beats not banking at all.
-      this.logger.error(`Scoring eligibility failed: ${String(e)}`);
     }
 
     // Points bank here, on every tick — nothing waits for a window to close.

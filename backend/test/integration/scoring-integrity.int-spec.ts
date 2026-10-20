@@ -1,6 +1,5 @@
 import type { AuthUser } from '../../src/domain/dto.js';
 import type { LineupSnapshot } from '../../src/scoring/engine/types.js';
-import { MarketDepthService } from '../../src/scoring/market-depth.service.js';
 import { createHarness } from './harness.js';
 import type { Harness } from './harness.js';
 
@@ -93,55 +92,15 @@ describe('scoring integrity', () => {
     expect(await points()).toBe(100);
   });
 
-  it("an asset that fails a requirement stops scoring and says why", async () => {
-    // Buying and selling straight back would lose 12%: a market cheap to push around.
-    h.depth.set(TSLA, 12);
-    await h.app.get(MarketDepthService).checkAll();
-    await tickAfter(3);
-
-    const status = await h.db
-      .selectFrom('asset_scoring_status')
-      .selectAll()
-      .where('mint', '=', TSLA)
-      .executeTakeFirstOrThrow();
-    expect(status).toMatchObject({ eligible: false, reason: 'thin_market' });
-
-    h.prices.move(TSLA, 1.08);
-    await tickAfter(30);
-    expect(await points()).toBe(0);
-
-    // Still on the team, still tradable, flagged everywhere it appears.
-    const roster = await h.rosters.getRoster(me, 'football');
-    const slot = roster.slots.find((s) => s.stock?.mint === TSLA)!;
-    expect(slot.stock!.notScoring).toBe('thin market');
-  });
-
-  it('a paused stock can be placed in a slot, and banks nothing there', async () => {
-    h.depth.set('mint-HOOD', 9);
-    await h.app.get(MarketDepthService).checkAll();
-    await tickAfter(3);
-
+  it('every listed stock scores, from its first price', async () => {
     const roster = await h.rosters.getRoster(me, 'football');
     const fwd = roster.slots.find((s) => s.stock?.mint === TSLA)!;
-    const after = await h.rosters.fillSlot(me, 'football', fwd.slotIndex, 'mint-HOOD');
-    expect(after.slots[fwd.slotIndex].stock).toMatchObject({ mint: 'mint-HOOD', notScoring: 'thin market' });
+    await h.rosters.fillSlot(me, 'football', fwd.slotIndex, 'mint-HOOD');
+    await tickAfter(3);
 
     const before = await points();
-    h.prices.move('mint-HOOD', 1.08);
+    h.prices.move('mint-HOOD', 1.05);
     await tickAfter(30);
-    await tickAfter(30);
-    expect(await points()).toBe(before);
-  });
-
-  it('a stock with no route at all is a thin market too', async () => {
-    h.depth.set(TSLA, null);
-    await h.app.get(MarketDepthService).checkAll();
-    await tickAfter(3);
-    const status = await h.db
-      .selectFrom('asset_scoring_status')
-      .select(['eligible', 'reason'])
-      .where('mint', '=', TSLA)
-      .executeTakeFirstOrThrow();
-    expect(status).toEqual({ eligible: false, reason: 'thin_market' });
+    expect(await points()).toBeGreaterThan(before);
   });
 });

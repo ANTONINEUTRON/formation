@@ -2,6 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import type { AppConfig } from '../core/config.js';
+import type { SessionService } from './session.service.js';
 import type { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 import { allowedSiwsHost, parseSiwsMessage, siwsProblem } from './siws.js';
@@ -117,8 +118,10 @@ describe('AuthService.verifySiws', () => {
           id: 'user-1',
           username: 'player',
           wallet_address: address,
+          suspended_at: null,
         }),
       } as unknown as UsersService,
+      { signedIn: async () => {} } as unknown as SessionService,
     );
 
   /** What the app sends: the wallet's bytes as base64, the signature as base58. */

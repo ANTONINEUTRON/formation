@@ -25,6 +25,10 @@ class _FakeSigner implements WalletSigner {
 
   @override
   Future<String> signAndSendTransaction(Uint8List transaction) async => 'signature';
+
+  @override
+  Future<List<String>> signAndSendTransactions(List<Uint8List> transactions) async =>
+      [for (final _ in transactions) 'signature'];
 }
 
 const _basketball = AssistantContext(mode: SportMode.basketball);

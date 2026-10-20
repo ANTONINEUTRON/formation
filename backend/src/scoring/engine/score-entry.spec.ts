@@ -184,25 +184,6 @@ describe('scoreEntry', () => {
 describe('scoreEntry: scoring integrity', () => {
   const TICK: ScoreWindow = { start: 0, end: HOUR, sessionMinutes: 24 * 60 };
 
-  it("a pick that isn't scoring banks nothing and gives up the armband", () => {
-    // JNJx crashed 41% on a broken price; it's flagged, so it costs nothing.
-    const result = scoreEntry({
-      ...input(
-        [
-          { slotIndex: 1, role: 'DEF', mint: 'JNJx', endPrice: 58.6 },
-          { slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 102 },
-        ],
-        { captainSlot: 1, viceCaptainSlot: 9 },
-      ),
-      notScoring: { JNJx: 'price not updating' },
-    });
-
-    const jnj = result.slots.find((s) => s.mint === 'JNJx')!;
-    expect(jnj).toMatchObject({ total: 0, base: 0, events: [], notScoring: 'price not updating' });
-    // The vice-captain takes the armband.
-    expect(result.slots.find((s) => s.mint === 'TSLAx')!.multiplier).toBe(2);
-  });
-
   it('caps base points per tick and per session', () => {
     const picks = [{ slotIndex: 9, role: 'FWD', mint: 'TSLAx', endPrice: 108 }];
     const base = (caps: Parameters<typeof scoreEntry>[0]['caps']) =>

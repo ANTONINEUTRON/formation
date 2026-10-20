@@ -76,11 +76,6 @@ export interface ScoreInput {
    * 3% move), so they are rolled up once a day. Defaults to both.
    */
   parts?: ScoreParts;
-  /**
-   * Picks that aren't scoring, by mint, with the reason. They bank nothing,
-   * fire no events and can't carry the armband.
-   */
-  notScoring?: Record<string, string>;
   /** Hold-and-clamp implausible jumps tick by tick (guard.ts). */
   guard?: { maxMove: number };
   /** Limits on what one pick can bank; the general league sets these. */
@@ -125,8 +120,6 @@ export interface SlotScore {
   /** Captain multiplier: 2 (football), 1.5 (basketball), otherwise 1. */
   multiplier: number;
   total: number;
-  /** Why the pick isn't scoring, e.g. "stale price". Absent when it is. */
-  notScoring?: string;
   /** Guard outcome for the window: a jump held, or banked clamped. */
   guard?: { held: boolean; jumps: number; state: GuardState };
 }

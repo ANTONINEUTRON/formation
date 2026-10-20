@@ -12,7 +12,7 @@ const holding = (symbol: string, tier: RiskTier, valueUsd: number): ManagerHoldi
     priceUsd: 1,
     change24hPct: 0,
     logoUrl: null,
-    notScoring: null,
+    issuer: 'xstocks',
   },
   balance: valueUsd,
   valueUsd,

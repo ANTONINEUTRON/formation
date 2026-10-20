@@ -155,6 +155,7 @@ export class LeagueService {
         'users.wallet_address as wallet_address',
       ])
       .where('classic_scores.sport_mode', '=', mode)
+      .where('users.suspended_at', 'is', null)
       .orderBy('classic_scores.total_points', 'desc')
       .limit(BOARD_SIZE)
       .execute();
@@ -197,6 +198,7 @@ export class LeagueService {
         'users.wallet_address as wallet_address',
       ])
       .where('classic_scores.sport_mode', '=', mode)
+      .where('users.suspended_at', 'is', null)
       .execute();
 
     return rows.map((row) => ({
@@ -225,6 +227,7 @@ export class LeagueService {
         eb.fn.sum<string>('points_ledger.points').as('points'),
       ])
       .where('points_ledger.sport_mode', '=', mode)
+      .where('users.suspended_at', 'is', null)
       .groupBy(['points_ledger.user_id', 'users.username', 'users.wallet_address']);
 
     if (period.from) query = query.where('points_ledger.at', '>=', period.from);
@@ -279,9 +282,11 @@ export class LeagueService {
 
     const ahead = await this.db
       .selectFrom('classic_scores')
+      .innerJoin('users', 'users.id', 'classic_scores.user_id')
       .select((eb) => eb.fn.countAll<number>().as('count'))
-      .where('sport_mode', '=', mode)
-      .where('total_points', '>', row.total_points)
+      .where('classic_scores.sport_mode', '=', mode)
+      .where('classic_scores.total_points', '>', row.total_points)
+      .where('users.suspended_at', 'is', null)
       .executeTakeFirst();
 
     return {

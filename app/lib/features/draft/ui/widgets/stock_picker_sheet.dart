@@ -10,14 +10,10 @@ import 'package:formation/features/draft/ui/cubits/draft_cubit.dart';
 import 'package:formation/features/draft/ui/cubits/draft_state.dart';
 import 'package:formation/features/draft/ui/widgets/buy_stock_sheet.dart';
 import 'package:formation/features/shared/domain/models.dart';
-import 'package:formation/features/shared/ui/widgets/paused_info_button.dart';
 import 'package:formation/features/shared/ui/widgets/sell_stock_sheet.dart';
 
-/// Searchable, tier-filtered list of xStocks for one roster slot.
-///
-/// Scoring stocks come first. Paused ones (not scoring) sit in a collapsed
-/// section below: they can be bought, but not placed until they score again,
-/// and each says why with a tap through to the Assistant Manager.
+/// Searchable, tier-filtered list of xStocks for one roster slot, held ones
+/// first.
 class StockPickerSheet extends StatefulWidget {
   const StockPickerSheet({required this.slotIndex, required this.onBuy, this.parentContext, super.key});
 
@@ -66,8 +62,6 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
       }
     }
   }
-
-  void _whyPaused(XStock stock) => whyPaused(context, stock, context.read<DraftCubit>().mode, screen: 'draft');
 
   bool _matches(XStock s) {
     final q = _query.toLowerCase();
@@ -121,7 +115,6 @@ class _StockPickerSheetState extends State<StockPickerSheet> {
               adding: _adding,
               onAdd: () => _add(stock),
               onBuy: () => widget.onBuy(stock),
-              onWhyPaused: stock.isScoring ? null : () => _whyPaused(stock),
             ),
           if (stocks.isEmpty)
             const Padding(
@@ -210,7 +203,6 @@ class _StockRow extends StatelessWidget {
     required this.adding,
     required this.onBuy,
     required this.onAdd,
-    this.onWhyPaused,
   });
 
   final XStock stock;
@@ -222,9 +214,6 @@ class _StockRow extends StatelessWidget {
   final VoidCallback onBuy;
   final VoidCallback onAdd;
 
-  /// Set for a paused stock: the little orange ⓘ, which explains why.
-  final VoidCallback? onWhyPaused;
-
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -232,7 +221,6 @@ class _StockRow extends StatelessWidget {
       title: Row(
         children: [
           Text(stock.symbol, style: const TextStyle(fontWeight: FontWeight.w700)),
-          if (onWhyPaused != null) PausedInfoButton(onPressed: onWhyPaused!),
           // A role that takes two tiers mixes them; say which is which.
           if (showTierDot) ...[
             const SizedBox(width: 8),
@@ -245,7 +233,9 @@ class _StockRow extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        held > 0 ? '${stock.companyName} · held ${formatShares(held)} sh' : stock.companyName,
+        held > 0
+            ? '${stock.companyName} · ${stock.issuer.label} · held ${formatShares(held)} sh'
+            : '${stock.companyName} · ${stock.issuer.label}',
         style: TextStyle(color: held > 0 ? AppColors.success : AppColors.textSecondary, fontSize: 12),
       ),
       trailing: Row(

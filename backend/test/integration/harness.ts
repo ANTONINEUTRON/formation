@@ -5,7 +5,7 @@ import { AppModule } from '../../src/app.module.js';
 import { CLOCK } from '../../src/core/clock.js';
 import { DB } from '../../src/core/db.js';
 import type { Db } from '../../src/core/db.js';
-import { BALANCE_SOURCE, DEPTH_SOURCE, PRICE_SOURCE } from '../../src/core/sources.js';
+import { BALANCE_SOURCE, PRICE_SOURCE } from '../../src/core/sources.js';
 import type { AuthUser } from '../../src/domain/dto.js';
 import { rosterShape } from '../../src/domain/sport.js';
 import type { SportMode } from '../../src/domain/sport.js';
@@ -23,7 +23,6 @@ import { PUSH_SENDER } from '../../src/notifications/fcm.js';
 import {
   FakeBalanceSource,
   FakeClock,
-  FakeDepthSource,
   FakeLlmProvider,
   FakePriceSource,
   FakePushSender,
@@ -34,6 +33,9 @@ import {
 export const TEST_SKR = { mint: 'SKR-test-mint', decimals: 6, treasury: 'treasury-test-account' };
 
 export const BENCHMARK_MINT = 'SPYx-test-mint';
+
+/** The one wallet ADMIN_WALLETS allows in tests. */
+export const ADMIN_WALLET = 'wallet-the_admin';
 
 /** A small, tier-complete stock pool: enough for every roster shape. */
 export const TEST_STOCKS = [
@@ -81,9 +83,6 @@ const TABLES = [
   'credit_quotes',
   'assistant_avatars',
   'feedback',
-  'asset_scoring_status',
-  'market_depth',
-  'scoring_anomalies',
   'league_fixtures',
   'live_events',
   'weekly_stats',
@@ -91,6 +90,11 @@ const TABLES = [
   'device_tokens',
   'push_preferences',
   'push_log',
+  'admin_actions',
+  'wallet_holdings',
+  'wallet_reads',
+  'platform_snapshots',
+  'rpc_usage',
   'badges',
   'season_results',
   'seasons',
@@ -105,8 +109,6 @@ export interface Harness {
   clock: FakeClock;
   prices: FakePriceSource;
   balances: FakeBalanceSource;
-  /** Market depth; every market is deep unless a test sets otherwise. */
-  depth: FakeDepthSource;
   /** Gemini is never called from tests. */
   llm: FakeLlmProvider;
   /** Nor is the chain, for credit purchases. */
@@ -148,11 +150,16 @@ export async function createHarness(): Promise<Harness> {
   // Long enough that the background interval never fires during a test.
   process.env.PRICE_TICK_MINUTES = '1000';
   process.env.BENCHMARK_MINT = BENCHMARK_MINT;
+  // Tests never reach Backpack's live asset list.
+  process.env.BACKPACK_API_URL = '';
   // Season 1 kicks off Monday 5 January 2026, so the test clock (a Tuesday
   // morning ET) is mid match week, outside the free weekend transfer window.
   process.env.SEASON_ANCHOR = '2026-01-05';
   process.env.AUTH_SECRET ||= 'test-secret';
   process.env.ADMIN_KEY ||= 'test-admin-key';
+  process.env.ADMIN_WALLETS = ADMIN_WALLET;
+  // Tests run the wallet snapshot job by hand.
+  process.env.WALLET_SNAPSHOT_EVERY_MIN = '0';
 
   await migrate(url);
 
@@ -162,10 +169,6 @@ export async function createHarness(): Promise<Harness> {
   const llm = new FakeLlmProvider();
   const skrPayments = new FakeSkrPayments();
   const pushes = new FakePushSender();
-  // Every market deep unless a test says otherwise; Jupiter is never called.
-  const depth = new FakeDepthSource();
-  process.env.DEPTH_CHECK_MINUTES = '0';
-  process.env.QUOTE_SPACING_MS = '0';
   process.env.SKR_MINT = TEST_SKR.mint;
   process.env.SKR_DECIMALS = String(TEST_SKR.decimals);
   process.env.ASSISTANT_TREASURY = TEST_SKR.treasury;
@@ -183,8 +186,6 @@ export async function createHarness(): Promise<Harness> {
     .useValue(prices)
     .overrideProvider(BALANCE_SOURCE)
     .useValue(balances)
-    .overrideProvider(DEPTH_SOURCE)
-    .useValue(depth)
     .compile();
 
   const app = moduleRef.createNestApplication();
@@ -201,7 +202,6 @@ export async function createHarness(): Promise<Harness> {
     clock,
     prices,
     balances,
-    depth,
     llm,
     skrPayments,
     pushes,
@@ -225,7 +225,6 @@ export async function createHarness(): Promise<Harness> {
       skrPayments.reset();
       pushes.reset();
       prices.set(TEST_SKR.mint, 0.02);
-      depth.reset();
       // Tuesday 6 January 2026, 10am ET: match week 1 of season 1 is under way.
       clock.set(Date.UTC(2026, 0, 6, 15, 0, 0));
     },

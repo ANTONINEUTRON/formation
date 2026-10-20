@@ -16,7 +16,16 @@ export interface UsersTable {
   /** Free starter-squad drafts used: two allowed (draft + one regenerate). */
   starter_drafts: Generated<number>;
   created_at: Timestamp;
+  /** Last authenticated request, touched at most hourly (auth/session.service.ts). */
+  last_seen_at: Timestamp | null;
+  /** Set while suspended: sign-in is refused and scoring and boards skip them. */
+  suspended_at: Timestamp | null;
+  suspended_reason: string | null;
+  /** Set when the account was deleted and anonymised on request. */
+  deleted_at: Timestamp | null;
 }
+
+export type StockIssuer = 'xstocks' | 'backpack';
 
 export interface XStocksTable {
   mint: string;
@@ -29,37 +38,10 @@ export interface XStocksTable {
   logo_url: string | null;
   /** Decides the benchmark (domain/assets.ts). */
   asset_class: Generated<string>;
-  /** Pool depth in USD from the last catalogue refresh; null if unknown. */
-  liquidity_usd: number | null;
   /** Overrides the curated sector map (domain/sectors.ts). */
   sector: string | null;
-}
-
-/** Whether an asset is scoring right now (scoring/engine/eligibility.ts). */
-export interface AssetScoringStatusTable {
-  mint: string;
-  eligible: boolean;
-  reason: string | null;
-  since: Timestamp;
-  passing_since: Timestamp | null;
-  checked_at: Timestamp;
-  metrics: ColumnType<unknown, unknown, unknown>;
-}
-
-export interface MarketDepthTable {
-  mint: string;
-  /** Percent a buy-and-sell-back of [probe_usd] loses; null when there's no route. */
-  round_trip_loss_pct: number | null;
-  probe_usd: number;
-  checked_at: Timestamp;
-}
-
-export interface ScoringAnomaliesTable {
-  id: Generated<string>;
-  mint: string;
-  at: Timestamp;
-  kind: 'jump' | 'status';
-  detail: ColumnType<unknown, unknown, unknown>;
+  /** Whose token it is: Backed's xStocks or Backpack Securities. */
+  issuer: Generated<StockIssuer>;
 }
 
 export interface RostersTable {
@@ -185,8 +167,7 @@ export type NotificationKind =
   | 'match_week'
   | 'transfer_window'
   | 'season_final'
-  | 'goal'
-  | 'not_scoring';
+  | 'goal';
 
 export interface SeasonsTable {
   number: number;
@@ -393,7 +374,8 @@ export type CreditReason =
   | 'news'
   | 'squad_draft'
   | 'avatar'
-  | 'refund';
+  | 'refund'
+  | 'admin';
 
 export interface CreditLedgerTable {
   id: Generated<number>;
@@ -438,6 +420,50 @@ export interface CreditPurchasesTable {
   created_at: Timestamp;
 }
 
+/** Every admin write (admin/audit.service.ts). */
+export interface AdminActionsTable {
+  id: Generated<string>;
+  /** Wallet address, or 'key' for the x-admin-key header. */
+  admin: string;
+  action: string;
+  target_user_id: string | null;
+  reason: string;
+  detail: ColumnType<unknown, unknown, unknown>;
+  created_at: Timestamp;
+}
+
+export interface WalletReadsTable {
+  user_id: string;
+  read_at: Timestamp;
+  total_usd: number;
+}
+
+export interface WalletHoldingsTable {
+  user_id: string;
+  mint: string;
+  amount: number;
+  usd_value: number | null;
+  read_at: Timestamp;
+}
+
+export interface PlatformSnapshotsTable {
+  taken_at: Timestamp;
+  managers: number;
+  wallets_read: number;
+  total_usd: number;
+  by_mint: ColumnType<
+    Record<string, { amount: number; usd: number | null }>,
+    string,
+    string
+  >;
+}
+
+export interface RpcUsageTable {
+  day: ColumnType<Date, Date | string, Date | string>;
+  source: 'job' | 'manual';
+  calls: Generated<number>;
+}
+
 export interface Database {
   users: UsersTable;
   xstocks: XStocksTable;
@@ -461,9 +487,6 @@ export interface Database {
   credit_purchases: CreditPurchasesTable;
   assistant_avatars: AssistantAvatarsTable;
   feedback: FeedbackTable;
-  asset_scoring_status: AssetScoringStatusTable;
-  market_depth: MarketDepthTable;
-  scoring_anomalies: ScoringAnomaliesTable;
   seasons: SeasonsTable;
   match_weeks: MatchWeeksTable;
   season_results: SeasonResultsTable;
@@ -475,6 +498,11 @@ export interface Database {
   device_tokens: DeviceTokensTable;
   push_preferences: PushPreferencesTable;
   push_log: PushLogTable;
+  admin_actions: AdminActionsTable;
+  wallet_reads: WalletReadsTable;
+  wallet_holdings: WalletHoldingsTable;
+  platform_snapshots: PlatformSnapshotsTable;
+  rpc_usage: RpcUsageTable;
 }
 
 export type User = Selectable<UsersTable>;

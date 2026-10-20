@@ -103,6 +103,7 @@ export class SeasonService {
           .select(['classic_scores.user_id as user_id', 'classic_scores.total_points as points'])
           .where('classic_scores.sport_mode', '=', mode)
           .where('users.is_seed', '=', false)
+          .where('users.suspended_at', 'is', null)
           .orderBy('classic_scores.total_points', 'desc')
           .execute();
         if (table.length === 0) continue;

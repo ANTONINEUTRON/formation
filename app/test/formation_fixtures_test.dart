@@ -65,21 +65,6 @@ void main() {
       expect(footballRoles('4-4-2').where((r) => r == 'MID'), hasLength(4));
     });
 
-    test("a stock that isn't scoring says why, and still parses as a stock", () {
-      final json = {
-        'symbol': 'JNJx',
-        'companyName': 'J&J',
-        'mint': 'm',
-        'tier': 'blue_chip',
-        'priceUsd': 251.36,
-        'notScoring': 'price not updating',
-      };
-      final stock = XStock.fromJson(json);
-      expect(stock.isScoring, isFalse);
-      expect(stock.notScoring, 'price not updating');
-      expect(XStock.fromJson({...json, 'notScoring': null}).isScoring, isTrue);
-    });
-
     test('each football line takes its own tier', () {
       final shape = footballShape('4-4-2');
       final blueChip = xStockFixtures.firstWhere((s) => s.tier == RiskTier.blueChip);

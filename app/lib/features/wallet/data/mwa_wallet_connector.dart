@@ -108,6 +108,28 @@ class MwaWalletConnector implements WalletConnector {
         return base58encode(result.signatures.first);
       });
 
+  @override
+  Future<WalletSignature> signAndSendTransactions(
+    List<Uint8List> transactions, {
+    required String address,
+    String? sessionToken,
+  }) =>
+      _withWallet(sessionToken, (client) async {
+        // A wallet may cap how many it signs per approval; 0 means no cap.
+        final cap = (await client.getCapabilities())?.maxTransactionsPerSigningRequest ?? 0;
+        final size = cap > 0 ? cap : transactions.length;
+        final signatures = <String>[];
+        for (var i = 0; i < transactions.length; i += size) {
+          final batch = transactions.sublist(i, (i + size).clamp(0, transactions.length));
+          final result = await client.signAndSendTransactions(transactions: batch);
+          if (result.signatures.length != batch.length) {
+            throw const WalletException(message: 'Transaction was rejected in your wallet');
+          }
+          signatures.addAll(result.signatures.map(base58encode));
+        }
+        return signatures;
+      });
+
   /// Opens a session, (re)authorizes, runs [action], and closes.
   Future<WalletSignature> _withWallet(
     String? sessionToken,

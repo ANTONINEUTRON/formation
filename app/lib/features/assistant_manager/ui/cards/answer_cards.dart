@@ -8,7 +8,6 @@ import 'package:formation/features/assistant_manager/domain/assistant_cards.dart
 import 'package:formation/features/assistant_manager/ui/cards/card_frame.dart';
 import 'package:formation/features/assistant_manager/ui/cards/line_chart.dart';
 import 'package:formation/features/assistant_manager/ui/cards/sandboxed_html.dart';
-import 'package:formation/features/shared/ui/widgets/not_scoring_badge.dart';
 
 /// Draws whichever card a reply carried.
 class AssistantCardView extends StatelessWidget {
@@ -109,10 +108,6 @@ class StatBoardView extends StatelessWidget {
               if (card.valueUsd != null) _StatText(label: 'You hold', value: _usd(card.valueUsd!)),
             ],
           ),
-          if (card.notScoring != null) ...[
-            const SizedBox(height: 10),
-            NotScoringBadge(reason: card.notScoring!),
-          ],
           const SizedBox(height: 14),
           RangedChart(chart: card.chart),
           if (card.newsSummary != null) ...[

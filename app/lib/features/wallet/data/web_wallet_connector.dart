@@ -93,6 +93,18 @@ class WebWalletConnector implements WalletConnector {
     return WalletSignature(value: signature.toDart);
   }
 
+  @override
+  Future<WalletSignature> signAndSendTransactions(
+    List<Uint8List> transactions, {
+    required String address,
+    String? sessionToken,
+  }) async {
+    final signatures = await _tapAware(
+      () => _bridge.signAndSendTransactions([for (final t in transactions) t.toJS].toJS).toDart,
+    );
+    return WalletSignature(value: [for (final s in signatures.toDart) s.toDart]);
+  }
+
   /// Turns the bridge's "needs a tap" refusal into [WalletTapRequired], and a
   /// wallet app that never answered into a message a player can act on.
   ///
@@ -129,6 +141,7 @@ extension type _Bridge._(JSObject _) implements JSObject {
   external JSPromise<JSAny?> disconnect();
   external JSPromise<JSUint8Array> signMessage(JSUint8Array message);
   external JSPromise<JSString> signAndSendTransaction(JSUint8Array transaction);
+  external JSPromise<JSArray<JSString>> signAndSendTransactions(JSArray<JSUint8Array> transactions);
 }
 
 extension type _JsWalletOption._(JSObject _) implements JSObject {

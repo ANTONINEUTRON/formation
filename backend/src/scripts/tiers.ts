@@ -54,7 +54,7 @@ for (const d of rows) {
 const changed = rows.filter((d) => d.next !== d.current).length;
 console.log(`\n${changed} of ${rows.length} would change${apply ? ' (applied)' : ''}. * marks a change.`);
 for (const s of plan.shortages) {
-  console.log(`Warning: only ${s.scoring} scoring ${s.tier} stocks for ${s.mode}, whose lineups can need ${s.needed}.`);
+  console.log(`Warning: only ${s.listed} ${s.tier} stocks for ${s.mode}, whose lineups can need ${s.needed}.`);
 }
 if (!apply) console.log('Preview only. Run with --apply to save.');
 await db.destroy();

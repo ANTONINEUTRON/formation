@@ -11,6 +11,7 @@ import 'package:solana/base58.dart';
 import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/core/errors/app_exception.dart';
 import 'package:formation/core/utils/app_log.dart';
+import 'package:formation/core/utils/format.dart';
 import 'package:formation/domain/entity/notification.dart';
 import 'package:formation/features/assistant_manager/domain/assistant_models.dart';
 import 'package:formation/features/feedback/domain/feedback.dart';
@@ -29,6 +30,9 @@ abstract class WalletSigner {
 
   /// Signs and submits a serialized transaction. Returns the base58 signature.
   Future<String> signAndSendTransaction(Uint8List transaction);
+
+  /// Signs and submits several with one wallet approval. Signatures in order.
+  Future<List<String>> signAndSendTransactions(List<Uint8List> transactions);
 
   /// A sign-in the wallet already signed while connecting, handed over once.
   ///
@@ -357,6 +361,35 @@ class ApiRepository implements FormationRepository {
   Future<double> executeSwap(SwapQuote quote) async {
     await _signAndConfirm(quote.quoteId);
     return quote.estimatedShares;
+  }
+
+  @override
+  Future<List<SwapOutcome>> executeSwaps(List<SwapQuote> quotes) async {
+    // Build every transaction first, so the wallet is asked once, for all.
+    final errors = <int, String>{};
+    final built = <int, Uint8List>{};
+    for (final (i, quote) in quotes.indexed) {
+      try {
+        final json = await _request('POST', '/swap/build', body: {'quoteId': quote.quoteId}) as Map<String, dynamic>;
+        built[i] = base64Decode(json['swapTransaction'] as String);
+      } catch (e) {
+        errors[i] = errorText(e);
+      }
+    }
+    if (built.isNotEmpty) {
+      final order = built.keys.toList();
+      final signatures = await _signer.signAndSendTransactions([for (final i in order) built[i]!]);
+      // Each lands, or doesn't, on its own.
+      await Future.wait([
+        for (final (n, i) in order.indexed)
+          _request('POST', '/swap/confirm', body: {'signature': signatures[n]}).then<void>(
+            (_) {},
+            onError: (Object e) => errors[i] = errorText(e),
+          ),
+      ]);
+      _notify();
+    }
+    return [for (final (i, quote) in quotes.indexed) (quote: quote, error: errors[i])];
   }
 
   @override

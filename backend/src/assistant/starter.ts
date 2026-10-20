@@ -163,11 +163,7 @@ export class StarterService {
     // Dust doesn't count as held: a stock worth under the minimum gets bought.
     const priceOf = new Map(stocks.map((s) => [s.mint, s.priceUsd]));
     const isHeld = (mint: string) => counts(held.get(mint) ?? 0, priceOf.get(mint), this.config.minHoldingUsd);
-    // A paused stock can't be placed in a lineup until it scores again, and its
-    // price is usually poor too, so the starter squad never includes one.
-    const catalogue = stocks.filter(
-      (s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint && s.notScoring === null,
-    );
+    const catalogue = stocks.filter((s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint);
 
     const reply = await this.llm.generate({
       system: starterPrompt(character, style, {

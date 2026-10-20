@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminController } from './admin/admin.controller.js';
+import { AdminAssistantService } from './admin/assistant-admin.service.js';
+import { AdminAuditService } from './admin/audit.service.js';
+import { AdminHealthService } from './admin/health.service.js';
+import { AdminHoldingsService } from './admin/holdings.service.js';
+import { AdminManagersService } from './admin/managers-admin.service.js';
+import { AdminOpsService } from './admin/ops.service.js';
 import { FeedbackController } from './feedback/feedback.controller.js';
 import { FeedbackService } from './feedback/feedback.service.js';
 import { AppController } from './app.controller.js';
@@ -33,8 +39,6 @@ import { OgController, OgRateLimitGuard } from './og/og.controller.js';
 import { OgService } from './og/og.service.js';
 import { RosterController, WalletController } from './roster/roster.controller.js';
 import { RosterService } from './roster/roster.service.js';
-import { AssetScoringService } from './scoring/asset-scoring.service.js';
-import { MarketDepthService } from './scoring/market-depth.service.js';
 import { EntryScoringService } from './scoring/entry-scoring.service.js';
 import { GeneralScoringService } from './scoring/general-scoring.service.js';
 import { MatchWeekController } from './scoring/match-week.controller.js';
@@ -76,8 +80,6 @@ import { TiersService } from './xstocks/tiers.service.js';
   ],
   providers: [
     AppService,
-    AssetScoringService,
-    MarketDepthService,
     SeasonService,
     SkillService,
     LedgerService,
@@ -105,6 +107,12 @@ import { TiersService } from './xstocks/tiers.service.js';
     AvatarService,
     PushService,
     FeedbackService,
+    AdminAuditService,
+    AdminHealthService,
+    AdminHoldingsService,
+    AdminManagersService,
+    AdminAssistantService,
+    AdminOpsService,
     // Swapped for fakes in tests.
     { provide: LLM_PROVIDER, useClass: GeminiProvider },
     { provide: SKR_PAYMENTS, useClass: SolanaSkrPayments },

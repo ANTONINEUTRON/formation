@@ -7,7 +7,6 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/domain/roster_shapes.dart';
-import 'package:formation/features/shared/ui/widgets/paused_info_button.dart';
 import 'package:formation/features/shared/ui/widgets/sell_stock_sheet.dart';
 import 'package:formation/features/team/ui/cubits/team_cubit.dart';
 
@@ -74,7 +73,7 @@ class SubstitutesBench extends StatelessWidget {
 /// Bench order: stocks that can come on first, then the most valuable.
 List<BenchSlot> orderedBench(List<BenchSlot> bench) => [...bench]
   ..sort((a, b) {
-    int ready(BenchSlot s) => s.stock.isScoring && s.eligibleSlots.isNotEmpty ? 0 : 1;
+    int ready(BenchSlot s) => s.eligibleSlots.isNotEmpty ? 0 : 1;
     final byReady = ready(a).compareTo(ready(b));
     return byReady != 0 ? byReady : b.valueUsd.compareTo(a.valueUsd);
   });
@@ -89,7 +88,6 @@ class _BenchSpot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stock = slot.stock;
-    final paused = !stock.isScoring;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(10),
@@ -100,7 +98,7 @@ class _BenchSpot extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: stock.tier.color.withValues(alpha: paused ? 0.25 : 0.6)),
+            border: Border.all(color: stock.tier.color.withValues(alpha: 0.6)),
           ),
           child: Column(
             children: [
@@ -112,10 +110,6 @@ class _BenchSpot extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (paused) ...[
-                    const Icon(Icons.info_outline, size: 11, color: AppColors.warning),
-                    const SizedBox(width: 2),
-                  ],
                   Flexible(
                     child: Text(
                       stock.symbol,
@@ -124,7 +118,7 @@ class _BenchSpot extends StatelessWidget {
                       style: AppTextStyles.mono(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: paused ? AppColors.textMuted : AppColors.textPrimary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -240,8 +234,6 @@ class _SubstitutesSheetState extends State<SubstitutesSheet> {
     }
   }
 
-  void _whyPaused(XStock stock) => whyPaused(context, stock, _roster.mode);
-
   @override
   Widget build(BuildContext context) {
     final bench = orderedBench(_roster.bench);
@@ -284,7 +276,6 @@ class _SubstitutesSheetState extends State<SubstitutesSheet> {
                       Navigator.of(context).pop();
                       SellStockSheet.show(context, stock: sub.stock, held: sub.balance);
                     },
-                    onWhyPaused: () => _whyPaused(sub.stock),
                   );
                 },
               ),
@@ -306,7 +297,6 @@ class _SubRow extends StatelessWidget {
     required this.onBringOn,
     required this.costFor,
     required this.onSell,
-    required this.onWhyPaused,
   });
 
   final BenchSlot sub;
@@ -317,12 +307,10 @@ class _SubRow extends StatelessWidget {
   final ValueChanged<int> onBringOn;
   final String Function(int slotIndex) costFor;
   final VoidCallback onSell;
-  final VoidCallback onWhyPaused;
 
   @override
   Widget build(BuildContext context) {
     final stock = sub.stock;
-    final paused = !stock.isScoring;
     final canPlay = sub.eligibleSlots.isNotEmpty;
 
     return Column(
@@ -334,7 +322,6 @@ class _SubRow extends StatelessWidget {
           title: Row(
             children: [
               Text(stock.symbol, style: const TextStyle(fontWeight: FontWeight.w700)),
-              if (paused) PausedInfoButton(onPressed: onWhyPaused),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -350,7 +337,6 @@ class _SubRow extends StatelessWidget {
             [
               '${formatShares(sub.balance)} · ${formatUsd(sub.valueUsd)}',
               if (sub.eligibleSlots.isEmpty) 'no ${stock.tier.label.toLowerCase()} spot in this team',
-              if (paused) 'not scoring right now',
             ].join(' · '),
             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),

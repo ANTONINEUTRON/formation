@@ -30,6 +30,15 @@ class _FakeSigner implements WalletSigner {
 
   @override
   Future<String> signAndSendTransaction(Uint8List transaction) async => 'signature';
+
+  /// Every batch the wallet was asked to approve.
+  final batches = <int>[];
+
+  @override
+  Future<List<String>> signAndSendTransactions(List<Uint8List> transactions) async {
+    batches.add(transactions.length);
+    return [for (final t in transactions) 'sig-${t.first}'];
+  }
 }
 
 void main() {
@@ -75,6 +84,64 @@ void main() {
         signer: _FakeSigner(),
         client: MockClient(respond),
       );
+
+  test('buys several stocks with one wallet approval, each landing or failing on its own', () async {
+    final signer = _FakeSigner();
+    final confirmed = <String>[];
+    final repo = ApiRepository(
+      baseUrl: 'http://localhost:3000',
+      signer: signer,
+      client: MockClient((request) async {
+        final path = request.url.path;
+        final body = request.body.isEmpty ? <String, dynamic>{} : jsonDecode(request.body) as Map<String, dynamic>;
+        return switch (path) {
+          '/auth/challenge' => http.Response(jsonEncode({'message': 'Sign in'}), 200),
+          '/auth/verify' => http.Response(
+              jsonEncode({'token': 't', 'user': {'id': 'u', 'username': 'me', 'walletAddress': 'w'}}),
+              200,
+            ),
+          // q-2 can't be built: it never reaches the wallet.
+          '/swap/build' when body['quoteId'] == 'q-2' =>
+            http.Response(jsonEncode({'message': 'Quote expired, request a new one'}), 400),
+          // Each transaction's first byte is its quote number, so the signature says which it was.
+          '/swap/build' => http.Response(
+              jsonEncode({'swapTransaction': base64Encode([int.parse((body['quoteId'] as String).substring(2))])}),
+              200,
+            ),
+          // sig-3 lands as failed on chain.
+          '/swap/confirm' when body['signature'] == 'sig-3' =>
+            http.Response(jsonEncode({'message': 'The swap failed on chain'}), 400),
+          '/swap/confirm' => () {
+              confirmed.add(body['signature'] as String);
+              return http.Response('{}', 200);
+            }(),
+          _ => http.Response(jsonEncode({'message': 'not stubbed: $path'}), 404),
+        };
+      }),
+    );
+    final stock = XStock.fromJson(jsonDecode(_sample('xstocks'))[0] as Map<String, dynamic>);
+    SwapQuote quote(int n) => SwapQuote(
+          quoteId: 'q-$n',
+          stock: stock,
+          payWith: 'USDC',
+          inputAmount: 10,
+          estimatedShares: 0.1,
+          priceImpactPct: 0,
+          platformFeeBps: 30,
+          platformFee: 0.03,
+        );
+
+    final outcomes = await repo.executeSwaps([quote(1), quote(2), quote(3), quote(4)]);
+
+    expect(signer.batches, [3]); // one approval, for the three that could be built
+    expect(confirmed..sort(), ['sig-1', 'sig-4']);
+    expect([for (final o in outcomes) o.error], [
+      null,
+      'Quote expired, request a new one',
+      'The swap failed on chain',
+      null,
+    ]);
+  });
 
   test('signs in with the wallet before the first authenticated call', () async {
     await repository().getRoster(SportMode.football);
@@ -340,6 +407,15 @@ class _ProofSigner implements WalletSigner {
 
   @override
   Future<String> signAndSendTransaction(Uint8List transaction) async => 'signature';
+
+  /// Every batch the wallet was asked to approve.
+  final batches = <int>[];
+
+  @override
+  Future<List<String>> signAndSendTransactions(List<Uint8List> transactions) async {
+    batches.add(transactions.length);
+    return [for (final t in transactions) 'sig-${t.first}'];
+  }
 }
 
 /// Runs [future] and returns whatever it threw.

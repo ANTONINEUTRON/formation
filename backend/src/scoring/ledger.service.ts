@@ -20,6 +20,9 @@ export const PRE_SEASON = 0;
  *
  * Points banked before season 1 kicks off are pre-season: kept in the ledger
  * as season 0, but never added to a season total, so the season starts level.
+ *
+ * Pass [db] to write inside a caller's transaction (an admin correction and
+ * its audit record land together); otherwise it opens its own.
  */
 @Injectable()
 export class LedgerService {
@@ -36,10 +39,11 @@ export class LedgerService {
     points: number,
     at: number,
     detail?: unknown,
+    db?: Db,
   ): Promise<void> {
     if (points === 0) return;
     const preSeason = at < this.calendar.season(1).startsAt.getTime();
-    await this.db.transaction().execute(async (trx) => {
+    const write = async (trx: Db) => {
       await trx
         .insertInto('points_ledger')
         .values({
@@ -63,6 +67,8 @@ export class LedgerService {
           })),
         )
         .execute();
-    });
+    };
+    if (db) await write(db);
+    else await this.db.transaction().execute(write);
   }
 }

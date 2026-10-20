@@ -4,7 +4,6 @@ describe('push rules', () => {
   it('puts every notification kind in a category players can switch off', () => {
     expect(categoryOf('goal')).toBe('goals');
     expect(categoryOf('match_week')).toBe('match_week');
-    expect(categoryOf('not_scoring')).toBe('not_scoring');
     expect(categoryOf('season_final')).toBe('season');
     expect(categoryOf('league_settled')).toBe('leagues');
     expect(categoryOf('manager_move')).toBe('social');

@@ -230,10 +230,9 @@ export class EntryScoringService {
   }> {
     const mints = snapshot.slots.map((s) => s.mint);
     const benchmarks = snapshot.slots.flatMap((s) => (s.benchmarkMint ? [s.benchmarkMint] : []));
-    const [balances, prices, notScoring] = await Promise.all([
+    const [balances, prices] = await Promise.all([
       this.balances.getBalances(wallet, { fresh }),
       this.priceBook([...mints, ...benchmarks], window),
-      this.xstocks.notScoring(),
     ]);
     // Sold down to dust counts as sold: the pick exits at that moment.
     const endBalances = Object.fromEntries(
@@ -257,10 +256,9 @@ export class EntryScoringService {
         window,
         exits: nextExits,
         parts,
-        notScoring,
         // The guard works tick by tick, so it needs every tick. Long windows
         // read a per-session summary instead, where a day apart is no "jump";
-        // there, eligibility alone keeps broken prices out.
+        // there, the per-pick caps bound what a broken price can bank.
         guard: isSummarised(window) ? undefined : { maxMove: this.config.maxTickMove },
         caps,
       }),

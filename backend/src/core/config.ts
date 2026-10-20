@@ -44,18 +44,6 @@ export interface AppConfig {
    */
   maxTickMove: number;
   /**
-   * Market depth (MarketDepthService): every [depthCheckMinutes], each stock
-   * is bought for [depthProbeUsd] and sold straight back through Jupiter's
-   * quotes. It scores only while that round trip loses at most
-   * [maxRoundTripLossPct] percent, which makes its price expensive to push
-   * around. 0 minutes turns the check off; nothing is ever traded.
-   */
-  depthCheckMinutes: number;
-  depthProbeUsd: number;
-  maxRoundTripLossPct: number;
-  /** Pause between Jupiter quote calls; keyless access allows about one a second. */
-  quoteSpacingMs: number;
-  /**
    * The least a holding must be worth, in USD, to count as held: to be placed
    * in a team, sit on the bench, or score. Points don't depend on how much is
    * held, so without it a few cents of a stock would score like a full one.
@@ -83,6 +71,11 @@ export interface AppConfig {
    * closes that off.
    */
   catalogueMinLiquidityUsd: number;
+  /**
+   * Backpack's public API, whose asset list is the allow-list for Backpack
+   * Securities' tokenized stocks. Empty turns Backpack listings off.
+   */
+  backpackApiUrl: string;
 
   // ── Assistant Manager ──────────────────────────────────────────────────────
   /** Gemini API key. Empty disables the assistant: its replies fail with 503. */
@@ -113,6 +106,24 @@ export interface AppConfig {
    * pushes off; the in-app inbox works either way.
    */
   fcmServiceAccount: string;
+
+  // ── Admin (ADMIN_PLAN.md) ──────────────────────────────────────────────────
+  /** Wallet addresses allowed into /admin with a normal session. */
+  adminWallets: string[];
+  /** Points a single correction may move before it needs a second confirmation. */
+  adminCorrectionLimit: number;
+  /** Gemini USD price per million tokens in and out, for the spend estimate. */
+  assistantCostPerMtokIn: number;
+  assistantCostPerMtokOut: number;
+  /** Database size the health page measures against, in MB; 0 means unknown. */
+  dbSizeLimitMb: number;
+  /** Wallet snapshot job: wallets per batch, minutes between runs (0 turns it off). */
+  walletSnapshotBatch: number;
+  walletSnapshotEveryMin: number;
+  /** Never re-read a wallet sooner than this, in minutes. */
+  walletMinRereadMin: number;
+  /** RPC calls the wallet reads may spend per UTC day, job and manual together. */
+  rpcDailyBudget: number;
 }
 
 export const CONFIG = Symbol('CONFIG');
@@ -152,10 +163,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     // SPYx
     benchmarkMint: env.BENCHMARK_MINT ?? 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
     maxTickMove: number(env.MAX_TICK_MOVE, 0.1),
-    depthCheckMinutes: number(env.DEPTH_CHECK_MINUTES, 60),
-    depthProbeUsd: number(env.DEPTH_PROBE_USD, 500),
-    maxRoundTripLossPct: number(env.MAX_ROUND_TRIP_LOSS_PCT, 2),
-    quoteSpacingMs: number(env.QUOTE_SPACING_MS, jupiterApiKey ? 250 : 1_100),
     minHoldingUsd: number(env.MIN_HOLDING_USD, 1),
     squadDraftCredits: number(env.SQUAD_DRAFT_CREDITS, 3),
     seasonAnchor: env.SEASON_ANCHOR?.trim() || DEFAULT_SEASON_ANCHOR,
@@ -164,6 +171,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
     catalogueRefreshHours: number(env.CATALOGUE_REFRESH_HOURS, 12),
     catalogueMinLiquidityUsd: number(env.CATALOGUE_MIN_LIQUIDITY_USD, 0),
+    backpackApiUrl: (env.BACKPACK_API_URL ?? 'https://api.backpack.exchange').trim(),
 
     geminiApiKey: env.GEMINI_API_KEY?.trim() ?? '',
     geminiModel: env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
@@ -177,5 +185,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     assistantTreasury: (env.ASSISTANT_TREASURY ?? env.JUPITER_FEE_ACCOUNT_SKR ?? '').trim(),
 
     fcmServiceAccount: env.FCM_SERVICE_ACCOUNT?.trim() ?? '',
+
+    adminWallets: (env.ADMIN_WALLETS ?? '')
+      .split(',')
+      .map((wallet) => wallet.trim())
+      .filter((wallet) => wallet.length > 0),
+    adminCorrectionLimit: number(env.ADMIN_CORRECTION_LIMIT, 500),
+    // Gemini 2.5 Flash list prices.
+    assistantCostPerMtokIn: number(env.ASSISTANT_COST_PER_MTOK_IN, 0.3),
+    assistantCostPerMtokOut: number(env.ASSISTANT_COST_PER_MTOK_OUT, 2.5),
+    dbSizeLimitMb: number(env.DB_SIZE_LIMIT_MB, 0),
+    walletSnapshotBatch: number(env.WALLET_SNAPSHOT_BATCH, 20),
+    walletSnapshotEveryMin: number(env.WALLET_SNAPSHOT_EVERY_MIN, 30),
+    walletMinRereadMin: number(env.WALLET_MIN_REREAD_MIN, 30),
+    rpcDailyBudget: number(env.RPC_DAILY_BUDGET, 5000),
   };
 }

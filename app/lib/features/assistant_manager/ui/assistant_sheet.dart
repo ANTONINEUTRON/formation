@@ -174,22 +174,23 @@ class _ChatState extends State<_Chat> {
 
   SportMode get _mode => widget.assistantContext.mode;
 
+  /// The list is reversed, so offset 0 is the latest message. Any new message,
+  /// reply or "thinking" row brings the Manager back down to it.
   @override
   void didUpdateWidget(covariant _Chat old) {
     super.didUpdateWidget(old);
-    final before = old.state.conversation(_mode).length + (old.state.sending ? 1 : 0);
-    final after = widget.state.conversation(_mode).length + (widget.state.sending ? 1 : 0);
-    if (after > before) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.animateTo(
-            _scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
+    final changed = old.state.conversation(_mode).length != widget.state.conversation(_mode).length ||
+        old.state.sending != widget.state.sending;
+    if (!changed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients || _scroll.offset <= 0) return;
+      // With animations off, straight there.
+      if (MediaQuery.of(context).disableAnimations) {
+        _scroll.jumpTo(0);
+      } else {
+        _scroll.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    });
   }
 
   @override
@@ -244,12 +245,16 @@ class _ChatState extends State<_Chat> {
         Expanded(
           child: messages.isEmpty && !state.sending
               ? _Welcome(character: widget.character, pose: state.pose, mode: _mode)
+              // Built from the bottom up, like any chat: it opens on the latest
+              // message, and replies that grow (charts loading) stay in view.
               : ListView.builder(
                   controller: _scroll,
+                  reverse: true,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   itemCount: messages.length + (state.sending ? 1 : 0),
-                  itemBuilder: (context, i) {
-                    if (i == messages.length) return const _Thinking();
+                  itemBuilder: (context, fromBottom) {
+                    if (state.sending && fromBottom == 0) return const _Thinking();
+                    final i = messages.length - 1 - (fromBottom - (state.sending ? 1 : 0));
                     final message = messages[i];
                     return _MessageView(
                       message: message,

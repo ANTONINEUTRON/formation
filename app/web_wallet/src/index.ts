@@ -28,6 +28,7 @@ import type {
 } from '@wallet-standard/features';
 import type {
   SolanaSignAndSendTransactionFeature,
+  SolanaSignAndSendTransactionInput,
   SolanaSignInFeature,
   SolanaSignMessageFeature,
 } from '@solana/wallet-standard-features';
@@ -324,6 +325,23 @@ async function signAndSendTransaction(transaction: Uint8Array): Promise<string> 
   return bs58.encode(result.signature);
 }
 
+/**
+ * Signs and submits several transactions with one wallet approval: Wallet
+ * Standard takes them as one call. Returns the base58 signatures in order.
+ */
+async function signAndSendTransactions(transactions: Uint8Array[]): Promise<string[]> {
+  const { wallet, account } = requireActive();
+  requireTap(wallet);
+  const feature = features(wallet)[SolanaSignAndSendTransaction];
+  if (!feature) throw new Error(`${wallet.name} cannot send transactions.`);
+
+  const results = await feature.signAndSendTransaction(
+    ...transactions.map((transaction): SolanaSignAndSendTransactionInput => ({ account, transaction, chain: CHAIN })),
+  );
+  if (results.length !== transactions.length) throw new Error('Transaction was rejected in your wallet.');
+  return results.map((r) => bs58.encode(r.signature));
+}
+
 declare global {
   interface Window {
     formationWallet: {
@@ -333,6 +351,7 @@ declare global {
       disconnect: typeof disconnect;
       signMessage: typeof signMessage;
       signAndSendTransaction: typeof signAndSendTransaction;
+      signAndSendTransactions: typeof signAndSendTransactions;
     };
   }
 }
@@ -344,4 +363,5 @@ window.formationWallet = {
   disconnect,
   signMessage,
   signAndSendTransaction,
+  signAndSendTransactions,
 };

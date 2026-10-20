@@ -561,6 +561,8 @@ export class GeneralScoringService {
       .select(['rosters.user_id as user_id', 'users.wallet_address as wallet_address'])
       .where('rosters.sport_mode', '=', mode)
       .where('users.is_seed', '=', false)
+      // Suspended Managers stop scoring; deleted ones have no rosters left.
+      .where('users.suspended_at', 'is', null)
       .execute();
     return rows.map((row) => ({ userId: row.user_id, wallet: row.wallet_address }));
   }

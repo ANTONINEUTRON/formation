@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   ServiceUnavailableException,
@@ -12,6 +13,7 @@ import nacl from 'tweetnacl';
 import { CONFIG } from '../core/config.js';
 import type { AppConfig } from '../core/config.js';
 import { UsersService } from '../users/users.service.js';
+import { SessionService } from './session.service.js';
 import { parseSiwsMessage, SIWS_MAX_AGE_MS, siwsProblem } from './siws.js';
 import { signToken, TokenPayload, verifyToken } from './token.js';
 
@@ -35,6 +37,7 @@ export class AuthService {
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
     private readonly users: UsersService,
+    private readonly sessions: SessionService,
   ) {}
 
   createChallenge(walletAddress: string): { message: string } {
@@ -121,6 +124,8 @@ export class AuthService {
   /** Creates the player if new and hands back a bearer token. */
   private async issue(walletAddress: string) {
     const user = await this.users.upsertByWallet(walletAddress);
+    if (user.suspended_at) throw new ForbiddenException('This account is suspended');
+    await this.sessions.signedIn(user.id);
     const token = signToken(
       { sub: user.id, wallet: walletAddress, exp: Date.now() + TOKEN_TTL_MS },
       this.secret(),

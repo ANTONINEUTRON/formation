@@ -85,6 +85,36 @@ export class CreditsService {
     return row.balance;
   }
 
+  /**
+   * An admin grant (positive) or clawback (negative), inside the caller's
+   * transaction so the audit record lands with it. A clawback never takes the
+   * balance below 0; the delta actually applied is returned with the balance.
+   */
+  async adjust(
+    trx: Db,
+    userId: string,
+    delta: number,
+  ): Promise<{ applied: number; before: number; balance: number }> {
+    await this.welcome(userId, trx);
+    const current = await trx
+      .selectFrom('assistant_credits')
+      .select('balance')
+      .where('user_id', '=', userId)
+      .forUpdate()
+      .executeTakeFirstOrThrow();
+    const balance = Math.max(0, current.balance + delta);
+    const applied = balance - current.balance;
+    if (applied !== 0) {
+      await trx
+        .updateTable('assistant_credits')
+        .set({ balance, updated_at: this.clock.date() })
+        .where('user_id', '=', userId)
+        .execute();
+      await this.record(trx, userId, applied, balance, 'admin', null);
+    }
+    return { applied, before: current.balance, balance };
+  }
+
   /** The welcome grant: only the insert that creates the account's row gives it. */
   private async welcome(userId: string, db: Db = this.db): Promise<void> {
     const grant = Math.max(0, this.config.assistantTrialCredits);

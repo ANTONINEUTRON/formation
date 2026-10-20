@@ -163,6 +163,7 @@ export class MatchWeekService {
       .where('points_ledger.at', '>=', week.kickOff)
       .where('points_ledger.at', '<=', week.fullTime)
       .where('users.is_seed', '=', false)
+      .where('users.suspended_at', 'is', null)
       .groupBy('points_ledger.user_id')
       .execute();
     return rows

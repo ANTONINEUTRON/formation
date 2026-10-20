@@ -10,7 +10,6 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/adaptive_sheet.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/models.dart';
-import 'package:formation/features/shared/ui/widgets/thin_market_warning.dart';
 
 /// Sells held shares of a stock for USDC through Jupiter, signed in the
 /// Manager's own wallet. Selling a pick that's on the team takes it off at
@@ -98,21 +97,9 @@ class _SellStockSheetState extends State<SellStockSheet> {
     }
   }
 
-  String? _thinMarketMessage(SellQuote quote) {
-    final loss = quote.roundTripLoss;
-    if (loss == null || loss <= thinMarketWarnAt) return null;
-    return "Thin market: if you bought back straight after selling, you'd get about "
-        '${formatShares(quote.buyBackShares!)} of your ${formatShares(quote.shares)} ${widget.stock.symbol} '
-        '(${(loss * 100).round()}% less). Very little money trades it right now.';
-  }
-
   Future<void> _sell() async {
     final quote = _quote;
     if (quote == null) return;
-    final thin = _thinMarketMessage(quote);
-    if (thin != null && (quote.roundTripLoss ?? 0) > thinMarketConfirmAt) {
-      if (!await confirmThinMarket(context, message: thin) || !mounted) return;
-    }
     setState(() => _selling = true);
     try {
       final usdc = await context.read<FormationRepository>().executeSell(quote);
@@ -193,10 +180,6 @@ class _SellStockSheetState extends State<SellStockSheet> {
                       ],
                     ),
             ),
-            if (quote != null && _thinMarketMessage(quote) != null) ...[
-              const SizedBox(height: 12),
-              ThinMarketWarning(message: _thinMarketMessage(quote)!),
-            ],
             if (widget.inTeam && sellingAll) ...[
               const SizedBox(height: 12),
               Text(

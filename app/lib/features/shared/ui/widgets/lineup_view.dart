@@ -5,7 +5,6 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/widgets/formation_board.dart';
 import 'package:formation/features/shared/domain/models.dart';
 import 'package:formation/features/shared/ui/widgets/armband_badge.dart';
-import 'package:formation/features/shared/ui/widgets/not_scoring_badge.dart';
 import 'package:formation/features/team/ui/widgets/roster_slot_card.dart';
 
 /// A button in the lineup's header, e.g. "Pick team".
@@ -182,10 +181,6 @@ class _CompactRow extends StatelessWidget {
           if (armband != null) ...[
             const SizedBox(width: 6),
             ArmbandBadge(label: armband!, size: 16),
-          ],
-          if (stock.notScoring != null) ...[
-            const SizedBox(width: 6),
-            Flexible(child: NotScoringBadge(reason: stock.notScoring!, compact: true)),
           ],
           const Spacer(),
           Text(

@@ -8,8 +8,7 @@ import { CONFIG, loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
 import { createDb, DB } from './db.js';
 import type { Db } from './db.js';
-import { JupiterDepthSource } from './depth.js';
-import { BALANCE_SOURCE, DEPTH_SOURCE, PRICE_SOURCE } from './sources.js';
+import { BALANCE_SOURCE, PRICE_SOURCE } from './sources.js';
 
 @Global()
 @Module({
@@ -29,7 +28,6 @@ import { BALANCE_SOURCE, DEPTH_SOURCE, PRICE_SOURCE } from './sources.js';
     ChainService,
     { provide: PRICE_SOURCE, useExisting: ChainService },
     { provide: BALANCE_SOURCE, useExisting: ChainService },
-    { provide: DEPTH_SOURCE, useClass: JupiterDepthSource },
     UsersService,
     XStocksService,
   ],
@@ -41,7 +39,6 @@ import { BALANCE_SOURCE, DEPTH_SOURCE, PRICE_SOURCE } from './sources.js';
     ChainService,
     PRICE_SOURCE,
     BALANCE_SOURCE,
-    DEPTH_SOURCE,
     UsersService,
     XStocksService,
   ],

@@ -114,7 +114,7 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                   ),
                   SizedBox(height: 12),
                   _Para(
-                    'Scoring runs all the time: a stock scores whenever its price is reliable. Points '
+                    'Scoring runs all the time: every stock scores on every price update. Points '
                     'are banked as they happen, and the day closes into your session total.',
                   ),
                 ],
@@ -142,17 +142,6 @@ class _HowToPlayPageState extends State<HowToPlayPage> {
                     'waits to be confirmed by the next price.',
                   ),
                   _Bullet('Each pick can earn or lose at most 150 base points a day, and 60 in events.'),
-                  _Bullet(
-                    'A stock only scores while its market is deep: buying \$500 of it and selling '
-                    'straight back must lose under 2%. A thin market is cheap to push around, so it '
-                    "can't count for points.",
-                  ),
-                  _Bullet(
-                    "A stock that fails that, or whose price is stale or erratic, isn't scoring: it shows "
-                    "a small orange ⓘ. It banks nothing and can't be captain until its price has been "
-                    'reliable for a full day. You can still pick it, buy it or sell it, and the app shows '
-                    'what a thin market would cost you first.',
-                  ),
                 ],
               ),
               const _Section(
