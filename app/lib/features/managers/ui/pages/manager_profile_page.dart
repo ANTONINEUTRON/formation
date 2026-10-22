@@ -15,16 +15,35 @@ import 'package:formation/features/shared/domain/models.dart';
 
 /// Another player's profile: how they're doing, what they're fielding, and
 /// the two things you can do about it — follow them, or adopt their wallet.
+///
+/// Also the page a shared link opens (`/managers/<id>?mode=football`). A
+/// [guest] (no wallet connected yet) sees the same team, with a way in to
+/// play instead of the follow and adopt buttons.
 @RoutePage()
 class ManagerProfilePage extends StatefulWidget {
   const ManagerProfilePage({
-    required this.userId,
-    required this.mode,
+    @PathParam('userId') required this.userId,
+    this.mode,
+    @QueryParam('mode') this.modeName,
+    this.guest = false,
+    this.onPlay,
     super.key,
   });
 
   final String userId;
-  final SportMode mode;
+
+  /// The sport to show, when opened from inside the app.
+  final SportMode? mode;
+
+  /// The sport from a link's `?mode=`; football when missing or unknown.
+  final String? modeName;
+
+  final bool guest;
+
+  /// For a guest: starts onboarding, after which the app opens this team.
+  final VoidCallback? onPlay;
+
+  SportMode get sport => mode ?? SportMode.tryFromApi(modeName) ?? SportMode.football;
 
   @override
   State<ManagerProfilePage> createState() => _ManagerProfilePageState();
@@ -45,7 +64,9 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
 
   Future<void> _load() async {
     try {
-      final manager = await _repository.getManager(widget.userId, widget.mode);
+      final manager = widget.guest
+          ? await _repository.getManagerAsGuest(widget.userId, widget.sport)
+          : await _repository.getManager(widget.userId, widget.sport);
       if (mounted) setState(() => _manager = manager);
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
@@ -103,7 +124,10 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                     children: [
                       _Header(manager: manager),
                       const SizedBox(height: 16),
-                      if (!manager.isCurrentUser) _actions(manager),
+                      if (widget.guest)
+                        _GuestInvite(manager: manager, onPlay: widget.onPlay)
+                      else if (!manager.isCurrentUser)
+                        _actions(manager),
                       if (manager.skill != null) ...[
                         const SizedBox(height: 16),
                         _SkillCard(skill: manager.skill!),
@@ -397,4 +421,46 @@ class _SectionLabel extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       );
+}
+
+/// What a guest sees instead of follow and adopt: what Formation is, and a
+/// way in. After connecting, the app opens this same team.
+class _GuestInvite extends StatelessWidget {
+  const _GuestInvite({required this.manager, required this.onPlay});
+
+  final Manager manager;
+  final VoidCallback? onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${manager.username} fields real stocks as a ${manager.mode.label.toLowerCase()} team, '
+            'and scores when they beat the market.',
+            style: const TextStyle(color: AppColors.textPrimary, height: 1.4),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Draft your own team from stocks in your wallet. No entry fee.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: onPlay,
+            icon: Icon(manager.mode.icon, size: 18),
+            label: const Text('Play Formation'),
+          ),
+        ],
+      ),
+    );
+  }
 }

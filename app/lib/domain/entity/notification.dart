@@ -4,7 +4,9 @@ enum NotificationKind {
   points('points'),
   leagueStarted('league_started'),
   leagueSettled('league_settled'),
-  leagueJoined('league_joined');
+  leagueJoined('league_joined'),
+  streak('streak'),
+  badge('badge');
 
   const NotificationKind(this.apiValue);
 
@@ -46,6 +48,9 @@ class AppNotification {
   final bool read;
 
   String? get leagueId => data?['leagueId'] as String?;
+
+  /// The sport a badge was won in, as its API value.
+  String? get mode => data?['mode'] as String?;
 
   AppNotification copyWith({bool? read}) => AppNotification(
         id: id,

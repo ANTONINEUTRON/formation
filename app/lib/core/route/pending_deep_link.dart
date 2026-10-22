@@ -15,6 +15,9 @@ abstract final class PendingDeepLink {
     _path = uri.hasQuery ? '$path?${uri.query}' : path;
   }
 
+  /// The captured location, without using it up.
+  static String? peek() => _path;
+
   /// Returns the captured location once, then null on every later call.
   static String? take() {
     final path = _path;

@@ -51,6 +51,7 @@ import { PortfolioService } from './scoring/portfolio.service.js';
 import { SwapController } from './swap/swap.controller.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { StreakService } from './users/streak.service.js';
 import { SwapService } from './swap/swap.service.js';
 import { XStocksCatalogueService } from './xstocks/xstocks-catalogue.service.js';
 import { XStocksController } from './xstocks/xstocks.controller.js';
@@ -96,6 +97,7 @@ import { TiersService } from './xstocks/tiers.service.js';
     OgRateLimitGuard,
     RosterService,
     UsersService,
+    StreakService,
     SwapService,
     XStocksCatalogueService,
     TiersService,

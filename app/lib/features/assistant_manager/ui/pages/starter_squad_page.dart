@@ -68,8 +68,6 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
   void initState() {
     super.initState();
     _mode = widget.mode ?? SportMode.basketball;
-    final slots = rosterShape(_mode).length;
-    if ((double.tryParse(_budget.text) ?? 0) < slots) _budget.text = '$slots';
     _repository.getPayTokens().then((tokens) {
       if (mounted && tokens.isNotEmpty) setState(() => _payTokens = tokens);
     }).ignore();
@@ -138,12 +136,20 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
 
   int get _slotCount => rosterShape(_mode).length;
 
+  /// What the budget covers: every position from \$1 each, or as many as it buys.
+  String get _budgetHint {
+    final budget = double.tryParse(_budget.text.trim()) ?? 0;
+    final buys = budget.floor();
+    if (buys >= _slotCount) return 'Covers all $_slotCount players (from \$1 each)';
+    if (buys < 1) return 'From \$1. One player is enough to start scoring';
+    return 'Buys up to $buys of $_slotCount players (stocks you hold are free). Add the rest later';
+  }
+
   Future<void> _draft() async {
     final budget = double.tryParse(_budget.text.trim()) ?? 0;
-    if (budget < _slotCount) {
-      setState(
-        () => _error = 'A ${_mode.label.toLowerCase()} squad needs at least \$$_slotCount (\$1 a player).',
-      );
+    // One stock is enough to start scoring, so any budget that buys one works.
+    if (budget < 1) {
+      setState(() => _error = 'Enter at least \$1, enough for one player.');
       return;
     }
     setState(() {
@@ -371,11 +377,7 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
             avatar: Icon(mode.icon, size: 16),
             label: Text(mode.label),
             selected: _mode == mode,
-            onSelected: (_) => setState(() {
-              _mode = mode;
-              final budget = double.tryParse(_budget.text) ?? 0;
-              if (budget < _slotCount) _budget.text = '$_slotCount';
-            }),
+            onSelected: (_) => setState(() => _mode = mode),
           ),
       ],
     ),
@@ -386,11 +388,13 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
         Expanded(
           child: TextField(
             controller: _budget,
+            onChanged: (_) => setState(() {}),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
             decoration: InputDecoration(
               prefixText: '\$ ',
-              helperText: 'At least \$$_slotCount for $_slotCount players',
+              helperText: _budgetHint,
+              helperMaxLines: 2,
             ),
           ),
         ),
@@ -456,6 +460,15 @@ class _StarterSquadPageState extends State<StarterSquadPage> {
       ),
       const SizedBox(height: 12),
       LineupView(roster: _asRoster(squad), title: 'Your squad', pitchOnly: true),
+      if (squad.openSlots > 0) ...[
+        const SizedBox(height: 10),
+        Text(
+          '${squad.picks.length} of ${squad.picks.length + squad.openSlots} positions filled for this budget. '
+          'Your team scores from the first pick; fill the rest any time from the Team tab.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+      ],
       const SizedBox(height: 16),
       const _Label('Why each pick'),
       for (final pick in squad.picks)

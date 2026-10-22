@@ -55,9 +55,9 @@ export interface UploadedPhoto {
  *
  * The photo is used once, in memory, to draw a character in the presets'
  * style; four poses are then drawn from that character. Only those drawings
- * are kept. The first is free; later ones cost credits, refunded if drawing
- * fails (which is also what happens when the model's safety filters decline
- * a photo).
+ * are kept. Every one costs ASSISTANT_AVATAR_CREDITS (four image
+ * generations each), refunded if drawing fails (which is also what happens
+ * when the model's safety filters decline a photo).
  */
 @Injectable()
 export class AvatarService {
@@ -71,14 +71,13 @@ export class AvatarService {
     private readonly credits: CreditsService,
   ) {}
 
-  /** What the next custom avatar costs this Manager: 0 for their first. */
-  async cost(userId: string): Promise<number> {
-    const row = await this.db
-      .selectFrom('assistant_profiles')
-      .select('free_avatar_used')
-      .where('user_id', '=', userId)
-      .executeTakeFirst();
-    return row?.free_avatar_used ? this.config.assistantAvatarCredits : 0;
+  /**
+   * What the next custom avatar costs. The same for everyone: the first used
+   * to be free, but drawing four poses costs about as much as a credit pack.
+   */
+  // Kept per user and async, so the price can vary again without touching callers.
+  cost(_userId: string): Promise<number> {
+    return Promise.resolve(this.config.assistantAvatarCredits);
   }
 
   async create(

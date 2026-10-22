@@ -86,7 +86,8 @@ class StarterPick extends Equatable {
   List<Object?> get props => [slotIndex, mint, amountUsd];
 }
 
-/// A complete lineup the Assistant Manager drafted for a new Manager.
+/// A lineup the Assistant Manager drafted for a Manager: complete, or as much
+/// of it as the budget buys, with the rest left to fill later.
 class StarterSquad extends Equatable {
   const StarterSquad({
     required this.mode,
@@ -98,6 +99,7 @@ class StarterSquad extends Equatable {
     required this.budgetUsd,
     required this.skrUsd,
     required this.draftsLeft,
+    this.openSlots = 0,
   });
 
   factory StarterSquad.fromJson(Map<String, dynamic> json) => StarterSquad(
@@ -110,6 +112,7 @@ class StarterSquad extends Equatable {
     budgetUsd: (json['budgetUsd'] as num).toDouble(),
     skrUsd: (json['skrUsd'] as num?)?.toDouble(),
     draftsLeft: json['draftsLeft'] as int? ?? 0,
+    openSlots: json['openSlots'] as int? ?? 0,
   );
 
   final SportMode mode;
@@ -126,8 +129,11 @@ class StarterSquad extends Equatable {
   /// Regenerates left.
   final int draftsLeft;
 
+  /// Positions the budget didn't stretch to; 0 for a full squad.
+  final int openSlots;
+
   double get toSpendUsd => picks.fold(0, (sum, p) => sum + p.amountUsd);
 
   @override
-  List<Object?> get props => [mode, formation, captainSlot, viceCaptainSlot, picks, draftsLeft];
+  List<Object?> get props => [mode, formation, captainSlot, viceCaptainSlot, picks, draftsLeft, openSlots];
 }

@@ -38,12 +38,17 @@ export class ManagersService {
     private readonly skill: SkillService,
   ) {}
 
-  async profile(viewer: AuthUser, userId: string, mode: SportMode): Promise<ManagerDto> {
+  /** [viewer] is null for a guest opening a shared link. */
+  async profile(viewer: AuthUser | null, userId: string, mode: SportMode): Promise<ManagerDto> {
     const user = await this.db
       .selectFrom('users')
       .select(['id', 'username', 'bio', 'wallet_address', 'is_seed'])
       .where('id', '=', userId)
-      .executeTakeFirst();
+      // Suspended and deleted accounts aren't shown, shared link or not.
+      .where('suspended_at', 'is', null)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst()
+      .catch(() => undefined); // a malformed uuid is just an unknown one
     if (!user) throw new NotFoundException('No such player');
 
     const [standing, holdings, saved, followers, following, record, seasons, badges, skill] =
@@ -52,7 +57,7 @@ export class ManagersService {
         this.holdingsOf(user.wallet_address, user.id, mode),
         this.lineupOf(user.id, mode),
         this.followerCount(user.id),
-        this.isFollowing(viewer.id, user.id),
+        viewer ? this.isFollowing(viewer.id, user.id) : Promise.resolve(false),
         this.leagueRecord(user.id, mode),
         this.seasons.history(user.id),
         this.seasons.badges(user.id),
@@ -82,7 +87,7 @@ export class ManagersService {
       holdings,
       followers,
       following,
-      isCurrentUser: user.id === viewer.id,
+      isCurrentUser: user.id === viewer?.id,
       seasons: seasons
         .filter((s) => s.mode === mode)
         .map(({ season, points, rank, players }) => ({ season, points, rank, players })),

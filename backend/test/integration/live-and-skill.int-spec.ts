@@ -156,5 +156,14 @@ describe('live events and skill', () => {
       .execute();
     expect(badges).toHaveLength(3);
     expect(badges.every((b) => b.user_id === me.id)).toBe(true);
+
+    // Each new badge is announced once; re-running a week announces nothing.
+    const announced = () =>
+      h.db.selectFrom('notifications').selectAll().where('kind', '=', 'badge').where('user_id', '=', me.id).execute();
+    const before = await announced();
+    expect(before.filter((n) => n.title.includes('Golden Boot'))).toHaveLength(3);
+    expect(before[0].body).toMatch(/Most goals in football in match week \d/);
+    await skill.computeWeek(calendar.week(3), calendar.week(3).fullTime.getTime() + 60_000);
+    expect(await announced()).toHaveLength(before.length);
   });
 });

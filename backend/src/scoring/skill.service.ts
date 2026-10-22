@@ -7,6 +7,7 @@ import { SPORT_MODES } from '../domain/sport.js';
 import type { SportMode } from '../domain/sport.js';
 import { round1 } from './engine/metrics.js';
 import { SKILL_MIN_WEEKS, skillRating, weekForm, weekStats } from './engine/skill.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 /** Weekly badges, one winner per sport per match week. */
 const WEEKLY_BADGES = {
@@ -15,6 +16,13 @@ const WEEKLY_BADGES = {
   shrewd_captain: 'Shrewd captain',
 } as const;
 
+/** What each badge was for, in the notification that announces it. */
+const BADGE_REASONS: Record<keyof typeof WEEKLY_BADGES, (sport: string, week: number) => string> = {
+  golden_boot: (sport, week) => `Most goals in ${sport} in match week ${week}.`,
+  clean_sheet_king: (sport, week) => `Most clean sheets in ${sport} in match week ${week}.`,
+  shrewd_captain: (sport, week) => `Your ${sport} captain beat your team's average by the most in match week ${week}.`,
+};
+
 /**
  * Makes skill visible (SCORING_PLAN.md §3.2). At full time each player's week
  * is summarised from the ledger into weekly_stats, their skill rating is
@@ -22,7 +30,10 @@ const WEEKLY_BADGES = {
  */
 @Injectable()
 export class SkillService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Summarises [week] for every player and refreshes their ratings. */
   async computeWeek(week: MatchWeek, now: number): Promise<void> {
@@ -152,11 +163,27 @@ export class SkillService {
       })),
     );
     if (values.length === 0) return;
-    await this.db
+    // Only the rows actually inserted are announced, so re-running a week
+    // never repeats a notification.
+    const awarded = await this.db
       .insertInto('badges')
       .values(values)
       .onConflict((oc) => oc.doNothing())
+      .returning(['user_id', 'code'])
       .execute();
+    const sport = mode.replace('_', ' ');
+    await this.notifications.pushMany(
+      awarded.map((b) => {
+        const code = b.code as keyof typeof WEEKLY_BADGES;
+        return {
+          userId: b.user_id,
+          kind: 'badge' as const,
+          title: `Badge won: ${WEEKLY_BADGES[code]}`,
+          body: BADGE_REASONS[code](sport, week.weekOfSeason),
+          data: { code, mode, week: week.number },
+        };
+      }),
+    );
   }
 
   /** A player's skill stats for a profile. Null before their first full week. */

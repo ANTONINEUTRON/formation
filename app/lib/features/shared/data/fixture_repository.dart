@@ -873,6 +873,9 @@ class FixtureRepository implements FormationRepository {
   final Set<String> _following = {};
 
   @override
+  Future<Manager> getManagerAsGuest(String userId, SportMode mode) => getManager(userId, mode);
+
+  @override
   Future<Manager> getManager(String userId, SportMode mode) => _delay(() {
         final entry = _board(mode).firstWhere((e) => e.userId == userId);
         final roster = _rosters[mode]!;
@@ -1010,13 +1013,14 @@ class FixtureRepository implements FormationRepository {
         characterId: _assistantCharacterId,
         characters: _assistantCharacters,
         avatarVersion: _avatarVersion,
-        avatarCost: _avatarPhoto == null ? 0 : 20,
+        avatarCost: 20,
         credits: _assistantCredits,
         available: true,
         packs: const [
-          CreditPack(id: 'credits-50', credits: 50, usd: 1),
-          CreditPack(id: 'credits-300', credits: 300, usd: 5),
-          CreditPack(id: 'credits-1000', credits: 1000, usd: 15),
+          CreditPack(id: 'credits-100', credits: 100, usd: 5),
+          CreditPack(id: 'credits-230', credits: 230, usd: 10),
+          CreditPack(id: 'credits-550', credits: 550, usd: 20),
+          CreditPack(id: 'credits-1650', credits: 1650, usd: 50),
         ],
         canBuyCredits: true,
         squadDraftCredits: _draftCost,
@@ -1027,9 +1031,10 @@ class FixtureRepository implements FormationRepository {
       _delay(() {
         final formation = mode == SportMode.football ? (_draftsMade.isEven ? '4-4-2' : '4-3-3') : null;
         final shape = rosterShape(mode, formation);
-        if (budgetUsd < shape.length) {
-          throw ValidationException(message: 'A squad needs a budget of at least \$${shape.length}');
+        if (budgetUsd < 1) {
+          throw const ValidationException(message: 'A budget needs to be at least \$1, enough for one player');
         }
+        final maxBuys = budgetUsd.floor();
         // Every draft is paid from the one credit balance, as on the server.
         if (_assistantCredits < _draftCost) {
           throw const ValidationException(message: 'A squad draft costs $_draftCost credits');
@@ -1043,9 +1048,15 @@ class FixtureRepository implements FormationRepository {
         pool.sort((a, b) => ((_held[b.mint] ?? 0) > 0 ? 1 : 0) - ((_held[a.mint] ?? 0) > 0 ? 1 : 0));
         final used = <String>{};
         final chosen = <(int, XStock)>[];
+        var buys = 0;
         for (var i = 0; i < shape.length; i++) {
-          final stock = pool.where((s) => !used.contains(s.mint) && shape[i].accepts(s)).firstOrNull;
+          // Past what the budget buys, only stocks already held still fit.
+          final stock = pool
+              .where((s) => !used.contains(s.mint) && shape[i].accepts(s))
+              .where((s) => (_held[s.mint] ?? 0) > 0 || buys < maxBuys)
+              .firstOrNull;
           if (stock == null) continue;
+          if ((_held[stock.mint] ?? 0) <= 0) buys++;
           used.add(stock.mint);
           chosen.add((i, stock));
         }
@@ -1055,8 +1066,9 @@ class FixtureRepository implements FormationRepository {
         return StarterSquad(
           mode: mode,
           formation: formation,
-          captainSlot: mode == SportMode.americanFootball ? null : chosen.first.$1,
-          viceCaptainSlot: mode == SportMode.football ? chosen[1].$1 : null,
+          captainSlot: mode == SportMode.americanFootball || chosen.isEmpty ? null : chosen.first.$1,
+          viceCaptainSlot: mode == SportMode.football && chosen.length > 1 ? chosen[1].$1 : null,
+          openSlots: shape.length - chosen.length,
           picks: [
             for (final (i, s) in chosen)
               StarterPick(
@@ -1087,7 +1099,7 @@ class FixtureRepository implements FormationRepository {
     String? name,
   }) =>
       _delay(() {
-        final cost = _avatarPhoto == null ? 0 : 20;
+        final cost = 20; // every avatar, the first included, as on the server
         if (_assistantCredits < cost) {
           throw ValidationException(message: 'A new avatar costs $cost credits', code: outOfCreditsCode);
         }

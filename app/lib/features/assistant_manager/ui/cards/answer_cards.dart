@@ -200,9 +200,17 @@ class CompareView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.symbol + (item == best ? '  ★' : ''),
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        Row(
+                          children: [
+                            Text(
+                              item.symbol,
+                              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            ),
+                            if (item == best) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.star_rounded, size: 14, color: AppColors.warning),
+                            ],
+                          ],
                         ),
                         Text(
                           item.tier.label,

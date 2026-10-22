@@ -117,6 +117,10 @@ abstract class FormationRepository {
   /// Another player's profile, lineup and holdings for [mode].
   Future<Manager> getManager(String userId, SportMode mode);
 
+  /// The same profile without signing in, for a guest who opened a shared
+  /// link before connecting a wallet.
+  Future<Manager> getManagerAsGuest(String userId, SportMode mode);
+
   /// Follows or unfollows a manager. Returns the new state.
   Future<bool> setFollowing(String userId, {required bool following});
 

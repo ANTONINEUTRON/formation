@@ -139,6 +139,8 @@ class _BuyCreditsSheetState extends State<BuyCreditsSheet> {
                 pack: pack,
                 selected: pack == _pack,
                 best: pack == widget.packs.last && widget.packs.length > 1,
+                // Discounts are against the smallest pack's rate.
+                baseRate: widget.packs.first.usd / widget.packs.first.credits,
                 onTap: _buying ? null : () => _select(pack),
               ),
               const SizedBox(height: 8),
@@ -197,16 +199,26 @@ class _BuyCreditsSheetState extends State<BuyCreditsSheet> {
 }
 
 class _PackTile extends StatelessWidget {
-  const _PackTile({required this.pack, required this.selected, required this.best, required this.onTap});
+  const _PackTile({
+    required this.pack,
+    required this.selected,
+    required this.best,
+    required this.baseRate,
+    required this.onTap,
+  });
 
   final CreditPack pack;
   final bool selected;
   final bool best;
+
+  /// Dollars a credit in the smallest pack.
+  final double baseRate;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final perReply = pack.usd / pack.credits * 100;
+    final saving = ((1 - (pack.usd / pack.credits) / baseRate) * 100).round();
     return Material(
       color: selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceElevated,
       borderRadius: BorderRadius.circular(14),
@@ -247,8 +259,17 @@ class _PackTile extends StatelessWidget {
                         ],
                       ],
                     ),
-                    Text(
-                      '${perReply.toStringAsFixed(1)}¢ per reply',
+                    Text.rich(
+                      TextSpan(
+                        text: '${perReply.toStringAsFixed(perReply % 1 == 0 ? 0 : 1)}¢ per reply',
+                        children: [
+                          if (saving > 0)
+                            TextSpan(
+                              text: '  ·  save $saving%',
+                              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
+                        ],
+                      ),
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ],

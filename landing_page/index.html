@@ -25,6 +25,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
+  <!-- Material Symbols, the icon family the app uses; only these four glyphs are downloaded. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,500,1,0&icon_names=check,sports_basketball,sports_football,sports_soccer&display=block">
   <link rel="stylesheet" href="/assets/site.css">
 
   <!-- This page only. Shared styles are in assets/site.css. Every animation
@@ -96,7 +98,16 @@
   .hero__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
   .ticks { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 20px; padding: 0; list-style: none; font-size: 13.5px; color: var(--chalk-dim); }
   .ticks li { display: flex; align-items: center; gap: 7px; }
-  .ticks li::before { content: "✓"; color: var(--lime); font-weight: 700; }
+  .ticks li::before {
+    content: "check"; color: var(--lime);
+    font-family: 'Material Symbols Rounded'; font-size: 18px; line-height: 1;
+    font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga';
+  }
+  .icon {
+    font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal;
+    font-size: 1.25em; line-height: 1; display: inline-block; vertical-align: middle;
+    font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+  }
   @media (max-width: 900px) {
     .hero__cta { justify-content: center; margin-top: 18px; }
     .hero__cta .btn--ghost, .ticks { display: none; }
@@ -167,7 +178,8 @@
     border-radius: 999px; padding: .3em .75em; font: 600 1.05em var(--mono); cursor: pointer;
     transition: background-color .3s, border-color .3s;
   }
-  .tab[aria-pressed="true"] { background: var(--lime); border-color: var(--lime); }
+  .tab { display: inline-flex; align-items: center; }
+  .tab[aria-pressed="true"] { background: var(--lime); border-color: var(--lime); color: var(--pitch); }
   .pts { font: 600 1.25em var(--mono); color: var(--lime); font-variant-numeric: tabular-nums; }
   .pts.bump { animation: bump .5s ease; }
   @keyframes bump { 40% { transform: scale(1.15); text-shadow: 0 0 12px rgba(184,255,60,.7); } }
@@ -374,9 +386,9 @@
           <div class="scene on" data-scene="0">
             <div class="s-head">
               <div class="tabs" role="group" aria-label="Choose a sport">
-                <button class="tab" type="button" data-sport="football" aria-pressed="true" aria-label="Football">⚽</button>
-                <button class="tab" type="button" data-sport="basketball" aria-pressed="false" aria-label="Basketball">🏀</button>
-                <button class="tab" type="button" data-sport="amfootball" aria-pressed="false" aria-label="American football">🏈</button>
+                <button class="tab" type="button" data-sport="football" aria-pressed="true" aria-label="Football"><span class="icon" aria-hidden="true">sports_soccer</span></button>
+                <button class="tab" type="button" data-sport="basketball" aria-pressed="false" aria-label="Basketball"><span class="icon" aria-hidden="true">sports_basketball</span></button>
+                <button class="tab" type="button" data-sport="amfootball" aria-pressed="false" aria-label="American football"><span class="icon" aria-hidden="true">sports_football</span></button>
               </div>
               <span class="pts" id="pts">287.4 pts</span>
             </div>

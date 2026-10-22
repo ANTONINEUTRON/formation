@@ -23,6 +23,11 @@ export interface UsersTable {
   suspended_reason: string | null;
   /** Set when the account was deleted and anonymised on request. */
   deleted_at: Timestamp | null;
+  /** Days in a row they opened the app (domain/visit-streak.ts). */
+  visit_streak: Generated<number>;
+  best_visit_streak: Generated<number>;
+  /** Their last visit, as a day in their own time zone. */
+  last_visit_day: ColumnType<string | null, string | null | undefined, string | null>;
 }
 
 export type StockIssuer = 'xstocks' | 'backpack';
@@ -167,7 +172,9 @@ export type NotificationKind =
   | 'match_week'
   | 'transfer_window'
   | 'season_final'
-  | 'goal';
+  | 'goal'
+  | 'streak'
+  | 'badge';
 
 export interface SeasonsTable {
   number: number;

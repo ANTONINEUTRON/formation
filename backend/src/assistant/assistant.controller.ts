@@ -110,7 +110,7 @@ export class AssistantController {
 
   // ── Buying credits with SKR ────────────────────────────────────────────────
 
-  /** {"packId": "credits-50"} -> the SKR price, held for two minutes. */
+  /** {"packId": "credits-100"} -> the SKR price, held for two minutes. */
   @Post('credits/quote')
   quote(@Body() body: { packId?: unknown }, @CurrentUser() user: AuthUser): Promise<CreditQuoteDto> {
     return this.purchases.quote(user, body?.packId);

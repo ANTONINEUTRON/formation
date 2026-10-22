@@ -15,6 +15,7 @@ class ScoreHeader extends StatelessWidget {
     required this.totalPlayers,
     this.onOpenResult,
     this.onRunTick,
+    this.onShare,
     this.isBusy = false,
     super.key,
   });
@@ -27,6 +28,9 @@ class ScoreHeader extends StatelessWidget {
 
   /// Debug builds only: forces a price tick so points move on demand.
   final VoidCallback? onRunTick;
+
+  /// Shares a picture of the team; null hides the button.
+  final Future<void> Function()? onShare;
   final bool isBusy;
 
   @override
@@ -65,6 +69,7 @@ class ScoreHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onShare != null) _ShareButton(onShare: onShare!),
                   if (onRunTick != null)
                     TextButton(
                       onPressed: isBusy ? null : onRunTick,
@@ -127,6 +132,60 @@ class ScoreHeader extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Share my team": a spinner while the picture is made, and a quick white
+/// flash, like a camera, so it's clear a picture was taken.
+class _ShareButton extends StatefulWidget {
+  const _ShareButton({required this.onShare});
+
+  final Future<void> Function() onShare;
+
+  @override
+  State<_ShareButton> createState() => _ShareButtonState();
+}
+
+class _ShareButtonState extends State<_ShareButton> {
+  var _busy = false;
+
+  Future<void> _share() async {
+    setState(() => _busy = true);
+    _flash();
+    try {
+      await widget.onShare();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _flash() {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => IgnorePointer(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.55, end: 0),
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOut,
+          onEnd: () => entry.remove(),
+          builder: (_, opacity, _) => ColoredBox(color: Colors.white.withValues(alpha: opacity)),
+        ),
+      ),
+    );
+    overlay.insert(entry);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Share my team',
+      visualDensity: VisualDensity.compact,
+      onPressed: _busy ? null : _share,
+      icon: _busy
+          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.ios_share_rounded, size: 18, color: AppColors.textSecondary),
     );
   }
 }

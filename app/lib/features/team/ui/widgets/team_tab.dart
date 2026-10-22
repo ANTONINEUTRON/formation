@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/core/extensions/context_extensions.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/theme/theme.dart';
@@ -20,6 +21,8 @@ import 'package:formation/features/team/ui/widgets/goal_card.dart';
 import 'package:formation/features/team/ui/widgets/match_week_result_sheet.dart';
 import 'package:formation/features/shared/ui/widgets/lineup_view.dart';
 import 'package:formation/features/team/ui/widgets/score_header.dart';
+import 'package:formation/features/team/ui/widgets/team_share_card.dart';
+import 'package:formation/core/utils/share_image.dart';
 
 /// Provisional goals in [next] that weren't in [previous].
 List<LiveEvent> _newGoals(TeamState previous, TeamState next) {
@@ -83,6 +86,34 @@ class TeamTab extends StatelessWidget {
 
         final totalPlayers = context.select<LeagueCubit, int>((c) => c.state.entries.length);
 
+        Future<void> shareTeam() async {
+          final me = context.read<LeagueCubit>().state.me;
+          try {
+            await shareWidgetAsImage(
+              context,
+              card: TeamShareCard(
+                roster: roster,
+                username: me?.username ?? 'My team',
+                totalPlayers: totalPlayers,
+                streak: me?.streak ?? 0,
+              ),
+              size: TeamShareCard.size,
+              // The link opens this team for anyone, wallet or not.
+              text: me == null
+                  ? 'My ${cubit.mode.label} team on Formation. Pick stocks, beat the market: '
+                      '${AppConstants.webAppUrl}'
+                  : 'My ${cubit.mode.label} team on Formation. Pick stocks, beat the market: '
+                      '${AppConstants.managerUrl(me.userId, cubit.mode.apiValue)}',
+              fileName: 'formation-${cubit.mode.apiValue}-team.png',
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Couldn't share your team: ${errorText(e)}")),
+            );
+          }
+        }
+
         return RefreshIndicator(
           onRefresh: cubit.load,
           child: ListView(
@@ -92,6 +123,7 @@ class TeamTab extends StatelessWidget {
                 roster: roster,
                 totalPlayers: totalPlayers,
                 onRunTick: kDebugMode ? cubit.runTick : null,
+                onShare: shareTeam,
                 onOpenResult: () => MatchWeekResultSheet.show(
                   context,
                   repository: context.read<FormationRepository>(),

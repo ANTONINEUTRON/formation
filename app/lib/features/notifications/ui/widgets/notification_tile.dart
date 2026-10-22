@@ -19,6 +19,8 @@ class NotificationTile extends StatelessWidget {
       NotificationKind.leagueStarted => Icons.play_circle_outline,
       NotificationKind.leagueSettled => Icons.emoji_events_outlined,
       NotificationKind.leagueJoined => Icons.person_add_alt_1_outlined,
+      NotificationKind.streak => Icons.local_fire_department_rounded,
+      NotificationKind.badge => Icons.military_tech_outlined,
     };
   }
 
@@ -28,6 +30,8 @@ class NotificationTile extends StatelessWidget {
       NotificationKind.leagueStarted => AppColors.info,
       NotificationKind.leagueSettled => AppColors.warning,
       NotificationKind.leagueJoined => AppColors.textSecondary,
+      NotificationKind.streak => AppColors.warning,
+      NotificationKind.badge => AppColors.tierBalanced,
     };
   }
 

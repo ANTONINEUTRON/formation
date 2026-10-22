@@ -11,7 +11,10 @@ import 'package:formation/features/notifications/ui/cubits/notifications_cubit.d
 import 'package:formation/features/notifications/ui/cubits/notifications_state.dart';
 import 'package:formation/features/notifications/ui/widgets/notification_tile.dart';
 import 'package:formation/features/notifications/ui/widgets/push_settings_sheet.dart';
+import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/features/shared/domain/load_status.dart';
+import 'package:formation/features/shared/domain/models.dart';
+import 'package:formation/features/team/ui/widgets/match_week_result_sheet.dart';
 
 /// Notification inbox. Tapping one marks it read and, when it carries a
 /// league, opens that league.
@@ -42,8 +45,16 @@ class _NotificationsView extends StatelessWidget {
   void _open(BuildContext context, AppNotification notification) {
     context.read<NotificationsCubit>().markRead(notification);
     final leagueId = notification.leagueId;
+    final mode = notification.mode;
     if (leagueId != null) {
       context.router.push(LeagueDetailRoute(leagueId: leagueId));
+    } else if (notification.kind == NotificationKind.badge && mode != null) {
+      // A weekly badge is awarded at full time: its week's result is the latest.
+      MatchWeekResultSheet.show(
+        context,
+        repository: context.read<FormationRepository>(),
+        mode: SportMode.fromApi(mode),
+      );
     }
   }
 

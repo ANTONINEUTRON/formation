@@ -22,6 +22,10 @@ enum SportMode {
 
   static SportMode fromApi(String value) =>
       values.firstWhere((m) => m.apiValue == value);
+
+  /// For values from outside the app, like a link's `?mode=`: null when unknown.
+  static SportMode? tryFromApi(String? value) =>
+      values.where((m) => m.apiValue == value).firstOrNull;
 }
 
 /// How much a stock swings, which decides the positions it can play. Set each

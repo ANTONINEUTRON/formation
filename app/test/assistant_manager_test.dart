@@ -173,9 +173,16 @@ void main() {
       final cubit = AssistantCubit(repository: repository);
       addTearDown(cubit.close);
       await cubit.load();
-      expect(cubit.state.profile!.avatarCost, 0);
-
+      // Every avatar costs credits, the first included; the welcome 11 aren't enough.
+      expect(cubit.state.profile!.avatarCost, 20);
       final photo = Uint8List.fromList([1, 2, 3]);
+      expect(
+        await cubit.createAvatar(photo: photo, mimeType: 'image/png', personality: 'maverick'),
+        isNotNull,
+      );
+      final quote = await repository.quoteCredits(cubit.state.profile!.packs.first);
+      cubit.creditsBought(await repository.buyCredits(quote));
+
       final error = await cubit.createAvatar(
         photo: photo,
         mimeType: 'image/png',
@@ -188,7 +195,8 @@ void main() {
       expect(profile.character!.isCustom, isTrue);
       expect(profile.character!.name, 'Coach Toly');
       expect(profile.character!.style, 'bold');
-      expect(profile.avatarCost, 20); // the second one costs credits
+      expect(profile.avatarCost, 20);
+      expect(profile.credits, 91); // 11 + 100 bought - 20
       expect(cubit.state.avatarImages.keys, containsAll(AssistantPose.values));
     });
 
@@ -249,11 +257,11 @@ void main() {
       expect(profile.canBuyCredits, isTrue);
 
       final quote = await repository.quoteCredits(profile.packs.first);
-      expect(quote.pack.credits, 50);
-      expect(quote.skrAmount, 50); // $1 at the fixture's $0.02
+      expect(quote.pack.credits, 100);
+      expect(quote.skrAmount, 250); // $5 at the fixture's $0.02
 
       cubit.creditsBought(await repository.buyCredits(quote));
-      expect(cubit.state.profile!.credits, 61);
+      expect(cubit.state.profile!.credits, 111);
       expect(cubit.state.outOfCredits, isFalse);
     });
   });

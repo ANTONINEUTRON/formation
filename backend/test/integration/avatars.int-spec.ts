@@ -33,11 +33,16 @@ describe('custom avatars', () => {
     manager = await h.createPlayer('selfie');
   });
 
-  it('draws four poses from the photo, free the first time, and makes it the active character', async () => {
-    expect((await assistant.profile(manager)).avatarCost).toBe(0);
+  it('draws four poses from the photo for credits, the first included, and makes it the active character', async () => {
+    expect((await assistant.profile(manager)).avatarCost).toBe(20);
+    // The welcome credits alone don't cover one.
+    await expect(
+      avatars.create(manager, photo(), { personality: 'maverick', consent: 'true' }),
+    ).rejects.toMatchObject({ status: 402 });
+    await h.db.updateTable('assistant_credits').set({ balance: 30 }).execute();
 
     const result = await avatars.create(manager, photo(), { personality: 'maverick', name: 'Coach Toly', consent: 'true' });
-    expect(result.credits).toBe(11); // free
+    expect(result.credits).toBe(10);
 
     // One drawing from the photo, then three poses drawn from that character.
     expect(h.llm.imagePrompts).toHaveLength(4);
@@ -60,7 +65,9 @@ describe('custom avatars', () => {
     expect(h.llm.requests[0].system).toContain('You are Coach Toly');
   });
 
-  it('charges for a second avatar, and refunds when drawing fails', async () => {
+  it('charges for another avatar, and refunds when drawing fails', async () => {
+    await assistant.profile(manager); // opens the balance with the welcome credits
+    await h.db.updateTable('assistant_credits').set({ balance: 20 }).execute();
     await avatars.create(manager, photo(), { personality: 'mentor', consent: 'true' });
     await h.db.updateTable('assistant_credits').set({ balance: 25 }).execute();
 

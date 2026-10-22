@@ -466,6 +466,7 @@ class PushSettings extends Equatable {
     'points': ('Daily points', "Yesterday's role events"),
     'leagues': ('Leagues', 'Starts, results and new members'),
     'social': ('Managers', 'New followers and moves by Managers you follow'),
+    'achievements': ('Streaks and badges', 'Your check-in streak and weekly badges'),
   };
 
   /// False when the server has no FCM credentials.

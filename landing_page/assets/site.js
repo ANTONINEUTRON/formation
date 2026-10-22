@@ -12,7 +12,7 @@
  */
 (function () {
   var SITE = {
-    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v1.0.apk?alt=media&token=cd2b5487-c422-46eb-a741-347b87da8ca9',
+    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v1.0.3.apk?alt=media&token=8d925de3-630b-40a6-b880-ee8b484403d6',
     web: 'https://app.formation.titalabs.xyz',
     x: 'https://x.com/formation_sol',
     home: '/',

@@ -97,8 +97,9 @@ export function starterPrompt(
   return [
     `You are ${character.name}, a new Manager's Assistant Manager. ${character.voice}`,
     `Draft their first squad, leaning ${style}. Rules:
-- Fill every position with a different stock from the CONTEXT catalogue whose tier matches that position (FLEX takes any tier).
+- Fill positions with different stocks from the CONTEXT catalogue whose tier matches that position (FLEX takes any tier).
 - Prefer stocks the Manager already holds ("held") where they fit: they cost nothing to play.
+- The budget buys at most "maxBuys" stocks that aren't held. If that's fewer than the open positions, fill the most important ones (the captain's first) and leave the rest out; one stock is enough to start scoring, and say in "text" that more can be added later.
 - Football: choose a formation first; slots are numbered GK=0, then defenders, midfielders, forwards in order.
 - Give each pick a one-line "reason" a beginner understands. Pick a captainSlot (and viceCaptainSlot in football).
 - "text": two or three warm sentences introducing the squad. No promises of returns; this is a game of skill.`,

@@ -11,6 +11,7 @@ export const PUSH_CATEGORIES = {
   points: ['points'],
   leagues: ['league_started', 'league_settled', 'league_joined'],
   social: ['new_follower', 'manager_move'],
+  achievements: ['streak', 'badge'],
 } as const satisfies Record<string, readonly NotificationKind[]>;
 
 export type PushCategory = keyof typeof PUSH_CATEGORIES;

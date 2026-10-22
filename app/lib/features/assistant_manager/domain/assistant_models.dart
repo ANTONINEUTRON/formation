@@ -148,7 +148,7 @@ class AssistantProfile extends Equatable {
   /// When the Manager's custom avatar was drawn; null if they have none.
   final int? avatarVersion;
 
-  /// Credits the next custom avatar costs: 0 for the first.
+  /// Credits the next custom avatar costs (0 only from an older server, when the first was free).
   final int avatarCost;
 
   final List<CreditPack> packs;

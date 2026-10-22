@@ -84,7 +84,7 @@ export interface AppConfig {
   geminiModel: string;
   /** Gemini model that draws custom Assistant Managers from a photo. */
   geminiImageModel: string;
-  /** Credits for each custom avatar after the first, which is free. */
+  /** Credits for each custom avatar, the first included. */
   assistantAvatarCredits: number;
   /**
    * Credits a Manager is given once, the first time their account is seen:

@@ -128,8 +128,32 @@ describe('free starter squad', () => {
     expect(welcomes).toHaveLength(1);
   });
 
-  it('needs at least the minimum buy per player, and declining costs nothing', async () => {
-    await expect(starter.draft(manager, { mode: 'football', budgetUsd: 5 })).rejects.toThrow(/at least \$11/);
+  it('fields what a small budget buys, captain first, leaving the rest open', async () => {
+    h.llm.reply = {
+      text: 'A start.',
+      captainSlot: 4,
+      picks: [
+        { slotIndex: 4, symbol: 'AAPLx', reason: 'captain' },
+        { slotIndex: 0, symbol: 'NVDAx', reason: 'momentum at PG' },
+        { slotIndex: 1, symbol: 'TSLAx', reason: 'over budget' },
+      ],
+    };
+    const squad = await starter.draft(manager, { mode: 'basketball', budgetUsd: 2 });
+    expect(squad.picks.map((p) => p.symbol).sort()).toEqual(['AAPLx', 'NVDAx']);
+    expect(squad.picks.every((p) => p.amountUsd === 1)).toBe(true);
+    expect(squad).toMatchObject({ captainSlot: 4, openSlots: 3 });
+  });
+
+  it('still fields stocks already held when the budget is spent', async () => {
+    h.balances.set(manager.walletAddress, 'mint-KO', 3);
+    h.llm.reply = { text: 'ok', picks: [] };
+    const squad = await starter.draft(manager, { mode: 'basketball', budgetUsd: 1 });
+    expect(squad.picks.filter((p) => p.needsPurchase)).toHaveLength(1);
+    expect(squad.picks.find((p) => p.symbol === 'KOx')).toMatchObject({ needsPurchase: false });
+  });
+
+  it('needs enough for one player, and declining costs nothing', async () => {
+    await expect(starter.draft(manager, { mode: 'football', budgetUsd: 0.5 })).rejects.toThrow(/at least \$1, enough for one player/);
     await starter.dismiss(manager);
     expect((await assistant.profile(manager)).credits).toBe(11);
   });

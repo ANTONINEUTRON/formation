@@ -14,6 +14,15 @@ class AppConstants {
   static const String appIdentityUri = 'https://formation.titalabs.xyz';
   static const String appIdentityIcon = 'favicon.png';
 
+  /// Where the web app is served; shared links point here.
+  static const String webAppUrl = String.fromEnvironment(
+    'WEB_APP_URL',
+    defaultValue: 'https://app.formation.titalabs.xyz',
+  );
+
+  /// A Manager's public page: opens their team, signed in or not.
+  static String managerUrl(String userId, String mode) => '$webAppUrl/managers/$userId?mode=$mode';
+
   /// The legal pages, served by the landing site.
   static const String termsUrl = '$appIdentityUri/terms';
   static const String privacyUrl = '$appIdentityUri/privacy';

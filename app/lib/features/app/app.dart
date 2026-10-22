@@ -11,6 +11,7 @@ import 'package:formation/core/route/app_route.dart';
 import 'package:formation/core/route/pending_deep_link.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/managers/ui/pages/manager_profile_page.dart';
 import 'package:formation/features/onboarding/ui/pages/onboarding_page.dart';
 import 'package:formation/features/shared/data/api_repository.dart';
 import 'package:formation/features/shared/data/fixture_repository.dart';
@@ -157,18 +158,49 @@ class _ConnectedApp extends StatelessWidget {
 }
 
 /// Bare app showing the onboarding screen — shown when wallet is disconnected.
+///
+/// Opened on a shared Manager link, a guest sees that team first. The link
+/// stays pending, so once they connect the router opens the same team.
 class _OnboardingApp extends StatelessWidget {
   const _OnboardingApp({super.key});
 
+  /// `/managers/<id>?mode=…` from the link the app was opened on.
+  static ({String userId, String? mode})? _sharedManager() {
+    final link = PendingDeepLink.peek();
+    if (link == null) return null;
+    final uri = Uri.parse(link);
+    final segments = uri.pathSegments;
+    if (segments.length != 2 || segments.first != 'managers' || segments[1].isEmpty) return null;
+    return (userId: segments[1], mode: uri.queryParameters['mode']);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      theme: AppTheme.darkTheme,
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: kIsWeb ? _WebScrollBehavior() : null,
-      builder: (context, child) => WalletTapGate(child: _ResponsiveFrame(child: child)),
-      home: const OnboardingPage(),
+    final shared = _sharedManager();
+    return RepositoryProvider<FormationRepository>(
+      // Only guest reads happen here, which never ask the wallet to sign.
+      create: (context) => AppConstants.apiUrl.isEmpty
+          ? FixtureRepository(walletAddress: '')
+          : ApiRepository(baseUrl: AppConstants.apiUrl, signer: context.read<WalletCubit>()),
+      child: MaterialApp(
+        title: AppConstants.appName,
+        theme: AppTheme.darkTheme,
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: kIsWeb ? _WebScrollBehavior() : null,
+        builder: (context, child) => WalletTapGate(child: _ResponsiveFrame(child: child)),
+        home: shared == null
+            ? const OnboardingPage()
+            : Builder(
+                builder: (context) => ManagerProfilePage(
+                  userId: shared.userId,
+                  modeName: shared.mode,
+                  guest: true,
+                  onPlay: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const OnboardingPage()),
+                  ),
+                ),
+              ),
+      ),
     );
   }
 }

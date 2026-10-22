@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/profile/ui/widgets/icon_action.dart';
+import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 class ProfileCard extends StatelessWidget {
@@ -101,7 +102,11 @@ class ProfileCard extends StatelessWidget {
             icon: Icons.share_rounded,
             tooltip: 'Share profile',
             onTap: () => SharePlus.instance.share(ShareParams(
-              text: 'Challenge me on Formation, fantasy sports with real stocks. My wallet: $walletAddress',
+              // The link opens their team for anyone, wallet or not.
+              text: profile == null
+                  ? 'Challenge me on Formation, fantasy sports with real stocks. My wallet: $walletAddress'
+                  : 'Challenge me on Formation, fantasy sports with real stocks: '
+                      '${AppConstants.managerUrl(profile!.userId, 'football')}',
             )),
           ),
         ],

@@ -57,6 +57,8 @@ export interface StarterSquadDto {
   picks: StarterPickDto[];
   text: string;
   budgetUsd: number;
+  /** Positions left empty because the budget didn't stretch to them; 0 for a full squad. */
+  openSlots: number;
   /** SKR's dollar price, so the app can pay in SKR; null when SKR isn't offered. */
   skrUsd: number | null;
   /** Further drafts the credits left after this one pay for. */
@@ -105,12 +107,11 @@ export class StarterService {
     const mode = parseSportMode(requireString(input.mode, 'mode'));
     const budgetUsd = requireNumber(input.budgetUsd, 'budgetUsd');
     const style = (['safe', 'balanced', 'bold'] as const).find((s) => s === input.style);
-    const slotCount = rosterShape(mode, mode === 'football' ? DEFAULT_FORMATION : null).length;
-    const minimum = slotCount * this.minBuyUsd;
+    // One stock is enough to start scoring, so any budget that buys one will
+    // do; a smaller budget fields fewer players, and the rest can come later.
+    const minimum = this.minBuyUsd;
     if (!(budgetUsd >= minimum) || budgetUsd > MAX_BUDGET_USD) {
-      throw new BadRequestException(
-        `A ${mode.replace('_', ' ')} squad needs a budget of at least $${minimum} ($${this.minBuyUsd} a player)`,
-      );
+      throw new BadRequestException(`A budget needs to be at least $${minimum}, enough for one player`);
     }
     if (!this.llm.available) throw new ServiceUnavailableException('Your Assistant Manager is off duty right now');
 
@@ -165,10 +166,13 @@ export class StarterService {
     const isHeld = (mint: string) => counts(held.get(mint) ?? 0, priceOf.get(mint), this.config.minHoldingUsd);
     const catalogue = stocks.filter((s) => s.priceUsd > 0 && s.mint !== this.config.benchmarkMint);
 
+    // Each bought pick takes at least the minimum buy; held ones cost nothing.
+    const maxBuys = Math.floor(budgetUsd / this.minBuyUsd);
     const reply = await this.llm.generate({
       system: starterPrompt(character, style, {
         sport: mode,
         budgetUsd,
+        maxBuys,
         positions: mode === 'football' ? 'pick a formation first, then fill its shape' : rosterShape(mode),
         catalogue: catalogue.map((s) => ({
           symbol: s.symbol,
@@ -197,6 +201,7 @@ export class StarterService {
     const bySymbol = new Map(catalogue.map((s) => [s.symbol.toUpperCase(), s]));
     const chosen = new Map<number, { stock: XStockDto; reason: string }>();
     const used = new Set<string>();
+    let buys = 0;
 
     // Keep every proposed pick that fits its slot's tier and isn't a repeat.
     for (const raw of Array.isArray(json.picks) ? json.picks : []) {
@@ -206,6 +211,9 @@ export class StarterService {
       const stock = typeof pick.symbol === 'string' ? bySymbol.get(pick.symbol.trim().toUpperCase()) : undefined;
       if (!position || !stock || chosen.has(slotIndex) || used.has(stock.mint)) continue;
       if (!slotAccepts(position, stock.tier)) continue;
+      // Past what the budget buys, only stocks already held still fit.
+      if (!isHeld(stock.mint) && buys >= maxBuys) continue;
+      if (!isHeld(stock.mint)) buys++;
       chosen.set(slotIndex, {
         stock,
         reason: typeof pick.reason === 'string' ? pick.reason.trim().slice(0, 160) : '',
@@ -213,15 +221,18 @@ export class StarterService {
       used.add(stock.mint);
     }
 
-    // Fill anything the model missed, so the squad is always complete:
-    // stocks already held first, then by the character's leaning.
+    // Fill anything the model missed: stocks already held first (free), then
+    // by the character's leaning while the budget still buys one. A small
+    // budget leaves the rest of the positions open to fill later.
     shape.forEach((position, slotIndex) => {
       if (chosen.has(slotIndex)) return;
       const candidates = catalogue
         .filter((s) => !used.has(s.mint) && slotAccepts(position, s.tier))
+        .filter((s) => isHeld(s.mint) || buys < maxBuys)
         .sort((a, b) => Number(isHeld(b.mint)) - Number(isHeld(a.mint)) || leaning(style, a, b));
       const stock = candidates[0];
       if (!stock) return;
+      if (!isHeld(stock.mint)) buys++;
       chosen.set(slotIndex, { stock, reason: isHeld(stock.mint) ? 'You already hold it.' : `Fits ${position.label}.` });
       used.add(stock.mint);
     });
@@ -260,6 +271,7 @@ export class StarterService {
       picks,
       text: typeof json.text === 'string' && json.text.trim() ? json.text.trim() : 'Here is your starting lineup.',
       budgetUsd,
+      openSlots: shape.length - picks.length,
       skrUsd: skrUsd && skrUsd > 0 ? skrUsd : null,
       draftsLeft: this.draftsFor(credits),
       credits,

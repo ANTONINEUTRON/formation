@@ -503,6 +503,13 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
+  Future<Manager> getManagerAsGuest(String userId, SportMode mode) async {
+    final json = await _request('GET', '/managers/$userId?mode=${mode.apiValue}', auth: false)
+        as Map<String, dynamic>;
+    return Manager.fromJson(json, rosterShape(mode, json['formation'] as String?));
+  }
+
+  @override
   Future<bool> setFollowing(String userId, {required bool following}) async {
     await _request(following ? 'POST' : 'DELETE', '/managers/$userId/follow');
     _notify();

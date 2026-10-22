@@ -238,12 +238,24 @@ class LeaguesRouteArgs {
 class ManagerProfileRoute extends PageRouteInfo<ManagerProfileRouteArgs> {
   ManagerProfileRoute({
     required String userId,
-    required SportMode mode,
+    SportMode? mode,
+    String? modeName,
+    bool guest = false,
+    VoidCallback? onPlay,
     Key? key,
     List<PageRouteInfo>? children,
   }) : super(
          ManagerProfileRoute.name,
-         args: ManagerProfileRouteArgs(userId: userId, mode: mode, key: key),
+         args: ManagerProfileRouteArgs(
+           userId: userId,
+           mode: mode,
+           modeName: modeName,
+           guest: guest,
+           onPlay: onPlay,
+           key: key,
+         ),
+         rawPathParams: {'userId': userId},
+         rawQueryParams: {'mode': modeName},
          initialChildren: children,
        );
 
@@ -252,10 +264,20 @@ class ManagerProfileRoute extends PageRouteInfo<ManagerProfileRouteArgs> {
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      final args = data.argsAs<ManagerProfileRouteArgs>();
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<ManagerProfileRouteArgs>(
+        orElse: () => ManagerProfileRouteArgs(
+          userId: pathParams.getString('userId'),
+          modeName: queryParams.optString('mode'),
+        ),
+      );
       return ManagerProfilePage(
         userId: args.userId,
         mode: args.mode,
+        modeName: args.modeName,
+        guest: args.guest,
+        onPlay: args.onPlay,
         key: args.key,
       );
     },
@@ -265,30 +287,50 @@ class ManagerProfileRoute extends PageRouteInfo<ManagerProfileRouteArgs> {
 class ManagerProfileRouteArgs {
   const ManagerProfileRouteArgs({
     required this.userId,
-    required this.mode,
+    this.mode,
+    this.modeName,
+    this.guest = false,
+    this.onPlay,
     this.key,
   });
 
   final String userId;
 
-  final SportMode mode;
+  final SportMode? mode;
+
+  final String? modeName;
+
+  final bool guest;
+
+  final VoidCallback? onPlay;
 
   final Key? key;
 
   @override
   String toString() {
-    return 'ManagerProfileRouteArgs{userId: $userId, mode: $mode, key: $key}';
+    return 'ManagerProfileRouteArgs{userId: $userId, mode: $mode, modeName: $modeName, guest: $guest, onPlay: $onPlay, key: $key}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! ManagerProfileRouteArgs) return false;
-    return userId == other.userId && mode == other.mode && key == other.key;
+    return userId == other.userId &&
+        mode == other.mode &&
+        modeName == other.modeName &&
+        guest == other.guest &&
+        onPlay == other.onPlay &&
+        key == other.key;
   }
 
   @override
-  int get hashCode => userId.hashCode ^ mode.hashCode ^ key.hashCode;
+  int get hashCode =>
+      userId.hashCode ^
+      mode.hashCode ^
+      modeName.hashCode ^
+      guest.hashCode ^
+      onPlay.hashCode ^
+      key.hashCode;
 }
 
 /// generated route for

@@ -336,7 +336,9 @@ export interface NotificationDto {
     | 'match_week'
     | 'transfer_window'
     | 'season_final'
-    | 'goal';
+    | 'goal'
+    | 'streak'
+    | 'badge';
   title: string;
   body: string;
   /** Deep-link payload, e.g. { leagueId }. */

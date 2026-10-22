@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { sql } from 'kysely';
 import { CLOCK } from '../core/clock.js';
 import type { Clock } from '../core/clock.js';
 import { DB } from '../core/db.js';
@@ -150,7 +151,7 @@ export class LeagueService {
       .select([
         'classic_scores.user_id as user_id',
         'classic_scores.total_points as total_points',
-        'classic_scores.streak as streak',
+        this.streak(),
         'users.username as username',
         'users.wallet_address as wallet_address',
       ])
@@ -192,7 +193,7 @@ export class LeagueService {
       .select([
         'classic_scores.user_id as user_id',
         'classic_scores.total_points as total_points',
-        'classic_scores.streak as streak',
+        this.streak(),
         'past.points as past_points',
         'users.username as username',
         'users.wallet_address as wallet_address',
@@ -264,19 +265,37 @@ export class LeagueService {
   private async streaks(mode: SportMode): Promise<Map<string, number>> {
     const rows = await this.db
       .selectFrom('classic_scores')
-      .select(['user_id', 'streak'])
-      .where('sport_mode', '=', mode)
+      .innerJoin('users', 'users.id', 'classic_scores.user_id')
+      .select(['classic_scores.user_id as user_id', this.streak()])
+      .where('classic_scores.sport_mode', '=', mode)
       .execute();
     return new Map(rows.map((r) => [r.user_id, r.streak]));
+  }
+
+  /**
+   * The streak shown on boards and profiles: days in a row the Manager has
+   * opened the app (users.visit_streak), or 0 once a day has been missed,
+   * judged in their own time zone. Seeds never visit, so they keep the
+   * streak they were seeded with. Needs `users` and `classic_scores` joined.
+   */
+  private streak() {
+    const now = this.clock.date();
+    return sql<number>`case
+      when users.is_seed then classic_scores.streak
+      when users.last_visit_day >= ((${now}::timestamptz at time zone coalesce(
+        (select p.time_zone from push_preferences p where p.user_id = users.id), 'UTC'))::date - 1)
+        then users.visit_streak
+      else 0 end`.as('streak');
   }
 
   /** The user's all-time points, streak and rank, or null if they haven't drafted. */
   async standing(userId: string, mode: SportMode): Promise<Standing | null> {
     const row = await this.db
       .selectFrom('classic_scores')
-      .select(['total_points', 'streak'])
-      .where('user_id', '=', userId)
-      .where('sport_mode', '=', mode)
+      .innerJoin('users', 'users.id', 'classic_scores.user_id')
+      .select(['classic_scores.total_points as total_points', this.streak()])
+      .where('classic_scores.user_id', '=', userId)
+      .where('classic_scores.sport_mode', '=', mode)
       .executeTakeFirst();
     if (!row) return null;
 

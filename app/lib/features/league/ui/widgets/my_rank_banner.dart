@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:formation/core/theme/theme.dart';
+import 'package:formation/features/league/ui/cubits/league_state.dart';
+import 'package:formation/features/league/ui/widgets/rank_move.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 /// Pinned above the leaderboard so the user's standing is always visible.
@@ -10,6 +12,7 @@ class MyRankBanner extends StatelessWidget {
     required this.me,
     required this.totalPlayers,
     required this.onDraftTeam,
+    this.move,
     super.key,
   });
 
@@ -17,6 +20,10 @@ class MyRankBanner extends StatelessWidget {
   final LeaderboardEntry? me;
   final int totalPlayers;
   final VoidCallback onDraftTeam;
+
+  /// Set when the user's rank changed since they last looked: the number
+  /// counts to the new rank and a chip says how far they moved.
+  final RankMove? move;
 
   @override
   Widget build(BuildContext context) {
@@ -60,20 +67,24 @@ class MyRankBanner extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text.rich(
-                      TextSpan(
-                        text: '#${me.rank}',
-                        style: AppTextStyles.mono(fontSize: 28, fontWeight: FontWeight.w800),
-                        children: [
-                          TextSpan(
-                            text: ' of $totalPlayers',
-                            style: AppTextStyles.mono(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        CountingRank(
+                          rank: me.rank,
+                          move: move,
+                          style: AppTextStyles.mono(fontSize: 28, fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          ' of $totalPlayers',
+                          style: AppTextStyles.mono(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
                           ),
-                        ],
-                      ),
+                        ),
+                        if (move != null) RankMoveBadge(move: move!),
+                      ],
                     ),
                   ],
                 ),

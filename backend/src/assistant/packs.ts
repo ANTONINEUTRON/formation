@@ -5,10 +5,14 @@ export interface CreditPack {
   usd: number;
 }
 
-export const DEFAULT_PACKS = '50:1,300:5,1000:15';
+/**
+ * 5¢ a credit at $5, stepping down evenly to 3¢ at $50:
+ * $5 = 100 (5¢), $10 = 230 (4.35¢), $20 = 550 (3.64¢), $50 = 1,650 (3.03¢).
+ */
+export const DEFAULT_PACKS = '100:5,230:10,550:20,1650:50';
 
 /**
- * Reads ASSISTANT_PACKS, e.g. "50:1,300:5" (credits:usd). A malformed entry
+ * Reads ASSISTANT_PACKS, e.g. "100:5,230:10" (credits:usd). A malformed entry
  * is a configuration mistake that would otherwise surface as a wrong price on
  * screen, so it throws at boot rather than being skipped.
  */

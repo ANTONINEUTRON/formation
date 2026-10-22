@@ -10,7 +10,16 @@ describe('parsePacks', () => {
       { id: 'credits-50', credits: 50, usd: 1 },
       { id: 'credits-300', credits: 300, usd: 5 },
     ]);
-    expect(parsePacks(undefined).length).toBe(3);
+  });
+
+  it('prices the default packs from 5¢ a credit at $5 down to about 3¢ at $50', () => {
+    const packs = parsePacks(undefined);
+    expect(packs.map((p) => p.usd)).toEqual([5, 10, 20, 50]);
+    const cents = packs.map((p) => (p.usd / p.credits) * 100);
+    expect(cents[0]).toBe(5);
+    expect(cents[3]).toBeCloseTo(3, 1);
+    // Every bigger pack is a better deal than the one before it.
+    for (let i = 1; i < cents.length; i++) expect(cents[i]).toBeLessThan(cents[i - 1]);
   });
 
   it('refuses a malformed or duplicated pack instead of mispricing it', () => {
