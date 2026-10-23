@@ -12,7 +12,9 @@
  */
 (function () {
   var SITE = {
-    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v1.0.3.apk?alt=media&token=8d925de3-630b-40a6-b880-ee8b484403d6',
+    // Opens Formation's page in the Solana dApp Store app (on Seeker).
+    dappStore: 'solanadappstore://details?id=ng.anto.formation',
+    apk: 'https://firebasestorage.googleapis.com/v0/b/formation-cbf24.firebasestorage.app/o/formation_v1.0.4.apk?alt=media&token=1346d1e5-b2df-497b-8f2e-f1f753a9ad2c',
     web: 'https://app.formation.titalabs.xyz',
     x: 'https://x.com/formation_sol',
     home: '/',
@@ -31,6 +33,10 @@
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
   var PHONE_ICON =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg>';
+  var STORE_ICON =
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16l-1.2 12.1a2 2 0 0 1-2 1.9H7.2a2 2 0 0 1-2-1.9z"/><path d="M8.5 10V6.5a3.5 3.5 0 0 1 7 0V10"/></svg>';
+  var DOWNLOAD_ICON =
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>';
   var GLOBE_ICON =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.6 2.6 2.6 16.4 0 19M12 2.5c-2.6 2.6-2.6 16.4 0 19"/></svg>';
 
@@ -54,7 +60,8 @@
         '<div class="foot__in">' +
           '<span class="foot__t">© ' + new Date().getFullYear() + ' Formation</span>' +
           '<nav class="foot__l">' +
-            '<a data-link="apk">Android app</a>' +
+            '<a data-link="dappStore">Solana dApp Store</a>' +
+            '<a data-link="apk">Android APK</a>' +
             '<a data-link="web">Web app</a>' +
             '<a data-link="guide">How to play</a>' +
             '<a data-link="terms">Terms</a>' +
@@ -76,16 +83,20 @@
   function chooser() {
     return (
       '<div class="pick__in">' +
-        '<h2 class="pick__h" id="pick-h">Two ways in</h2>' +
-        '<p class="pick__p">Both play the same game against the same leaderboard, with the same stocks in your own wallet.</p>' +
+        '<h2 class="pick__h" id="pick-h">Three ways in</h2>' +
+        '<p class="pick__p">All play the same game against the same leaderboard, with the same stocks in your own wallet.</p>' +
         '<div class="pick__opts">' +
-          '<a class="pick__opt" data-link="apk">' + PHONE_ICON +
-            '<span><span class="pick__t">Download the Android app</span>' +
-            '<span class="pick__s">Signs with your phone\'s wallet. Built for Seeker.</span></span>' +
+          '<a class="pick__opt" data-link="dappStore">' + STORE_ICON +
+            '<span><span class="pick__t">Solana dApp Store</span>' +
+            '<span class="pick__s">On your Seeker. Installs and updates like any app.</span></span>' +
           '</a>' +
           '<a class="pick__opt" data-link="web">' + GLOBE_ICON +
-            '<span><span class="pick__t">Play in your browser</span>' +
-            '<span class="pick__s">Nothing to install. Connect Phantom, Solflare or Backpack.</span></span>' +
+            '<span><span class="pick__t">Web App</span>' +
+            '<span class="pick__s">Nothing to install. Connect Phantom, Solflare or Backpack on your browser.</span></span>' +
+          '</a>' +
+          '<a class="pick__opt" data-link="apk">' + DOWNLOAD_ICON +
+            '<span><span class="pick__t">Install the Android APK</span>' +
+            '<span class="pick__s">For Android phones. Signs with your phone wallet.</span></span>' +
           '</a>' +
         '</div>' +
         '<button class="pick__x" type="button" data-pick-close>Not now</button>' +
@@ -123,7 +134,7 @@
     if (url) a.setAttribute('href', url);
   });
 
-  // 4. "Start" opens the chooser. Its href is still the APK, so where
+  // 4. "Build my team" opens the chooser. Its href is still the APK, so where
   //    <dialog> isn't supported the button just skips the choice.
   if (!pick || typeof pick.showModal !== 'function') return;
 
