@@ -2,7 +2,7 @@ name: formation
 description: "Formation - fantasy sports for real tokenized stocks on Solana"
 publish_to: 'none'
 
-version: 1.0.3+3
+version: 1.0.4+4
 
 environment:
   sdk: ^3.8.1
