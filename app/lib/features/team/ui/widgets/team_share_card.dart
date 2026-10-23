@@ -5,15 +5,21 @@ import 'package:formation/core/utils/format.dart';
 import 'package:formation/features/draft/ui/widgets/formation_board.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
-/// The picture shared by "Share my team": the lineup on the pitch with the
+/// The picture shared from a team: the lineup on the pitch with the
 /// Manager's name, points, rank and streak, in Formation's night-pitch look.
 /// Drawn off screen at [size] (4:5, the shape feeds show best).
+///
+/// Your own team reads its numbers from the roster; another Manager's come
+/// from their profile, so each can be passed in.
 class TeamShareCard extends StatelessWidget {
   const TeamShareCard({
     required this.roster,
     required this.username,
-    required this.totalPlayers,
+    this.totalPlayers,
     this.streak = 0,
+    this.seasonPoints,
+    this.rank,
+    this.todayPoints,
     super.key,
   });
 
@@ -21,13 +27,21 @@ class TeamShareCard extends StatelessWidget {
 
   final Roster roster;
   final String username;
-  final int totalPlayers;
+
+  /// Players on the board, for "#7 of 120"; null shows just the rank.
+  final int? totalPlayers;
   final int streak;
+
+  /// Override the roster's own season total, rank and today's points.
+  final double? seasonPoints;
+  final int? rank;
+  final double? todayPoints;
 
   @override
   Widget build(BuildContext context) {
-    final today = roster.session?.points ?? 0;
-    final rank = roster.classicRank;
+    final today = todayPoints ?? roster.session?.points ?? 0;
+    final rank = this.rank ?? roster.classicRank;
+    final season = seasonPoints ?? roster.classicPoints;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
@@ -91,8 +105,11 @@ class TeamShareCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _Stat(label: 'SEASON', value: formatPoints(roster.classicPoints)),
-              _Stat(label: 'RANK', value: rank == null ? '—' : '#$rank of $totalPlayers'),
+              _Stat(label: 'SEASON', value: formatPoints(season)),
+              _Stat(
+                label: 'RANK',
+                value: rank == null ? '—' : (totalPlayers == null ? '#$rank' : '#$rank of $totalPlayers'),
+              ),
               _Stat(label: 'TODAY', value: formatSignedPoints(today), color: pnlColor(today)),
             ],
           ),

@@ -463,7 +463,7 @@ class PushSettings extends Equatable {
     'match_week': ('Match week', 'Kick-off, half-time and your full-time result'),
     'goals': ('Live goals', 'When a pick scores, at most once a pick a day'),
     'season': ('Season finale', 'Where you finished, and the new season'),
-    'points': ('Daily points', "Yesterday's role events"),
+    'points': ('Daily points', "Yesterday's goals, clean sheets and other moments"),
     'leagues': ('Leagues', 'Starts, results and new members'),
     'social': ('Managers', 'New followers and moves by Managers you follow'),
     'achievements': ('Streaks and badges', 'Your check-in streak and weekly badges'),

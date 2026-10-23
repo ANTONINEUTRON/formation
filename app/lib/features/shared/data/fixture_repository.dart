@@ -164,7 +164,7 @@ class FixtureRepository implements FormationRepository {
         id: 'n2',
         kind: NotificationKind.points,
         title: "Yesterday's points are in",
-        body: 'Your football team scored +41 from role events.',
+        body: 'Your football team scored +41 points yesterday: 2 goals from NVDAx, a clean sheet from KOx and 3 more.',
         createdAt: now.subtract(const Duration(hours: 9)),
       ),
       AppNotification(

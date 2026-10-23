@@ -24,6 +24,7 @@ import {
   substitutionCost,
 } from './engine/score-entry.js';
 import type { EntryBreakdown, LineupSnapshot, SlotExits } from './engine/types.js';
+import { dailyPointsBody } from './events-summary.js';
 
 const BASE_ONLY = { base: true, events: false };
 const EVENTS_ONLY = { base: false, events: true };
@@ -336,12 +337,11 @@ export class GeneralScoringService {
       });
       // Once a day, not once a tick: this is the only scoring notification.
       if (breakdown.total !== 0) {
-        const sign = breakdown.total > 0 ? '+' : '';
         await this.notifications.push({
           userId: candidate.userId,
           kind: 'points',
           title: "Yesterday's points are in",
-          body: `Your ${mode.replace('_', ' ')} team scored ${sign}${breakdown.total} from role events.`,
+          body: dailyPointsBody(mode.replace('_', ' '), breakdown),
         });
       }
     }

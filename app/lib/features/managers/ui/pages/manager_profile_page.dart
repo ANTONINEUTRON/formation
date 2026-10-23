@@ -2,7 +2,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:formation/core/constants/app_constants.dart';
 import 'package:formation/core/extensions/context_extensions.dart';
+import 'package:formation/core/utils/share_image.dart';
+import 'package:formation/features/team/ui/widgets/team_share_card.dart';
 import 'package:formation/core/theme/theme.dart';
 import 'package:formation/core/utils/format.dart';
 import 'package:formation/core/widgets/empty_state.dart';
@@ -53,6 +56,37 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
   Manager? _manager;
   String? _error;
   bool _busy = false;
+  bool _sharing = false;
+
+  /// Shares a picture of this Manager's team with a link that opens it for
+  /// anyone, wallet or not.
+  Future<void> _share(Manager manager) async {
+    setState(() => _sharing = true);
+    final sport = manager.mode.label.toLowerCase();
+    final link = AppConstants.managerUrl(manager.userId, manager.mode.apiValue);
+    try {
+      await shareWidgetAsImage(
+        context,
+        card: TeamShareCard(
+          roster: manager.roster,
+          username: manager.username,
+          seasonPoints: manager.points,
+          rank: manager.rank,
+          todayPoints: manager.todayPoints,
+          streak: manager.streak,
+        ),
+        size: TeamShareCard.size,
+        text: manager.isCurrentUser
+            ? 'My $sport team on Formation. Pick stocks, beat the market: $link'
+            : "${manager.username}'s $sport team on Formation. Pick stocks, beat the market: $link",
+        fileName: 'formation-${manager.username}-${manager.mode.apiValue}.png',
+      );
+    } catch (e) {
+      if (mounted) context.showErrorToast(message: "Couldn't share this team: ${errorText(e)}");
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   FormationRepository get _repository => context.read<FormationRepository>();
 
@@ -104,7 +138,19 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(manager?.username ?? 'Manager')),
+      appBar: AppBar(
+        title: Text(manager?.username ?? 'Manager'),
+        actions: [
+          if (manager != null && manager.lineup.isNotEmpty)
+            IconButton(
+              tooltip: manager.isCurrentUser ? 'Share my team' : 'Share this team',
+              onPressed: _sharing ? null : () => _share(manager),
+              icon: _sharing
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.ios_share_rounded),
+            ),
+        ],
+      ),
       body: _error != null
           ? EmptyState(
               icon: Icons.cloud_off,

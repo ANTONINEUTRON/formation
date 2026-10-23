@@ -35,6 +35,8 @@ void main() {
 
     expect(find.text(someone.username), findsWidgets);
     expect(find.textContaining('basketball team'), findsOneWidget);
+    // Anyone's team can be shared from their page, the guest's view included.
+    expect(find.byTooltip('Share this team'), findsOneWidget);
     expect(find.text('Follow'), findsNothing);
     expect(find.text('Adopt wallet'), findsNothing);
 
