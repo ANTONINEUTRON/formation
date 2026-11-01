@@ -7,7 +7,7 @@ class AppConstants {
   // App Info
   static const String appName = 'Formation';
   static const String appTagline =
-      'Fantasy sports for real stocks. Draft xStocks, climb the league, win duels.';
+      'Fantasy sports for real stocks. Draft tokenized stocks, climb the league, win duels.';
 
   /// Identity this app presents to wallets, for both MWA and Wallet Standard.
   /// Wallets show it on the approval prompt, so it has to be a real origin.

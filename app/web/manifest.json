@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#0A1410",
-    "description": "Fantasy sports for real stocks. Draft xStocks, climb the league, win duels.",
+    "description": "Fantasy sports for real stocks. Draft tokenized stocks, climb the league, win duels.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
