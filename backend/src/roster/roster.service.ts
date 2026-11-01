@@ -169,6 +169,55 @@ export class RosterService {
   }
 
   /**
+   * Takes a pick off, leaving its position empty; the stock stays in the
+   * wallet (on the bench). While the pick is still scoring this is a
+   * substitution like any other, so pulling a falling stock can't beat
+   * swapping one in; a pick that's no longer held (sold, or under the minimum)
+   * comes off free. An armband on the slot moves: the captain's passes to the
+   * vice-captain, the vice-captain's is dropped. Takes effect from the next tick.
+   */
+  async clearSlot(user: AuthUser, mode: SportMode, slotIndex: number): Promise<RosterDto> {
+    const roster = await this.ensure(user.id, mode);
+    const slot = (await this.slotsOf(roster.id)).find((s) => s.slot_index === slotIndex);
+    if (!slot) throw new BadRequestException('That position is already empty');
+
+    const [balances, prices] = await Promise.all([
+      this.balances.getBalances(user.walletAddress, { fresh: true }),
+      this.prices.getPrices([slot.token_mint]),
+    ]);
+    const stillScoring = counts(
+      balances.get(slot.token_mint) ?? 0,
+      prices.get(slot.token_mint)?.usdPrice,
+      this.config.minHoldingUsd,
+    );
+
+    let captainSlot = roster.captain_slot;
+    let viceCaptainSlot = roster.vice_captain_slot;
+    if (captainSlot === slotIndex) {
+      captainSlot = viceCaptainSlot;
+      viceCaptainSlot = null;
+    } else if (viceCaptainSlot === slotIndex) {
+      viceCaptainSlot = null;
+    }
+
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('roster_slots')
+        .where('roster_id', '=', roster.id)
+        .where('slot_index', '=', slotIndex)
+        .execute();
+      await trx
+        .updateTable('rosters')
+        .set({ captain_slot: captainSlot, vice_captain_slot: viceCaptainSlot })
+        .where('id', '=', roster.id)
+        .execute();
+    });
+
+    if (stillScoring) await this.general.chargeSubstitution(user.id, mode);
+    return this.getRoster(user, mode);
+  }
+
+  /**
    * Football only: switches formation, keeping each role's picks in order.
    * Anything that no longer fits comes off the team (the stock is still owned).
    * Takes effect from the next tick; any running league keeps its locked lineup.

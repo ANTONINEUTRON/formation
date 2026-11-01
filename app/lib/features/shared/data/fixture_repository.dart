@@ -523,6 +523,32 @@ class FixtureRepository implements FormationRepository {
       });
 
   @override
+  Future<Roster> clearSlot(SportMode mode, int slotIndex) => _delay(() {
+        final roster = _rosters[mode]!;
+        final slot = roster.slots[slotIndex];
+        if (!slot.isFilled) throw const ValidationException(message: 'That position is already empty');
+        // As on the server: the captain's armband passes to the vice-captain.
+        var captain = roster.captainSlot;
+        var vice = roster.viceCaptainSlot;
+        if (captain == slotIndex) {
+          captain = vice;
+          vice = null;
+        } else if (vice == slotIndex) {
+          vice = null;
+        }
+        _rosters[mode] = Roster(
+          mode: mode,
+          formation: roster.formation,
+          captainSlot: captain,
+          viceCaptainSlot: vice,
+          slots: List.of(roster.slots)..[slotIndex] = RosterSlot(position: slot.position),
+        );
+        _rescore(mode);
+        _notify();
+        return _withStanding(mode);
+      });
+
+  @override
   Future<FormationChange> setFormation(SportMode mode, String formation) => _delay(() {
         if (mode != SportMode.football) {
           throw const ValidationException(message: 'Only football teams have formations');
@@ -1099,9 +1125,9 @@ class FixtureRepository implements FormationRepository {
     String? name,
   }) =>
       _delay(() {
-        final cost = 20; // every avatar, the first included, as on the server
+        const cost = 20; // every avatar, the first included, as on the server
         if (_assistantCredits < cost) {
-          throw ValidationException(message: 'A new avatar costs $cost credits', code: outOfCreditsCode);
+          throw const ValidationException(message: 'A new avatar costs $cost credits', code: outOfCreditsCode);
         }
         _assistantCredits -= cost;
         _avatarPhoto = photo;

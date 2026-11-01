@@ -120,6 +120,34 @@ describe('rosters', () => {
     expect(back.roster.captainSlot).toBe(3);
   });
 
+  it('takes a pick off, leaving its position empty and moving the armband', async () => {
+    const picked = await h.draft(user, 'football');
+    await h.rosters.setCaptaincy(user, 'football', { captainSlot: 9, viceCaptainSlot: 0 });
+
+    const after = await h.rosters.clearSlot(user, 'football', 9);
+    expect(after.slots[9].stock).toBeNull();
+    // The stock is still owned, so it waits on the bench.
+    expect(after.bench.some((b) => b.stock.mint === picked[9])).toBe(true);
+    // The captain's armband passes to the vice-captain.
+    expect(after).toMatchObject({ captainSlot: 0, viceCaptainSlot: null });
+
+    await expect(h.rosters.clearSlot(user, 'football', 9)).rejects.toThrow(/already empty/);
+  });
+
+  it('charges taking off a scoring pick as a substitution, but not one no longer held', async () => {
+    const picked = await h.draft(user, 'football');
+    const used = async () =>
+      (await h.db.selectFrom('daily_substitutions').select('used').where('user_id', '=', user.id).executeTakeFirst())?.used ?? 0;
+
+    await h.rosters.clearSlot(user, 'football', 10);
+    expect(await used()).toBe(1);
+
+    // Sold (or under the minimum): it wasn't scoring, so it comes off free.
+    h.balances.set(user.walletAddress, picked[9], 0);
+    await h.rosters.clearSlot(user, 'football', 9);
+    expect(await used()).toBe(1);
+  });
+
   it('only lets a filled slot wear the armband, and only in the right sports', async () => {
     await expect(
       h.rosters.setCaptaincy(user, 'football', { captainSlot: 0 }),

@@ -10,14 +10,31 @@ import 'package:formation/features/draft/ui/widgets/stock_picker_sheet.dart';
 import 'package:formation/features/shared/domain/models.dart';
 
 class SlotAction {
-  const SlotAction({required this.icon, required this.label, required this.onTap});
+  const SlotAction({required this.icon, required this.label, required this.onTap, this.detail});
 
   final IconData icon;
   final String label;
+
+  /// A second line, e.g. what the action costs.
+  final String? detail;
   final VoidCallback onTap;
 }
 
-/// Player menu: hand out the armband, or change the stock in this slot.
+/// What taking [slot] off costs: nothing for a pick that isn't scoring (sold,
+/// or under the minimum) or in the weekend transfer window, otherwise one of
+/// the day's free substitutions, then points.
+String takeOffCost(Roster roster, RosterSlot slot) {
+  final session = roster.session;
+  if (slot.balance <= 0) return 'Free: it is no longer in your wallet';
+  if (session == null) return 'Counts as a substitution';
+  if (session.transferWindowOpen) return 'Free: the transfer window is open';
+  final left = session.freeSubstitutionsLeft;
+  if (left > 0) return 'Uses 1 of your $left free substitution${left == 1 ? '' : 's'} today';
+  return 'Costs 4 points: no free substitutions left today';
+}
+
+/// Player menu: hand out the armband, change the stock in this slot, or take
+/// it off and leave the position empty.
 class SlotActionsSheet extends StatelessWidget {
   const SlotActionsSheet({
     required this.title,
@@ -75,6 +92,17 @@ class SlotActionsSheet extends StatelessWidget {
               label: 'Change stock',
               onTap: () => then(() => StockPickerSheet.show(context, slotIndex: slotIndex)),
             ),
+            SlotAction(
+              icon: Icons.person_remove_outlined,
+              label: 'Take off',
+              detail: takeOffCost(roster, slot),
+              onTap: () => then(() => guarded(() async {
+                    await cubit.takeOff(slotIndex);
+                    if (context.mounted) {
+                      context.showSuccessToast(message: '${stock.symbol} is off. It stays on your bench.');
+                    }
+                  })),
+            ),
           ],
         );
       },
@@ -105,6 +133,9 @@ class SlotActionsSheet extends StatelessWidget {
               ListTile(
                 leading: Icon(action.icon, color: AppColors.primary),
                 title: Text(action.label),
+                subtitle: action.detail == null
+                    ? null
+                    : Text(action.detail!, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 onTap: action.onTap,
               ),
             const Padding(

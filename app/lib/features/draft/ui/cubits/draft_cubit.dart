@@ -55,6 +55,12 @@ class DraftCubit extends Cubit<DraftState> {
     if (!isClosed) emit(state.copyWith(roster: roster));
   }
 
+  /// Takes a pick off, leaving the position empty.
+  Future<void> takeOff(int slotIndex) async {
+    final roster = await _repository.clearSlot(mode, slotIndex);
+    if (!isClosed) emit(state.copyWith(roster: roster));
+  }
+
   /// Tokens the server accepts as payment.
   Future<List<PayToken>> payTokens() => _repository.getPayTokens();
 

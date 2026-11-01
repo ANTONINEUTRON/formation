@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -43,6 +44,19 @@ export class RosterController {
       slotIndex,
       requireString(body.mint, 'mint'),
     );
+  }
+
+  /**
+   * Takes a pick off the lineup, leaving its position empty. Counts as a
+   * substitution while the pick is still scoring.
+   */
+  @Delete(':mode/slots/:slotIndex')
+  clear(
+    @Param('mode') mode: string,
+    @Param('slotIndex', ParseIntPipe) slotIndex: number,
+    @CurrentUser() user: AuthUser,
+  ): Promise<RosterDto> {
+    return this.rosters.clearSlot(user, parseSportMode(mode), slotIndex);
   }
 
   /** "Use what I hold": fills an empty team from the wallet's own stocks. */

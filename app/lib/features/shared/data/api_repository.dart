@@ -286,6 +286,13 @@ class ApiRepository implements FormationRepository {
   }
 
   @override
+  Future<Roster> clearSlot(SportMode mode, int slotIndex) async {
+    final json = await _request('DELETE', '/roster/${mode.apiValue}/slots/$slotIndex');
+    _notify();
+    return _roster(mode, json as Map<String, dynamic>);
+  }
+
+  @override
   Future<FormationChange> setFormation(SportMode mode, String formation) async {
     final json = await _request('PUT', '/roster/${mode.apiValue}/formation',
         body: {'formation': formation}) as Map<String, dynamic>;

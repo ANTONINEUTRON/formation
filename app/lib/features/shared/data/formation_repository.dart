@@ -31,6 +31,10 @@ abstract class FormationRepository {
   /// Puts [stock] into slot [slotIndex], using the wallet's real balance.
   Future<Roster> fillSlot(SportMode mode, int slotIndex, XStock stock);
 
+  /// Takes a pick off, leaving its position empty; the stock stays in the
+  /// wallet. Counts as a substitution while the pick is still scoring.
+  Future<Roster> clearSlot(SportMode mode, int slotIndex);
+
   /// Football only: changes shape. Picks that no longer fit come off the team
   /// and are returned as `dropped`.
   Future<FormationChange> setFormation(SportMode mode, String formation);

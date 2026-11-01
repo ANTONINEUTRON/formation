@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:formation/core/layout/breakpoints.dart';
 import 'package:formation/core/route/app_route.dart';
 import 'package:formation/features/assistant_manager/ui/cubits/assistant_cubit.dart';
+import 'package:formation/features/home/data/home_prefs.dart';
 import 'package:formation/features/onboarding/data/onboarding_prefs.dart';
 import 'package:formation/features/shared/data/formation_repository.dart';
 import 'package:formation/core/theme/theme.dart';
@@ -31,15 +32,34 @@ class _HomePageState extends State<HomePage> {
     SportMode.americanFootball,
   ];
 
+  final _prefs = HomePrefs();
   int _currentIndex = 0;
+
+  /// False until the last sport is read back, so the app doesn't flash
+  /// football before switching to the sport the Manager was on.
+  bool _ready = false;
 
   void _onTabSelected(int index) {
     setState(() => _currentIndex = index);
+    _prefs.setLastSport(_modes[index]);
+  }
+
+  /// Reopens on the sport the Manager was last on. A slow read doesn't hold
+  /// the app up: past a moment, it opens on football.
+  Future<void> _restoreSport() async {
+    final mode = await _prefs.lastSport().timeout(const Duration(milliseconds: 400), onTimeout: () => null);
+    if (!mounted) return;
+    setState(() {
+      final index = mode == null ? -1 : _modes.indexOf(mode);
+      if (index >= 0) _currentIndex = index;
+      _ready = true;
+    });
   }
 
   @override
   void initState() {
     super.initState();
+    _restoreSport();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showLatestNotification();
       _welcome();
@@ -99,6 +119,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_ready) return const Scaffold(backgroundColor: AppColors.background);
+
     // A floating bar across the bottom of a desktop window puts the sport
     // switcher as far from the pointer as the window allows, and reads as a
     // phone app in a browser. A rail keeps it beside the content.

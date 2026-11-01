@@ -55,8 +55,29 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
   @override
   void initState() {
     super.initState();
+    // The balance shown should be the wallet's now, not from before the last trade.
+    context.read<WalletCubit>().fetchBalances();
     _loadPayTokens();
     _fetchQuote();
+  }
+
+  /// What the wallet holds of the token being paid with; null until known.
+  double? get _held => context
+      .read<WalletCubit>()
+      .state
+      .balances
+      .where((b) => b.currency == _payWith.symbol)
+      .firstOrNull
+      ?.amount;
+
+  /// Fills the field with everything held, rounded down to what it accepts.
+  void _useMax(double held) {
+    final max = (held * 100).floor() / 100;
+    final text = max.toStringAsFixed(2);
+    _controller
+      ..text = text
+      ..selection = TextSelection.collapsed(offset: text.length);
+    _onAmountChanged(text);
   }
 
   Future<void> _loadPayTokens() async {
@@ -125,6 +146,12 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     if (value < _payWith.minAmount) {
       return 'At least ${formatAmount(_payWith.minAmount)} ${_payWith.symbol}';
     }
+    // Only once the balance is known: a missing one is a fetch that hasn't
+    // landed, not an empty wallet.
+    final held = _held;
+    if (held != null && value > held + 1e-9) {
+      return 'You have ${formatAmount(held)} ${_payWith.symbol}';
+    }
     return null;
   }
 
@@ -157,6 +184,7 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
     try {
       final shares = await context.read<DraftCubit>().buyAndFill(widget.slotIndex, quote);
       if (!mounted) return;
+      context.read<WalletCubit>().fetchBalances();
       Navigator.of(context).pop();
       context.showSuccessToast(message: 'Bought ${formatShares(shares)} ${widget.stock.symbol}');
     } catch (e) {
@@ -169,6 +197,9 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
   @override
   Widget build(BuildContext context) {
     final quote = _quote;
+    // Watched, so the balance line and the "you have" check follow the wallet.
+    final wallet = context.watch<WalletCubit>().state;
+    final held = _held;
 
     return SafeArea(
       // The amount field autofocuses, so the keyboard is up before the player
@@ -211,6 +242,13 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
               onChanged: _onAmountChanged,
               onSubmitted: (_) => _fetchQuote(),
             ),
+            if (held != null || wallet.isLoadingBalances)
+              _BalanceLine(
+                text: held == null
+                    ? 'Balance: …'
+                    : 'Balance: ${formatAmount(held)} ${_payWith.symbol}',
+                onMax: held == null || held < _payWith.minAmount || _buying ? null : () => _useMax(held),
+              ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(14),
@@ -284,6 +322,37 @@ class _BuyStockSheetState extends State<BuyStockSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Balance: 12.40 USDC" under the amount, with a Max button.
+class _BalanceLine extends StatelessWidget {
+  const _BalanceLine({required this.text, required this.onMax});
+
+  final String text;
+  final VoidCallback? onMax;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(text, style: AppTextStyles.mono(fontSize: 12, color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: onMax,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            child: const Text('Max'),
+          ),
+        ],
       ),
     );
   }
